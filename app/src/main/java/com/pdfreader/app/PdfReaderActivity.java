@@ -1,27 +1,33 @@
 package com.pdfreader.app;
 
+import android.graphics.Bitmap;
+import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import com.github.barteksc.pdfviewer.PDFView;
-import com.github.barteksc.pdfviewer.listener.OnLoadCompleteListener;
-import com.github.barteksc.pdfviewer.listener.OnPageChangeListener;
-import com.github.barteksc.pdfviewer.listener.OnPageErrorListener;
-import com.github.barteksc.pdfviewer.scroll.DefaultScrollHandle;
-
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-public class PdfReaderActivity extends AppCompatActivity implements OnPageChangeListener,
-        OnLoadCompleteListener, OnPageErrorListener {
+public class PdfReaderActivity extends AppCompatActivity {
 
-    private PDFView pdfView;
+    private ImageView pdfImageView;
+    private Button prevButton, nextButton;
     private String pdfPath;
     private String pdfTitle;
     private int currentPage = 0;
+    private PdfRenderer pdfRenderer;
+    private PdfRenderer.Page currentPdfPage;
+    private ParcelFileDescriptor parcelFileDescriptor;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,7 +40,9 @@ public class PdfReaderActivity extends AppCompatActivity implements OnPageChange
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        pdfView = findViewById(R.id.pdfView);
+        pdfImageView = findViewById(R.id.pdfImageView);
+        prevButton = findViewById(R.id.prevButton);
+        nextButton = findViewById(R.id.nextButton);
 
         pdfPath = getIntent().getStringExtra("PDF_PATH");
         pdfTitle = getIntent().getStringExtra("PDF_TITLE");
@@ -49,71 +57,108 @@ public class PdfReaderActivity extends AppCompatActivity implements OnPageChange
             Toast.makeText(this, "Error: PDF path not found", Toast.LENGTH_SHORT).show();
             finish();
         }
+
+        prevButton.setOnClickListener(v -> {
+            if (currentPage > 0) {
+                currentPage--;
+                showPage(currentPage);
+            }
+        });
+
+        nextButton.setOnClickListener(v -> {
+            if (pdfRenderer != null && currentPage < pdfRenderer.getPageCount() - 1) {
+                currentPage++;
+                showPage(currentPage);
+            }
+        });
     }
 
     private void displayPdf() {
         try {
+            File file;
             if (pdfPath.startsWith("content://")) {
-                // Handle content URI
+                // Handle content URI - copy to cache
                 Uri uri = Uri.parse(pdfPath);
-                pdfView.fromUri(uri)
-                        .defaultPage(currentPage)
-                        .onPageChange(this)
-                        .enableAnnotationRendering(true)
-                        .onLoad(this)
-                        .scrollHandle(new DefaultScrollHandle(this))
-                        .spacing(10)
-                        .onPageError(this)
-                        .load();
-            } else {
-                // Handle file path
-                File file = new File(pdfPath);
-                if (file.exists()) {
-                    pdfView.fromFile(file)
-                            .defaultPage(currentPage)
-                            .onPageChange(this)
-                            .enableAnnotationRendering(true)
-                            .onLoad(this)
-                            .scrollHandle(new DefaultScrollHandle(this))
-                            .spacing(10)
-                            .onPageError(this)
-                            .load();
-                } else {
-                    Toast.makeText(this, "PDF file not found", Toast.LENGTH_SHORT).show();
-                    finish();
+                file = new File(getCacheDir(), "temp.pdf");
+                InputStream inputStream = getContentResolver().openInputStream(uri);
+                FileOutputStream outputStream = new FileOutputStream(file);
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = inputStream.read(buffer)) > 0) {
+                    outputStream.write(buffer, 0, length);
                 }
+                outputStream.close();
+                inputStream.close();
+            } else {
+                file = new File(pdfPath);
             }
+
+            if (!file.exists()) {
+                Toast.makeText(this, "PDF file not found", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
+
+            parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+            pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+            
+            showPage(currentPage);
+
         } catch (Exception e) {
-            Toast.makeText(this, "Error loading PDF: " + e.getMessage(),
-                    Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Error loading PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
             e.printStackTrace();
             finish();
         }
     }
 
-    @Override
-    public void onPageChanged(int page, int pageCount) {
-        currentPage = page;
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setSubtitle(String.format("Page %d of %d", page + 1, pageCount));
+    private void showPage(int index) {
+        if (pdfRenderer == null) return;
+
+        if (currentPdfPage != null) {
+            currentPdfPage.close();
         }
-    }
 
-    @Override
-    public void loadComplete(int nbPages) {
-        Toast.makeText(this, "PDF loaded successfully", Toast.LENGTH_SHORT).show();
-    }
+        currentPdfPage = pdfRenderer.openPage(index);
+        
+        Bitmap bitmap = Bitmap.createBitmap(currentPdfPage.getWidth() * 2, 
+                                           currentPdfPage.getHeight() * 2, 
+                                           Bitmap.Config.ARGB_8888);
+        currentPdfPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+        
+        pdfImageView.setImageBitmap(bitmap);
+        
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().setSubtitle(
+                String.format("Page %d of %d", index + 1, pdfRenderer.getPageCount())
+            );
+        }
 
-    @Override
-    public void onPageError(int page, Throwable t) {
-        Toast.makeText(this, "Error on page " + page + ": " + t.getMessage(),
-                Toast.LENGTH_SHORT).show();
+        prevButton.setEnabled(index > 0);
+        nextButton.setEnabled(index < pdfRenderer.getPageCount() - 1);
     }
 
     @Override
     public boolean onSupportNavigateUp() {
         onBackPressed();
         return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        try {
+            if (currentPdfPage != null) {
+                currentPdfPage.close();
+            }
+            if (pdfRenderer != null) {
+                pdfRenderer.close();
+            }
+            if (parcelFileDescriptor != null) {
+                parcelFileDescriptor.close();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     @Override

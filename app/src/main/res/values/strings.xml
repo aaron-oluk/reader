@@ -3,4 +3,7 @@
     <string name="app_name">PDF Reader</string>
     <string name="add_pdf">Add PDF</string>
     <string name="action_refresh">Refresh</string>
+    <string name="pdf_page">PDF Page</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
 </resources>
