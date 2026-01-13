@@ -1,0 +1,521 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light_gray"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <ImageView
+                android:id="@+id/back_button"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_back"
+                android:contentDescription="Back" />
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Reading Insights"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold"
+                android:gravity="center" />
+
+            <ImageView
+                android:id="@+id/share_button"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_share"
+                android:contentDescription="Share" />
+        </LinearLayout>
+
+        <!-- Monthly Volume Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:backgroundTint="@color/primary_blue">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="24dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="MONTHLY VOLUME"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_white"
+                    android:alpha="0.8"
+                    android:letterSpacing="0.05" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="bottom"
+                    android:layout_marginTop="8dp">
+
+                    <TextView
+                        android:id="@+id/monthly_pages"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1,420"
+                        android:textSize="56sp"
+                        android:textColor="@color/text_white"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=" pages"
+                        android:textSize="20sp"
+                        android:textColor="@color/text_white"
+                        android:layout_marginStart="8dp" />
+                </LinearLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Activity in October"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_white"
+                    android:alpha="0.8"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Stats Row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="20dp">
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:backgroundTint="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_book_finished"
+                        android:contentDescription="Finished" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="FINISHED"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="8dp" />
+
+                    <TextView
+                        android:id="@+id/books_finished"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="12"
+                        android:textSize="32sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:backgroundTint="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_speed"
+                        android:contentDescription="Speed" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SPEED"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="bottom"
+                        android:layout_marginTop="4dp">
+
+                        <TextView
+                            android:id="@+id/reading_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="280"
+                            android:textSize="32sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" wpm"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginStart="4dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:backgroundTint="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_fire"
+                        android:contentDescription="Streak" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="STREAK"
+                        android:textSize="10sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="8dp" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="bottom"
+                        android:layout_marginTop="4dp">
+
+                        <TextView
+                            android:id="@+id/current_streak"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="15"
+                            android:textSize="32sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" days"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginStart="4dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Weekly Progress -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:backgroundTint="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Weekly Progress"
+                            android:textSize="18sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Last 7 days  +12%"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="4dp" />
+                    </LinearLayout>
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_calendar"
+                        android:contentDescription="Calendar" />
+                </LinearLayout>
+
+                <!-- Chart Placeholder -->
+                <View
+                    android:id="@+id/weekly_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:background="@color/background_light_gray" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Reading Goal -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:backgroundTint="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="2024 Reading Goal"
+                        android:textSize="18sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/goal_percentage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="50%"
+                        android:textSize="16sp"
+                        android:textColor="@color/primary_blue"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/goal_progress"
+                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="12dp"
+                    android:progress="50"
+                    android:progressDrawable="@drawable/progress_bar_horizontal"
+                    android:layout_marginBottom="12dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/books_read_count"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="12 books read"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_primary" />
+
+                    <TextView
+                        android:id="@+id/books_goal_count"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="24 books goal"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Personal Habits -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Personal Habits"
+            android:textSize="20sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:backgroundTint="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <View
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_background_blue" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Evening Reader"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Active between 9 PM — 11 PM"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:backgroundTint="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="16dp"
+                android:gravity="center_vertical">
+
+                <View
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_background_blue" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:layout_marginStart="16dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Fiction Enthusiast"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="74% Classic Literature focus"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Export Report Button -->
+        <Button
+            android:id="@+id/export_report_button"
+            android:layout_width="match_parent"
+            android:layout_height="56dp"
+            android:text="⬇  Export Report"
+            android:textColor="@color/text_white"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:backgroundTint="@color/primary_blue"
+            android:layout_marginBottom="20dp"
+            app:cornerRadius="28dp" />
+    </LinearLayout>
+</ScrollView>

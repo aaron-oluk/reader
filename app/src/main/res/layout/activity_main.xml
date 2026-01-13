@@ -43,7 +43,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout
@@ -79,7 +79,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout
@@ -123,7 +123,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout
@@ -159,7 +159,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout
@@ -203,7 +203,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout
@@ -239,7 +239,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout
@@ -283,7 +283,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_margin="8dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="4dp">
 
                     <LinearLayout

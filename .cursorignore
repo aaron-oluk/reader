@@ -1,0 +1,21 @@
+# Build directories
+build/
+app/build/
+.gradle/
+
+# IDE directories
+.idea/
+.vscode/
+
+# Generated files
+*.apk
+*.ap_
+*.aab
+*.dex
+*.class
+
+# System files
+.DS_Store
+
+# Local configuration
+local.properties

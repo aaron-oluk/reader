@@ -1,0 +1,429 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_light_gray"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <!-- Header Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="24dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/greeting_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Good Evening, Elena"
+                    android:textSize="24sp"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Ready for your next chapter?"
+                    android:textSize="14sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="4dp" />
+            </LinearLayout>
+
+            <ImageView
+                android:id="@+id/notification_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_notifications"
+                android:layout_marginEnd="16dp"
+                android:contentDescription="Notifications" />
+
+            <ImageView
+                android:id="@+id/bookmark_icon"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:src="@drawable/ic_bookmark"
+                android:contentDescription="Bookmarks" />
+        </LinearLayout>
+
+        <!-- Current Streak Card -->
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="2dp"
+            android:backgroundTint="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:padding="20dp"
+                android:gravity="center_vertical">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CURRENT STREAK"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:letterSpacing="0.05" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+
+                        <TextView
+                            android:id="@+id/streak_number"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="12"
+                            android:textSize="48sp"
+                            android:textColor="@color/text_primary"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Days Reading"
+                            android:textSize="16sp"
+                            android:textColor="@color/primary_blue"
+                            android:layout_marginStart="12dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_fire"
+                    android:contentDescription="Streak" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Currently Reading Card -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="CURRENTLY READING"
+            android:textSize="12sp"
+            android:textColor="@color/text_secondary"
+            android:letterSpacing="0.05"
+            android:layout_marginBottom="12dp" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/currently_reading_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="4dp"
+            android:backgroundTint="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="20dp">
+
+                <ImageView
+                    android:id="@+id/book_cover"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/placeholder_book"
+                    android:layout_marginBottom="16dp"
+                    android:contentDescription="Book Cover" />
+
+                <TextView
+                    android:id="@+id/book_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="The Midnight Library"
+                    android:textSize="24sp"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/book_author"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Matt Haig"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="4dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginTop="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="PROGRESS"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary" />
+
+                    <TextView
+                        android:id="@+id/progress_percentage"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="75%"
+                        android:textSize="16sp"
+                        android:textColor="@color/primary_blue"
+                        android:textStyle="bold" />
+                </LinearLayout>
+
+                <ProgressBar
+                    android:id="@+id/reading_progress"
+                    style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="8dp"
+                    android:progress="75"
+                    android:progressDrawable="@drawable/progress_bar_horizontal"
+                    android:layout_marginTop="8dp" />
+
+                <Button
+                    android:id="@+id/start_reading_button"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:text="▶  Start Reading Session"
+                    android:textColor="@color/text_white"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:backgroundTint="@color/primary_blue"
+                    android:layout_marginTop="16dp"
+                    app:cornerRadius="8dp" />
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <!-- Daily Goals Section -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Daily Goals"
+            android:textSize="20sp"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:layout_marginBottom="16dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="24dp">
+
+            <!-- Time Spent Goal -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="10dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:backgroundTint="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:gravity="center">
+
+                    <!-- Circular Progress -->
+                    <FrameLayout
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        android:layout_marginBottom="16dp">
+
+                        <ProgressBar
+                            android:id="@+id/time_progress_circle"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:progress="75"
+                            android:max="100"
+                            android:progressDrawable="@drawable/circular_progress"
+                            android:indeterminate="false" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:id="@+id/time_spent_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="45"
+                                android:textSize="32sp"
+                                android:textColor="@color/text_primary"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="MINS"
+                                android:textSize="12sp"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Time Spent"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Target: 60m"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Pages Read Goal -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="10dp"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="2dp"
+                android:backgroundTint="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp"
+                    android:gravity="center">
+
+                    <!-- Circular Progress -->
+                    <FrameLayout
+                        android:layout_width="120dp"
+                        android:layout_height="120dp"
+                        android:layout_marginBottom="16dp">
+
+                        <ProgressBar
+                            android:id="@+id/pages_progress_circle"
+                            style="?android:attr/progressBarStyleHorizontal"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:progress="40"
+                            android:max="100"
+                            android:progressDrawable="@drawable/circular_progress"
+                            android:indeterminate="false" />
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_gravity="center"
+                            android:orientation="vertical"
+                            android:gravity="center">
+
+                            <TextView
+                                android:id="@+id/pages_read_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="12"
+                                android:textSize="32sp"
+                                android:textColor="@color/text_primary"
+                                android:textStyle="bold" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="PAGES"
+                                android:textSize="12sp"
+                                android:textColor="@color/text_secondary" />
+                        </LinearLayout>
+                    </FrameLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Pages Read"
+                        android:textSize="16sp"
+                        android:textColor="@color/text_primary"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Target: 30p"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="4dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+
+        <!-- Up Next Section -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Up Next"
+                android:textSize="20sp"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="View All"
+                android:textSize="14sp"
+                android:textColor="@color/primary_blue"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/up_next_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:clipToPadding="false" />
+    </LinearLayout>
+</ScrollView>

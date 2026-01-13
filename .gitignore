@@ -25,6 +25,7 @@ local.properties
 .idea/
 *.iml
 .DS_Store
+.vscode/
 
 # Gradle wrapper (optional - some projects track this)
 gradle/wrapper/gradle-wrapper.jar

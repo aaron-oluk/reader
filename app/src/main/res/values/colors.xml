@@ -1,12 +1,49 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Legacy Colors -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
-    <color name="primary_blue">#4052D6</color>
-    <color name="primary_blue_dark">#3344B0</color>
     <color name="teal_200">#FF03DAC5</color>
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    
+    <!-- Primary Colors -->
+    <color name="primary_blue">#2B7FED</color>
+    <color name="primary_blue_dark">#1E5DB8</color>
+    <color name="primary_blue_light">#5FA4F5</color>
+    
+    <!-- Background Colors -->
+    <color name="background_white">#FFFFFF</color>
+    <color name="background_light_gray">#F5F7FA</color>
+    <color name="background_card">#FFFFFF</color>
+    
+    <!-- Text Colors -->
+    <color name="text_primary">#1A1A1A</color>
+    <color name="text_secondary">#8E8E93</color>
+    <color name="text_tertiary">#C7C7CC</color>
+    <color name="text_white">#FFFFFF</color>
+    
+    <!-- Accent Colors -->
+    <color name="accent_orange">#FF9500</color>
+    <color name="accent_green">#34C759</color>
+    <color name="accent_red">#FF3B30</color>
+    
+    <!-- Progress Colors -->
+    <color name="progress_blue">#2B7FED</color>
+    <color name="progress_background">#E5E5EA</color>
+    
+    <!-- Card & Divider Colors -->
+    <color name="card_border">#E5E5EA</color>
+    <color name="divider">#E5E5EA</color>
+    
+    <!-- Overlay & Shadow -->
+    <color name="overlay_dark">#80000000</color>
+    <color name="shadow">#1A000000</color>
+    
+    <!-- Status Colors -->
+    <color name="status_active">#2B7FED</color>
+    <color name="status_paused">#FF9500</color>
+    <color name="status_completed">#34C759</color>
 </resources>

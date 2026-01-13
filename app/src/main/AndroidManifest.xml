@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.CAMERA" />
 
     <application
         android:allowBackup="true"
@@ -17,14 +18,26 @@
         android:theme="@style/Theme.PDFReader"
         android:usesCleartextTraffic="true">
 
+        <!-- New Main Activity with Bottom Navigation -->
         <activity
-            android:name=".MainActivity"
+            android:name=".MainActivityNew"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Reading Session Activity -->
+        <activity
+            android:name=".ReadingSessionActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <!-- Legacy Main Activity (kept for compatibility) -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="false" />
 
         <activity
             android:name=".PdfReaderActivity"
