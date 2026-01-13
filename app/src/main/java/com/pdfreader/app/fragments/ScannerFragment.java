@@ -19,6 +19,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.material.button.MaterialButton;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
@@ -27,7 +29,8 @@ import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
-import androidx.core.app.ActivityCompat;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
@@ -45,8 +48,6 @@ import java.util.concurrent.ExecutionException;
 
 public class ScannerFragment extends Fragment {
 
-    private static final int CAMERA_PERMISSION_CODE = 100;
-
     private PreviewView cameraPreview;
     private ImageCapture imageCapture;
     private ProcessCameraProvider cameraProvider;
@@ -56,8 +57,25 @@ public class ScannerFragment extends Fragment {
     private TextView scanPageTab;
     private TextView signTab;
     private FrameLayout captureButton;
-    private ImageView flashToggle;
-    private ImageView closeScanner;
+    private MaterialButton flashToggle;
+    private MaterialButton closeScanner;
+    private ActivityResultLauncher<String> requestPermissionLauncher;
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        
+        // Register permission launcher
+        requestPermissionLauncher = registerForActivityResult(
+                new ActivityResultContracts.RequestPermission(),
+                isGranted -> {
+                    if (isGranted) {
+                        startCamera();
+                    } else {
+                        Toast.makeText(requireContext(), "Camera permission is required", Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
 
     @Nullable
     @Override
@@ -84,6 +102,11 @@ public class ScannerFragment extends Fragment {
         captureButton = view.findViewById(R.id.capture_button);
         flashToggle = view.findViewById(R.id.flash_toggle);
         closeScanner = view.findViewById(R.id.close_scanner);
+        
+        // Ensure views are not null
+        if (cameraPreview == null || flashToggle == null || closeScanner == null) {
+            throw new IllegalStateException("Required views not found in layout");
+        }
     }
 
     private void setupClickListeners() {
@@ -93,7 +116,7 @@ public class ScannerFragment extends Fragment {
 
         closeScanner.setOnClickListener(v -> {
             if (getActivity() != null) {
-                getActivity().onBackPressed();
+                requireActivity().getOnBackPressedDispatcher().onBackPressed();
             }
         });
 
@@ -126,53 +149,80 @@ public class ScannerFragment extends Fragment {
     }
 
     private void requestCameraPermission() {
-        ActivityCompat.requestPermissions(requireActivity(),
-                new String[]{Manifest.permission.CAMERA},
-                CAMERA_PERMISSION_CODE);
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
-        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_PERMISSION_CODE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                startCamera();
-            } else {
-                Toast.makeText(getContext(), "Camera permission is required", Toast.LENGTH_SHORT).show();
-            }
-        }
+        requestPermissionLauncher.launch(Manifest.permission.CAMERA);
     }
 
     private void startCamera() {
+        // Ensure view is attached before starting camera
+        if (cameraPreview == null || !isAdded()) {
+            return;
+        }
+        
         ListenableFuture<ProcessCameraProvider> cameraProviderFuture =
                 ProcessCameraProvider.getInstance(requireContext());
 
         cameraProviderFuture.addListener(() -> {
             try {
+                if (!isAdded() || cameraPreview == null) {
+                    return; // Fragment detached or view destroyed
+                }
                 cameraProvider = cameraProviderFuture.get();
-                bindCameraUseCases();
-            } catch (ExecutionException | InterruptedException e) {
-                Toast.makeText(getContext(), "Error starting camera", Toast.LENGTH_SHORT).show();
+                if (cameraProvider != null) {
+                    bindCameraUseCases();
+                } else {
+                    if (isAdded()) {
+                        Toast.makeText(requireContext(), "Camera provider is null", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            } catch (ExecutionException e) {
+                if (isAdded()) {
+                    String errorMsg = "Error starting camera: " + (e.getCause() != null ? e.getCause().getMessage() : e.getMessage());
+                    Toast.makeText(requireContext(), errorMsg, Toast.LENGTH_LONG).show();
+                    e.printStackTrace();
+                }
+            } catch (InterruptedException e) {
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), "Camera initialization interrupted", Toast.LENGTH_SHORT).show();
+                }
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                if (isAdded()) {
+                    Toast.makeText(requireContext(), "Unexpected error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    e.printStackTrace();
+                }
             }
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
     private void bindCameraUseCases() {
-        if (cameraProvider == null) return;
-
-        // Preview
-        Preview preview = new Preview.Builder().build();
-        preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
-
-        // Image capture
-        imageCapture = new ImageCapture.Builder()
-                .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
-                .build();
-
-        // Select back camera
-        CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+        if (cameraProvider == null || cameraPreview == null || !isAdded()) {
+            return;
+        }
 
         try {
+            // Preview
+            Preview preview = new Preview.Builder()
+                    .build();
+            preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
+
+            // Image capture
+            imageCapture = new ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                    .build();
+
+            // Select back camera, fallback to front if back is not available
+            CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
+            try {
+                // Test if back camera is available
+                if (!cameraProvider.hasCamera(cameraSelector)) {
+                    // Fallback to front camera if back camera is not available
+                    cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
+                }
+            } catch (Exception e) {
+                // If check fails, try front camera as fallback
+                cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
+            }
+
             // Unbind all use cases before rebinding
             cameraProvider.unbindAll();
 
@@ -185,7 +235,10 @@ public class ScannerFragment extends Fragment {
             );
 
         } catch (Exception e) {
-            Toast.makeText(getContext(), "Failed to bind camera", Toast.LENGTH_SHORT).show();
+            if (isAdded()) {
+                Toast.makeText(requireContext(), "Failed to bind camera: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                e.printStackTrace();
+            }
         }
     }
 

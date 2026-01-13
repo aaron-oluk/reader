@@ -1,8 +1,9 @@
 package com.pdfreader.app;
 
 import android.content.Intent;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -20,6 +21,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class SearchActivity extends AppCompatActivity {
 
@@ -72,7 +75,7 @@ public class SearchActivity extends AppCompatActivity {
         });
 
         // Start scanning for files
-        new ScanFilesTask().execute();
+        scanFiles();
     }
 
     private void filterFiles(String query) {
@@ -118,15 +121,14 @@ public class SearchActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private class ScanFilesTask extends AsyncTask<Void, Void, List<PdfBook>> {
-        @Override
-        protected void onPreExecute() {
-            progressBar.setVisibility(View.VISIBLE);
-            emptyText.setVisibility(View.GONE);
-        }
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
 
-        @Override
-        protected List<PdfBook> doInBackground(Void... voids) {
+    private void scanFiles() {
+        progressBar.setVisibility(View.VISIBLE);
+        emptyText.setVisibility(View.GONE);
+
+        executorService.execute(() -> {
             List<PdfBook> files = new ArrayList<>();
 
             // Scan common directories
@@ -143,43 +145,49 @@ public class SearchActivity extends AppCompatActivity {
                 }
             }
 
-            return files;
-        }
+            // Update UI on main thread
+            mainHandler.post(() -> {
+                progressBar.setVisibility(View.GONE);
+                allFiles.clear();
+                allFiles.addAll(files);
+                filterFiles(searchInput.getText().toString());
+            });
+        });
+    }
 
-        private void scanDirectory(File directory, List<PdfBook> files, int depth) {
-            if (depth > 5) return; // Limit recursion depth
+    private void scanDirectory(File directory, List<PdfBook> files, int depth) {
+        if (depth > 5) return; // Limit recursion depth
 
-            File[] fileList = directory.listFiles();
-            if (fileList == null) return;
+        File[] fileList = directory.listFiles();
+        if (fileList == null) return;
 
-            for (File file : fileList) {
-                if (file.isDirectory() && !file.getName().startsWith(".")) {
-                    scanDirectory(file, files, depth + 1);
-                } else if (file.isFile()) {
-                    String name = file.getName().toLowerCase();
-                    if (name.endsWith(".pdf") || name.endsWith(".epub")) {
-                        String title = file.getName();
-                        if (title.contains(".")) {
-                            title = title.substring(0, title.lastIndexOf("."));
-                        }
-                        files.add(new PdfBook(title, file.getAbsolutePath(), formatFileSize(file.length())));
+        for (File file : fileList) {
+            if (file.isDirectory() && !file.getName().startsWith(".")) {
+                scanDirectory(file, files, depth + 1);
+            } else if (file.isFile()) {
+                String name = file.getName().toLowerCase();
+                if (name.endsWith(".pdf") || name.endsWith(".epub")) {
+                    String title = file.getName();
+                    if (title.contains(".")) {
+                        title = title.substring(0, title.lastIndexOf("."));
                     }
+                    files.add(new PdfBook(title, file.getAbsolutePath(), formatFileSize(file.length())));
                 }
             }
         }
+    }
 
-        private String formatFileSize(long size) {
-            if (size < 1024) return size + " B";
-            int z = (63 - Long.numberOfLeadingZeros(size)) / 10;
-            return String.format("%.1f %sB", (double) size / (1L << (z * 10)), " KMGTPE".charAt(z));
-        }
-
-        @Override
-        protected void onPostExecute(List<PdfBook> result) {
-            progressBar.setVisibility(View.GONE);
-            allFiles.clear();
-            allFiles.addAll(result);
-            filterFiles(searchInput.getText().toString());
+    private String formatFileSize(long size) {
+        if (size < 1024) return size + " B";
+        int z = (63 - Long.numberOfLeadingZeros(size)) / 10;
+        return String.format("%.1f %sB", (double) size / (1L << (z * 10)), " KMGTPE".charAt(z));
+    }
+    
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (executorService != null) {
+            executorService.shutdown();
         }
     }
 }

@@ -14,6 +14,8 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -29,19 +31,43 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 100;
-    private static final int PICK_PDF_REQUEST = 200;
-    private static final int PICK_EPUB_REQUEST = 300;
 
     private RecyclerView recyclerView;
     private PdfBookAdapter adapter;
     private List<PdfBook> pdfBooks;
     private TextView resultsHeader;
     private HistoryManager historyManager;
+    
+    private ActivityResultLauncher<Intent> pdfPickerLauncher;
+    private ActivityResultLauncher<Intent> epubPickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        // Register activity result launchers
+        pdfPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            handleSelectedFile(uri, true);
+                        }
+                    }
+                });
+        
+        epubPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            handleSelectedFile(uri, false);
+                        }
+                    }
+                });
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -181,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
-        startActivityForResult(intent, PICK_PDF_REQUEST);
+        pdfPickerLauncher.launch(intent);
     }
 
     private void openEpubPicker() {
@@ -189,35 +215,27 @@ public class MainActivity extends AppCompatActivity {
         intent.setType("application/epub+zip");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        startActivityForResult(intent, PICK_EPUB_REQUEST);
+        epubPickerLauncher.launch(intent);
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
+    private void handleSelectedFile(Uri uri, boolean isPdf) {
+        // Take persistable permission
+        try {
+            getContentResolver().takePersistableUriPermission(uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
 
-        if (resultCode == RESULT_OK && data != null) {
-            Uri uri = data.getData();
-            if (uri != null) {
-                // Take persistable permission
-                try {
-                    getContentResolver().takePersistableUriPermission(uri,
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                } catch (SecurityException e) {
-                    e.printStackTrace();
-                }
+        String title = getFileNameFromUri(uri);
+        String path = uri.toString();
 
-                String title = getFileNameFromUri(uri);
-                String path = uri.toString();
-
-                if (requestCode == PICK_PDF_REQUEST) {
-                    historyManager.addToHistory(title, path);
-                    openPdfReader(path, title);
-                } else if (requestCode == PICK_EPUB_REQUEST) {
-                    historyManager.addToHistory(title, path);
-                    openEpubReader(path, title);
-                }
-            }
+        if (isPdf) {
+            historyManager.addToHistory(title, path);
+            openPdfReader(path, title);
+        } else {
+            historyManager.addToHistory(title, path);
+            openEpubReader(path, title);
         }
     }
 

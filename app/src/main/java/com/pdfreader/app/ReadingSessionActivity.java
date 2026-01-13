@@ -2,6 +2,7 @@ package com.pdfreader.app;
 
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -46,7 +47,7 @@ public class ReadingSessionActivity extends AppCompatActivity {
 
     private void setupTimer() {
         startTime = System.currentTimeMillis();
-        timerHandler = new Handler();
+        timerHandler = new Handler(Looper.getMainLooper());
 
         timerRunnable = new Runnable() {
             @Override

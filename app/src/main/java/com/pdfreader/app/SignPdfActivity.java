@@ -16,6 +16,8 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -32,7 +34,6 @@ import java.util.Locale;
 
 public class SignPdfActivity extends AppCompatActivity {
 
-    private static final int PICK_PDF_REQUEST = 100;
     private LinearLayout pagesContainer;
     private Button btnSelectPdf;
     private Button btnAddSignature;
@@ -46,11 +47,25 @@ public class SignPdfActivity extends AppCompatActivity {
     private int selectedPageIndex = -1;
     private float signatureX = 0;
     private float signatureY = 0;
+    private ActivityResultLauncher<Intent> pdfPickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_pdf);
+        
+        // Register activity result launcher
+        pdfPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            pdfPath = uri.toString();
+                            loadPdf(uri);
+                        }
+                    }
+                });
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -80,19 +95,7 @@ public class SignPdfActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("application/pdf");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, PICK_PDF_REQUEST);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_PDF_REQUEST && resultCode == RESULT_OK && data != null) {
-            Uri uri = data.getData();
-            if (uri != null) {
-                pdfPath = uri.toString();
-                loadPdf(uri);
-            }
-        }
+        pdfPickerLauncher.launch(intent);
     }
 
     private void loadPdf(Uri uri) {

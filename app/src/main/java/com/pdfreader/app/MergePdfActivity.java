@@ -16,6 +16,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -32,7 +34,6 @@ import java.util.Locale;
 
 public class MergePdfActivity extends AppCompatActivity {
 
-    private static final int PICK_PDFS_REQUEST = 100;
     private RecyclerView recyclerView;
     private Button btnSelectPdfs;
     private Button btnMerge;
@@ -41,11 +42,21 @@ public class MergePdfActivity extends AppCompatActivity {
     private List<Uri> selectedPdfs;
     private PdfBookAdapter adapter;
     private List<PdfBook> pdfList;
+    private ActivityResultLauncher<Intent> pdfPickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_merge_pdf);
+        
+        // Register activity result launcher
+        pdfPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        handlePdfSelection(result.getData());
+                    }
+                });
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -78,34 +89,30 @@ public class MergePdfActivity extends AppCompatActivity {
         intent.setType("application/pdf");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(intent, PICK_PDFS_REQUEST);
+        pdfPickerLauncher.launch(intent);
     }
+    
+    private void handlePdfSelection(Intent data) {
+        selectedPdfs.clear();
+        pdfList.clear();
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_PDFS_REQUEST && resultCode == RESULT_OK && data != null) {
-            selectedPdfs.clear();
-            pdfList.clear();
-
-            if (data.getClipData() != null) {
-                ClipData clipData = data.getClipData();
-                for (int i = 0; i < clipData.getItemCount(); i++) {
-                    Uri uri = clipData.getItemAt(i).getUri();
-                    selectedPdfs.add(uri);
-                    pdfList.add(new PdfBook("PDF " + (i + 1), uri.toString(), ""));
-                }
-            } else if (data.getData() != null) {
-                Uri uri = data.getData();
+        if (data.getClipData() != null) {
+            ClipData clipData = data.getClipData();
+            for (int i = 0; i < clipData.getItemCount(); i++) {
+                Uri uri = clipData.getItemAt(i).getUri();
                 selectedPdfs.add(uri);
-                pdfList.add(new PdfBook("PDF 1", uri.toString(), ""));
+                pdfList.add(new PdfBook("PDF " + (i + 1), uri.toString(), ""));
             }
-
-            adapter.notifyDataSetChanged();
-            statusText.setText(selectedPdfs.size() + " PDFs selected");
-            statusText.setVisibility(View.VISIBLE);
-            btnMerge.setEnabled(selectedPdfs.size() >= 2);
+        } else if (data.getData() != null) {
+            Uri uri = data.getData();
+            selectedPdfs.add(uri);
+            pdfList.add(new PdfBook("PDF 1", uri.toString(), ""));
         }
+
+        adapter.notifyDataSetChanged();
+        statusText.setText(selectedPdfs.size() + " PDFs selected");
+        statusText.setVisibility(View.VISIBLE);
+        btnMerge.setEnabled(selectedPdfs.size() >= 2);
     }
 
     private void mergePdfs() {

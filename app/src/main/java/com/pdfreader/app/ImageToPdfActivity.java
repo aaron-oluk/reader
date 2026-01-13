@@ -18,6 +18,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
@@ -32,18 +34,27 @@ import java.util.Locale;
 
 public class ImageToPdfActivity extends AppCompatActivity {
 
-    private static final int PICK_IMAGES_REQUEST = 100;
     private LinearLayout imagesContainer;
     private Button btnSelectImages;
     private Button btnCreatePdf;
     private ProgressBar progressBar;
     private TextView statusText;
     private List<Uri> selectedImages;
+    private ActivityResultLauncher<Intent> imagePickerLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_image_to_pdf);
+        
+        // Register activity result launcher
+        imagePickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        handleImageSelection(result.getData());
+                    }
+                });
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -71,33 +82,29 @@ public class ImageToPdfActivity extends AppCompatActivity {
         intent.setType("image/*");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-        startActivityForResult(intent, PICK_IMAGES_REQUEST);
+        imagePickerLauncher.launch(intent);
     }
+    
+    private void handleImageSelection(Intent data) {
+        selectedImages.clear();
+        imagesContainer.removeAllViews();
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_IMAGES_REQUEST && resultCode == RESULT_OK && data != null) {
-            selectedImages.clear();
-            imagesContainer.removeAllViews();
-
-            if (data.getClipData() != null) {
-                ClipData clipData = data.getClipData();
-                for (int i = 0; i < clipData.getItemCount(); i++) {
-                    Uri uri = clipData.getItemAt(i).getUri();
-                    selectedImages.add(uri);
-                    addImagePreview(uri);
-                }
-            } else if (data.getData() != null) {
-                Uri uri = data.getData();
+        if (data.getClipData() != null) {
+            ClipData clipData = data.getClipData();
+            for (int i = 0; i < clipData.getItemCount(); i++) {
+                Uri uri = clipData.getItemAt(i).getUri();
                 selectedImages.add(uri);
                 addImagePreview(uri);
             }
-
-            statusText.setText(selectedImages.size() + " images selected");
-            statusText.setVisibility(View.VISIBLE);
-            btnCreatePdf.setEnabled(!selectedImages.isEmpty());
+        } else if (data.getData() != null) {
+            Uri uri = data.getData();
+            selectedImages.add(uri);
+            addImagePreview(uri);
         }
+
+        statusText.setText(selectedImages.size() + " images selected");
+        statusText.setVisibility(View.VISIBLE);
+        btnCreatePdf.setEnabled(!selectedImages.isEmpty());
     }
 
     private void addImagePreview(Uri uri) {
