@@ -5,29 +5,29 @@ import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.widget.Button;
+import android.view.MenuItem;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
 public class PdfReaderActivity extends AppCompatActivity {
 
-    private ImageView pdfImageView;
-    private Button prevButton, nextButton;
+    private LinearLayout pagesContainer;
+    private ScrollView scrollView;
     private String pdfPath;
     private String pdfTitle;
-    private int currentPage = 0;
     private PdfRenderer pdfRenderer;
-    private PdfRenderer.Page currentPdfPage;
     private ParcelFileDescriptor parcelFileDescriptor;
+    private ReadingProgressManager progressManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,37 +40,23 @@ public class PdfReaderActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        pdfImageView = findViewById(R.id.pdfImageView);
-        prevButton = findViewById(R.id.prevButton);
-        nextButton = findViewById(R.id.nextButton);
+        pagesContainer = findViewById(R.id.pagesContainer);
+        scrollView = findViewById(R.id.scrollView);
+        progressManager = new ReadingProgressManager(this);
 
         pdfPath = getIntent().getStringExtra("PDF_PATH");
         pdfTitle = getIntent().getStringExtra("PDF_TITLE");
 
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(pdfTitle != null ? pdfTitle : "PDF Reader");
+        if (pdfTitle != null && getSupportActionBar() != null) {
+            getSupportActionBar().setTitle(pdfTitle);
         }
 
-        if (pdfPath != null) {
+        if (pdfPath != null && !pdfPath.isEmpty()) {
             displayPdf();
         } else {
             Toast.makeText(this, "Error: PDF path not found", Toast.LENGTH_SHORT).show();
             finish();
         }
-
-        prevButton.setOnClickListener(v -> {
-            if (currentPage > 0) {
-                currentPage--;
-                showPage(currentPage);
-            }
-        });
-
-        nextButton.setOnClickListener(v -> {
-            if (pdfRenderer != null && currentPage < pdfRenderer.getPageCount() - 1) {
-                currentPage++;
-                showPage(currentPage);
-            }
-        });
     }
 
     private void displayPdf() {
@@ -81,8 +67,13 @@ public class PdfReaderActivity extends AppCompatActivity {
                 Uri uri = Uri.parse(pdfPath);
                 file = new File(getCacheDir(), "temp.pdf");
                 InputStream inputStream = getContentResolver().openInputStream(uri);
+                if (inputStream == null) {
+                    Toast.makeText(this, "Cannot open PDF file", Toast.LENGTH_SHORT).show();
+                    finish();
+                    return;
+                }
                 FileOutputStream outputStream = new FileOutputStream(file);
-                byte[] buffer = new byte[1024];
+                byte[] buffer = new byte[4096];
                 int length;
                 while ((length = inputStream.read(buffer)) > 0) {
                     outputStream.write(buffer, 0, length);
@@ -101,8 +92,21 @@ public class PdfReaderActivity extends AppCompatActivity {
 
             parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
             pdfRenderer = new PdfRenderer(parcelFileDescriptor);
-            
-            showPage(currentPage);
+
+            int pageCount = pdfRenderer.getPageCount();
+
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setSubtitle(pageCount + " pages");
+            }
+
+            // Render all pages
+            renderAllPages();
+
+            // Restore scroll position after layout
+            scrollView.post(() -> {
+                int savedPosition = progressManager.getProgress(pdfPath);
+                scrollView.scrollTo(0, savedPosition);
+            });
 
         } catch (Exception e) {
             Toast.makeText(this, "Error loading PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
@@ -111,45 +115,67 @@ public class PdfReaderActivity extends AppCompatActivity {
         }
     }
 
-    private void showPage(int index) {
+    private void renderAllPages() {
         if (pdfRenderer == null) return;
 
-        if (currentPdfPage != null) {
-            currentPdfPage.close();
-        }
+        int pageCount = pdfRenderer.getPageCount();
 
-        currentPdfPage = pdfRenderer.openPage(index);
-        
-        Bitmap bitmap = Bitmap.createBitmap(currentPdfPage.getWidth() * 2, 
-                                           currentPdfPage.getHeight() * 2, 
-                                           Bitmap.Config.ARGB_8888);
-        currentPdfPage.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-        
-        pdfImageView.setImageBitmap(bitmap);
-        
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setSubtitle(
-                String.format("Page %d of %d", index + 1, pdfRenderer.getPageCount())
+        // Get screen width for scaling
+        int screenWidth = getResources().getDisplayMetrics().widthPixels - 32; // Account for padding
+
+        for (int i = 0; i < pageCount; i++) {
+            PdfRenderer.Page page = pdfRenderer.openPage(i);
+
+            // Calculate scale to fit screen width
+            float scale = (float) screenWidth / page.getWidth();
+            int scaledWidth = screenWidth;
+            int scaledHeight = (int) (page.getHeight() * scale);
+
+            Bitmap bitmap = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.ARGB_8888);
+            bitmap.eraseColor(0xFFFFFFFF); // White background
+
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+            page.close();
+
+            // Create ImageView for this page
+            ImageView imageView = new ImageView(this);
+            imageView.setImageBitmap(bitmap);
+            imageView.setAdjustViewBounds(true);
+
+            // Add margin between pages
+            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT,
+                    LinearLayout.LayoutParams.WRAP_CONTENT
             );
-        }
+            params.setMargins(0, 0, 0, 16);
+            imageView.setLayoutParams(params);
 
-        prevButton.setEnabled(index > 0);
-        nextButton.setEnabled(index < pdfRenderer.getPageCount() - 1);
+            pagesContainer.addView(imageView);
+        }
     }
 
     @Override
-    public boolean onSupportNavigateUp() {
-        onBackPressed();
-        return true;
+    protected void onPause() {
+        super.onPause();
+        // Save scroll position
+        if (pdfPath != null && scrollView != null) {
+            progressManager.saveProgress(pdfPath, scrollView.getScrollY());
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         try {
-            if (currentPdfPage != null) {
-                currentPdfPage.close();
-            }
             if (pdfRenderer != null) {
                 pdfRenderer.close();
             }
@@ -159,17 +185,5 @@ public class PdfReaderActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    @Override
-    protected void onSaveInstanceState(Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putInt("currentPage", currentPage);
-    }
-
-    @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
-        super.onRestoreInstanceState(savedInstanceState);
-        currentPage = savedInstanceState.getInt("currentPage", 0);
     }
 }

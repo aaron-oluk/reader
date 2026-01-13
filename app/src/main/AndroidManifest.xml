@@ -1,16 +1,22 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="29" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.AppCompat.Light.DarkActionBar">
-        
+        android:theme="@style/Theme.PDFReader"
+        android:usesCleartextTraffic="true">
+
         <activity
             android:name=".MainActivity"
             android:exported="true">
@@ -23,7 +29,33 @@
         <activity
             android:name=".PdfReaderActivity"
             android:exported="false"
-            android:theme="@style/Theme.AppCompat.Light.DarkActionBar" />
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
+            android:name=".SearchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
+            android:name=".SignPdfActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
+            android:name=".MergePdfActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
+            android:name=".ImageToPdfActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
+            android:name=".EpubReaderActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
     </application>
 
 </manifest>

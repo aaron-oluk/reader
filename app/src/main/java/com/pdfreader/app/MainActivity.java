@@ -1,6 +1,7 @@
 package com.pdfreader.app;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
@@ -9,21 +10,19 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.cardview.widget.CardView;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
-
-import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,10 +30,13 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int PERMISSION_REQUEST_CODE = 100;
     private static final int PICK_PDF_REQUEST = 200;
+    private static final int PICK_EPUB_REQUEST = 300;
 
     private RecyclerView recyclerView;
     private PdfBookAdapter adapter;
     private List<PdfBook> pdfBooks;
+    private TextView resultsHeader;
+    private HistoryManager historyManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,31 +46,74 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
-            getSupportActionBar().setTitle("My Library");
+            getSupportActionBar().setTitle(R.string.app_name);
         }
+
+        historyManager = new HistoryManager(this);
 
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        resultsHeader = findViewById(R.id.resultsHeader);
 
         pdfBooks = new ArrayList<>();
         adapter = new PdfBookAdapter(this, pdfBooks);
         recyclerView.setAdapter(adapter);
 
-        FloatingActionButton fab = findViewById(R.id.fab);
-        fab.setOnClickListener(v -> openFilePicker());
+        // Setup card click listeners
+        setupCardListeners();
 
+        // Check permissions on start
         checkPermissions();
+    }
+
+    private void setupCardListeners() {
+        CardView cardOpenPdf = findViewById(R.id.cardOpenPdf);
+        CardView cardSearch = findViewById(R.id.cardSearch);
+        CardView cardHistory = findViewById(R.id.cardHistory);
+        CardView cardMerge = findViewById(R.id.cardMerge);
+        CardView cardSign = findViewById(R.id.cardSign);
+        CardView cardImageToPdf = findViewById(R.id.cardImageToPdf);
+        CardView cardEpub = findViewById(R.id.cardEpub);
+
+        cardOpenPdf.setOnClickListener(v -> {
+            if (hasStoragePermission()) {
+                openPdfPicker();
+            } else {
+                checkPermissions();
+            }
+        });
+
+        cardSearch.setOnClickListener(v -> {
+            if (hasStoragePermission()) {
+                startActivity(new Intent(this, SearchActivity.class));
+            } else {
+                checkPermissions();
+            }
+        });
+
+        cardHistory.setOnClickListener(v -> loadHistory());
+
+        cardMerge.setOnClickListener(v -> {
+            startActivity(new Intent(this, MergePdfActivity.class));
+        });
+
+        cardSign.setOnClickListener(v -> {
+            startActivity(new Intent(this, SignPdfActivity.class));
+        });
+
+        cardImageToPdf.setOnClickListener(v -> {
+            startActivity(new Intent(this, ImageToPdfActivity.class));
+        });
+
+        cardEpub.setOnClickListener(v -> {
+            openEpubPicker();
+        });
     }
 
     private void checkPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
-                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                Uri uri = Uri.fromParts("package", getPackageName(), null);
-                intent.setData(uri);
-                startActivity(intent);
-            } else {
-                loadPdfFiles();
+                showStoragePermissionDialog();
             }
         } else {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
@@ -77,10 +122,25 @@ public class MainActivity extends AppCompatActivity {
                         new String[]{Manifest.permission.READ_EXTERNAL_STORAGE,
                                 Manifest.permission.WRITE_EXTERNAL_STORAGE},
                         PERMISSION_REQUEST_CODE);
-            } else {
-                loadPdfFiles();
             }
         }
+    }
+
+    private void showStoragePermissionDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Storage Permission Required")
+                .setMessage("This app needs access to your files to open documents. Please grant \"All files access\" permission.")
+                .setPositiveButton("Grant Permission", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    Uri uri = Uri.fromParts("package", getPackageName(), null);
+                    intent.setData(uri);
+                    startActivity(intent);
+                })
+                .setNegativeButton("Cancel", (dialog, which) -> {
+                    Toast.makeText(this, "Permission denied. Some features may not work.", Toast.LENGTH_SHORT).show();
+                })
+                .setCancelable(true)
+                .show();
     }
 
     @Override
@@ -89,78 +149,74 @@ public class MainActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == PERMISSION_REQUEST_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                loadPdfFiles();
+                Toast.makeText(this, "Permission granted", Toast.LENGTH_SHORT).show();
             } else {
-                Toast.makeText(this, "Permission denied. Cannot access PDF files.",
+                Toast.makeText(this, "Permission denied. Some features may not work.",
                         Toast.LENGTH_SHORT).show();
             }
         }
     }
 
-    private void loadPdfFiles() {
+    private void loadHistory() {
         pdfBooks.clear();
-        
-        // Load PDF files from Downloads folder
-        File downloadsFolder = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOWNLOADS);
-        if (downloadsFolder.exists()) {
-            findPdfFiles(downloadsFolder);
-        }
-        
-        // Load PDF files from Documents folder
-        File documentsFolder = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_DOCUMENTS);
-        if (documentsFolder.exists()) {
-            findPdfFiles(documentsFolder);
+        List<PdfBook> history = historyManager.getHistory();
+
+        if (history.isEmpty()) {
+            resultsHeader.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.GONE);
+            Toast.makeText(this, R.string.no_history, Toast.LENGTH_SHORT).show();
+        } else {
+            pdfBooks.addAll(history);
+            resultsHeader.setVisibility(View.VISIBLE);
+            resultsHeader.setText(R.string.recent_files);
+            recyclerView.setVisibility(View.VISIBLE);
         }
 
         adapter.notifyDataSetChanged();
-        
-        if (pdfBooks.isEmpty()) {
-            Toast.makeText(this, "No PDF files found. Use + button to add PDFs.",
-                    Toast.LENGTH_LONG).show();
-        }
     }
 
-    private void findPdfFiles(File directory) {
-        File[] files = directory.listFiles();
-        if (files != null) {
-            for (File file : files) {
-                if (file.isDirectory()) {
-                    findPdfFiles(file);
-                } else if (file.getName().toLowerCase().endsWith(".pdf")) {
-                    PdfBook book = new PdfBook(
-                            file.getName().replace(".pdf", ""),
-                            file.getAbsolutePath(),
-                            formatFileSize(file.length())
-                    );
-                    pdfBooks.add(book);
-                }
-            }
-        }
-    }
-
-    private String formatFileSize(long size) {
-        if (size < 1024) return size + " B";
-        int z = (63 - Long.numberOfLeadingZeros(size)) / 10;
-        return String.format("%.1f %sB", (double) size / (1L << (z * 10)),
-                " KMGTPE".charAt(z));
-    }
-
-    private void openFilePicker() {
-        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+    private void openPdfPicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("application/pdf");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(Intent.createChooser(intent, "Select PDF"), PICK_PDF_REQUEST);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION);
+        startActivityForResult(intent, PICK_PDF_REQUEST);
+    }
+
+    private void openEpubPicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.setType("application/epub+zip");
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        startActivityForResult(intent, PICK_EPUB_REQUEST);
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == PICK_PDF_REQUEST && resultCode == RESULT_OK && data != null) {
+
+        if (resultCode == RESULT_OK && data != null) {
             Uri uri = data.getData();
             if (uri != null) {
-                openPdfReader(uri.toString(), getFileNameFromUri(uri));
+                // Take persistable permission
+                try {
+                    getContentResolver().takePersistableUriPermission(uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                }
+
+                String title = getFileNameFromUri(uri);
+                String path = uri.toString();
+
+                if (requestCode == PICK_PDF_REQUEST) {
+                    historyManager.addToHistory(title, path);
+                    openPdfReader(path, title);
+                } else if (requestCode == PICK_EPUB_REQUEST) {
+                    historyManager.addToHistory(title, path);
+                    openEpubReader(path, title);
+                }
             }
         }
     }
@@ -179,36 +235,35 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return fileName.replace(".pdf", "");
+        // Remove extension
+        if (fileName.contains(".")) {
+            fileName = fileName.substring(0, fileName.lastIndexOf("."));
+        }
+        return fileName;
     }
 
     public void openPdfReader(String filePath, String title) {
+        historyManager.addToHistory(title, filePath);
         Intent intent = new Intent(this, PdfReaderActivity.class);
         intent.putExtra("PDF_PATH", filePath);
         intent.putExtra("PDF_TITLE", title);
         startActivity(intent);
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main_menu, menu);
-        return true;
+    public void openEpubReader(String filePath, String title) {
+        historyManager.addToHistory(title, filePath);
+        Intent intent = new Intent(this, EpubReaderActivity.class);
+        intent.putExtra("EPUB_PATH", filePath);
+        intent.putExtra("EPUB_TITLE", title);
+        startActivity(intent);
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-        if (id == R.id.action_refresh) {
-            loadPdfFiles();
-            Toast.makeText(this, "Library refreshed", Toast.LENGTH_SHORT).show();
-            return true;
+    private boolean hasStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        } else {
+            return ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED;
         }
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        loadPdfFiles();
     }
 }
