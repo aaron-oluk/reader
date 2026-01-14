@@ -8,12 +8,15 @@ import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.text.InputType;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -21,6 +24,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -48,6 +53,7 @@ public class SignPdfActivity extends AppCompatActivity {
     private float signatureX = 0;
     private float signatureY = 0;
     private ActivityResultLauncher<Intent> pdfPickerLauncher;
+    private SignatureManager signatureManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -82,6 +88,7 @@ public class SignPdfActivity extends AppCompatActivity {
 
         pageBitmaps = new ArrayList<>();
         pageViews = new ArrayList<>();
+        signatureManager = new SignatureManager(this);
 
         btnSelectPdf.setOnClickListener(v -> openFilePicker());
         btnAddSignature.setOnClickListener(v -> showSignatureDialog());
@@ -172,16 +179,96 @@ public class SignPdfActivity extends AppCompatActivity {
     }
 
     private void showSignatureDialog() {
+        // First show selector dialog with saved signatures
+        showSignatureSelectorDialog();
+    }
+    
+    private void showSignatureSelectorDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature_selector, null);
+        RecyclerView recyclerView = dialogView.findViewById(R.id.signatures_recycler);
+        Button btnCreateNew = dialogView.findViewById(R.id.btn_create_new);
+        
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
+        
+        // Load saved signatures
+        List<String> savedSignatures = signatureManager.getSavedSignatures();
+        TextView emptyState = dialogView.findViewById(R.id.empty_state_text);
+        
+        if (savedSignatures.isEmpty()) {
+            recyclerView.setVisibility(View.GONE);
+            emptyState.setVisibility(View.VISIBLE);
+        } else {
+            recyclerView.setVisibility(View.VISIBLE);
+            emptyState.setVisibility(View.GONE);
+        }
+        
+        SignatureAdapter adapter = new SignatureAdapter(savedSignatures, signatureManager);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+        
+        adapter.setOnSignatureClickListener(filePath -> {
+            Bitmap signature = signatureManager.loadSignature(filePath);
+            if (signature != null) {
+                signatureBitmap = signature;
+                Toast.makeText(this, "Signature selected", Toast.LENGTH_SHORT).show();
+                dialog.dismiss();
+            }
+        });
+        
+        adapter.setOnSignatureDeleteListener(filePath -> {
+            new AlertDialog.Builder(this)
+                    .setTitle("Delete Signature")
+                    .setMessage("Are you sure you want to delete this signature?")
+                    .setPositiveButton("Delete", (d, which) -> {
+                        if (signatureManager.deleteSignature(filePath)) {
+                            // Refresh list
+                            List<String> updated = signatureManager.getSavedSignatures();
+                            adapter.updateSignatures(updated);
+                            
+                            // Update empty state visibility
+                            if (updated.isEmpty()) {
+                                recyclerView.setVisibility(View.GONE);
+                                emptyState.setVisibility(View.VISIBLE);
+                            }
+                            
+                            Toast.makeText(this, "Signature deleted", Toast.LENGTH_SHORT).show();
+                        }
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+        });
+        
+        btnCreateNew.setOnClickListener(v -> {
+            dialog.dismiss();
+            showCreateSignatureDialog();
+        });
+        
+        dialog.show();
+    }
+    
+    private void showCreateSignatureDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature, null);
         SignatureView signatureView = dialogView.findViewById(R.id.signatureView);
         Button btnClear = dialogView.findViewById(R.id.btnClear);
+        Button btnSaveSignature = dialogView.findViewById(R.id.btnSaveSignature);
         Button btnDone = dialogView.findViewById(R.id.btnDone);
 
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
         btnClear.setOnClickListener(v -> signatureView.clear());
+        
+        btnSaveSignature.setOnClickListener(v -> {
+            if (signatureView.hasSignature()) {
+                showSaveSignatureNameDialog(signatureView.getSignatureBitmap(), dialog);
+            } else {
+                Toast.makeText(this, "Please draw your signature first", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
         btnDone.setOnClickListener(v -> {
             if (signatureView.hasSignature()) {
                 signatureBitmap = signatureView.getSignatureBitmap();
@@ -193,6 +280,32 @@ public class SignPdfActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+    
+    private void showSaveSignatureNameDialog(Bitmap signatureBitmap, androidx.appcompat.app.AlertDialog parentDialog) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Save Signature");
+        
+        final EditText input = new EditText(this);
+        input.setHint("Signature name (optional)");
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        builder.setView(input);
+        
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String name = input.getText().toString().trim();
+            String savedPath = signatureManager.saveSignature(signatureBitmap, name.isEmpty() ? null : name);
+            if (savedPath != null) {
+                Toast.makeText(this, "Signature saved", Toast.LENGTH_SHORT).show();
+                // Also set as current signature
+                this.signatureBitmap = signatureBitmap;
+                parentDialog.dismiss();
+            } else {
+                Toast.makeText(this, "Failed to save signature", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
     }
 
     private void placeSignatureOnPage(int pageIndex, View view) {

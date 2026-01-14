@@ -1,6 +1,7 @@
 package com.pdfreader.app.fragments;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,6 +12,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.text.InputType;
+import android.widget.EditText;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,6 +37,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
+import com.google.android.material.button.MaterialButton;
+
 import com.google.common.util.concurrent.ListenableFuture;
 import com.pdfreader.app.R;
 import com.pdfreader.app.SignPdfActivity;
@@ -42,7 +47,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
 
@@ -59,7 +66,14 @@ public class ScannerFragment extends Fragment {
     private FrameLayout captureButton;
     private MaterialButton flashToggle;
     private MaterialButton closeScanner;
+    private MaterialButton savePdfButton;
+    private TextView capturedCountText;
+    private View capturedImagesInfo;
     private ActivityResultLauncher<String> requestPermissionLauncher;
+    private ActivityResultLauncher<Intent> savePdfLauncher;
+    
+    // Store captured images
+    private List<File> capturedImages = new ArrayList<>();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -75,6 +89,18 @@ public class ScannerFragment extends Fragment {
                         Toast.makeText(requireContext(), "Camera permission is required", Toast.LENGTH_SHORT).show();
                     }
                 });
+        
+        // Register save PDF launcher
+        savePdfLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        if (uri != null) {
+                            savePdfToUri(uri);
+                        }
+                    }
+                });
     }
 
     @Nullable
@@ -84,6 +110,7 @@ public class ScannerFragment extends Fragment {
 
         initViews(view);
         setupClickListeners();
+        updateCapturedImagesUI(); // Initialize UI state
 
         if (checkCameraPermission()) {
             startCamera();
@@ -102,6 +129,9 @@ public class ScannerFragment extends Fragment {
         captureButton = view.findViewById(R.id.capture_button);
         flashToggle = view.findViewById(R.id.flash_toggle);
         closeScanner = view.findViewById(R.id.close_scanner);
+        savePdfButton = view.findViewById(R.id.save_pdf_button);
+        capturedCountText = view.findViewById(R.id.captured_count_text);
+        capturedImagesInfo = view.findViewById(R.id.captured_images_info);
         
         // Ensure views are not null
         if (cameraPreview == null || flashToggle == null || closeScanner == null) {
@@ -127,19 +157,23 @@ public class ScannerFragment extends Fragment {
 
         scanQuoteTab.setOnClickListener(v -> selectTab(scanQuoteTab));
         scanPageTab.setOnClickListener(v -> selectTab(scanPageTab));
+        
+        savePdfButton.setOnClickListener(v -> showSaveDialog());
     }
 
     private void selectTab(TextView selectedTab) {
         // Reset all tabs
-        scanQuoteTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_white));
-        scanQuoteTab.setBackground(null);
-        scanPageTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_white));
-        scanPageTab.setBackground(null);
-        signTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_white));
-        signTab.setBackground(null);
+        scanQuoteTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        scanQuoteTab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.background_light_gray));
+        scanPageTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        scanPageTab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.background_light_gray));
+        signTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        signTab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.background_light_gray));
 
         // Highlight selected
         selectedTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue));
+        selectedTab.setTextAppearance(android.R.style.TextAppearance_Material_Body1);
+        selectedTab.setTypeface(null, android.graphics.Typeface.BOLD);
         selectedTab.setBackgroundResource(R.drawable.tab_selected_modern);
     }
 
@@ -269,8 +303,11 @@ public class ScannerFragment extends Fragment {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        // Convert to PDF
-                        convertToPdf(photoFile, timestamp);
+                        // Store the image file instead of converting immediately
+                        capturedImages.add(photoFile);
+                        updateCapturedImagesUI();
+                        Toast.makeText(getContext(), "Image captured (" + capturedImages.size() + ")", 
+                                Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -280,51 +317,107 @@ public class ScannerFragment extends Fragment {
                     }
                 });
     }
-
-    private void convertToPdf(File imageFile, String timestamp) {
-        try {
-            Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-            if (bitmap == null) {
-                Toast.makeText(getContext(), "Failed to process image", Toast.LENGTH_SHORT).show();
-                return;
+    
+    private void updateCapturedImagesUI() {
+        if (capturedCountText != null && savePdfButton != null && capturedImagesInfo != null) {
+            int count = capturedImages.size();
+            if (count > 0) {
+                capturedCountText.setText(count + (count == 1 ? " image captured" : " images captured"));
+                capturedImagesInfo.setVisibility(View.VISIBLE);
+                savePdfButton.setEnabled(true);
+            } else {
+                capturedImagesInfo.setVisibility(View.GONE);
+                savePdfButton.setEnabled(false);
             }
-
-            PdfDocument document = new PdfDocument();
-            PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
-                    bitmap.getWidth(), bitmap.getHeight(), 1).create();
-            PdfDocument.Page page = document.startPage(pageInfo);
-            page.getCanvas().drawBitmap(bitmap, 0, 0, null);
-            document.finishPage(page);
-
-            // Save to Downloads
-            String pdfFileName = "Scanned_" + timestamp + ".pdf";
-
-            ContentValues values = new ContentValues();
-            values.put(MediaStore.MediaColumns.DISPLAY_NAME, pdfFileName);
-            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
-
-            Uri uri = requireContext().getContentResolver().insert(
-                    MediaStore.Files.getContentUri("external"), values);
-
-            if (uri != null) {
-                OutputStream outputStream = requireContext().getContentResolver().openOutputStream(uri);
-                if (outputStream != null) {
-                    document.writeTo(outputStream);
-                    outputStream.close();
-                }
-            }
-
-            document.close();
-            bitmap.recycle();
-            imageFile.delete();
-
-            Toast.makeText(getContext(), "PDF saved to Downloads: " + pdfFileName, Toast.LENGTH_LONG).show();
-
-        } catch (Exception e) {
-            Toast.makeText(getContext(), "Error creating PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
     }
+    
+    private void showSaveDialog() {
+        if (capturedImages.isEmpty()) {
+            Toast.makeText(getContext(), "No images to save", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        
+        // Create dialog to get filename
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Save PDF");
+        
+        final EditText input = new EditText(requireContext());
+        String defaultName = "Scanned_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        input.setText(defaultName);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setSelectAllOnFocus(true);
+        builder.setView(input);
+        
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String fileName = input.getText().toString().trim();
+            if (fileName.isEmpty()) {
+                fileName = defaultName;
+            }
+            // Ensure .pdf extension
+            if (!fileName.toLowerCase().endsWith(".pdf")) {
+                fileName += ".pdf";
+            }
+            openSaveLocationPicker(fileName);
+        });
+        
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+        builder.show();
+    }
+    
+    private void openSaveLocationPicker(String fileName) {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, fileName);
+        savePdfLauncher.launch(intent);
+    }
+    
+    private void savePdfToUri(Uri uri) {
+        if (capturedImages.isEmpty()) {
+            return;
+        }
+        
+        try {
+            PdfDocument document = new PdfDocument();
+            
+            // Add each image as a page
+            for (File imageFile : capturedImages) {
+                Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
+                if (bitmap != null) {
+                    PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
+                            bitmap.getWidth(), bitmap.getHeight(), document.getPages().size() + 1).create();
+                    PdfDocument.Page page = document.startPage(pageInfo);
+                    page.getCanvas().drawBitmap(bitmap, 0, 0, null);
+                    document.finishPage(page);
+                    bitmap.recycle();
+                }
+            }
+            
+            // Write to the selected location
+            OutputStream outputStream = requireContext().getContentResolver().openOutputStream(uri);
+            if (outputStream != null) {
+                document.writeTo(outputStream);
+                outputStream.close();
+            }
+            
+            document.close();
+            
+            // Clean up temporary image files
+            for (File imageFile : capturedImages) {
+                imageFile.delete();
+            }
+            capturedImages.clear();
+            updateCapturedImagesUI();
+            
+            Toast.makeText(getContext(), "PDF saved successfully", Toast.LENGTH_LONG).show();
+            
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "Error saving PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            e.printStackTrace();
+        }
+    }
+
 
     @Override
     public void onDestroyView() {
@@ -332,5 +425,17 @@ public class ScannerFragment extends Fragment {
         if (cameraProvider != null) {
             cameraProvider.unbindAll();
         }
+    }
+    
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        // Clean up temporary image files if fragment is destroyed
+        for (File imageFile : capturedImages) {
+            if (imageFile.exists()) {
+                imageFile.delete();
+            }
+        }
+        capturedImages.clear();
     }
 }
