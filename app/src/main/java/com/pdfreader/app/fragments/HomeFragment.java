@@ -113,9 +113,9 @@ public class HomeFragment extends Fragment {
         emptyState = view.findViewById(R.id.empty_state);
 
         if (upNextRecycler != null) {
-            upNextRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-            adapter = new PdfBookAdapter(requireContext(), recentBooks);
-            upNextRecycler.setAdapter(adapter);
+        upNextRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+        adapter = new PdfBookAdapter(requireContext(), recentBooks);
+        upNextRecycler.setAdapter(adapter);
         }
     }
 
@@ -233,7 +233,7 @@ public class HomeFragment extends Fragment {
         }
 
         if (adapter != null) {
-            adapter.notifyDataSetChanged();
+        adapter.notifyDataSetChanged();
         }
 
         // Show/hide empty state

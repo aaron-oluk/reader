@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.ImageButton;
@@ -32,6 +33,8 @@ import java.io.InputStream;
 
 public class PdfReaderActivity extends AppCompatActivity {
 
+    private static final String TAG = "PdfReaderActivity";
+
     private RecyclerView recyclerView;
     private CoordinatorLayout coordinatorLayout;
     private String pdfPath;
@@ -47,9 +50,6 @@ public class PdfReaderActivity extends AppCompatActivity {
     private TextView pageIndicator;
     private View topToolbar;
 
-    // Theme state
-    private enum ReaderTheme { LIGHT, SEPIA, DARK }
-    private ReaderTheme currentTheme = ReaderTheme.LIGHT;
 
     // Page tracking
     private int pageCount = 0;
@@ -110,10 +110,6 @@ public class PdfReaderActivity extends AppCompatActivity {
             Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show();
         });
 
-        // Theme button - cycles through themes
-        View btnTheme = findViewById(R.id.btn_theme);
-        btnTheme.setOnClickListener(v -> cycleTheme());
-
         // Scroll listener for page tracking
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
@@ -124,51 +120,6 @@ public class PdfReaderActivity extends AppCompatActivity {
         });
     }
 
-    private void cycleTheme() {
-        // Cycle through: LIGHT -> SEPIA -> DARK -> LIGHT
-        switch (currentTheme) {
-            case LIGHT:
-                setTheme(ReaderTheme.SEPIA);
-                break;
-            case SEPIA:
-                setTheme(ReaderTheme.DARK);
-                break;
-            case DARK:
-                setTheme(ReaderTheme.LIGHT);
-                break;
-        }
-    }
-
-    private void setTheme(ReaderTheme theme) {
-        currentTheme = theme;
-        int backgroundColor;
-        int textColor;
-
-        switch (theme) {
-            case SEPIA:
-                backgroundColor = ContextCompat.getColor(this, R.color.reader_background_sepia);
-                textColor = ContextCompat.getColor(this, R.color.reader_text_sepia);
-                break;
-            case DARK:
-                backgroundColor = ContextCompat.getColor(this, R.color.reader_background_dark);
-                textColor = ContextCompat.getColor(this, R.color.reader_text_dark);
-                break;
-            default: // LIGHT
-                backgroundColor = ContextCompat.getColor(this, R.color.reader_background_light);
-                textColor = ContextCompat.getColor(this, R.color.reader_text_primary);
-                break;
-        }
-
-        coordinatorLayout.setBackgroundColor(backgroundColor);
-        topToolbar.setBackgroundColor(backgroundColor);
-        toolbarTitle.setTextColor(textColor);
-        toolbarSubtitle.setTextColor(textColor);
-        
-        // Show toast with current theme
-        String themeName = theme == ReaderTheme.LIGHT ? "Light" : 
-                          theme == ReaderTheme.SEPIA ? "Sepia" : "Dark";
-        Toast.makeText(this, themeName + " theme", Toast.LENGTH_SHORT).show();
-    }
 
     private void shareDocument() {
         if (pdfPath == null) return;
@@ -236,8 +187,10 @@ public class PdfReaderActivity extends AppCompatActivity {
 
             // Setup RecyclerView adapter with lazy loading
             int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            Log.d(TAG, "Creating adapter for " + pageCount + " pages, screen width: " + screenWidth);
             pdfPageAdapter = new PdfPageAdapter(this, pdfRenderer, screenWidth);
             recyclerView.setAdapter(pdfPageAdapter);
+            Log.d(TAG, "Adapter set, item count: " + pdfPageAdapter.getItemCount());
 
             // Restore scroll position after layout
             recyclerView.post(() -> {
@@ -249,21 +202,12 @@ public class PdfReaderActivity extends AppCompatActivity {
             });
 
         } catch (Exception e) {
+            Log.e(TAG, "Error loading PDF", e);
             Toast.makeText(this, "Error loading PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-            e.printStackTrace();
             finish();
         }
     }
 
-
-    private void scrollToPage(int pageNumber) {
-        if (pageNumber < 1 || pageNumber > pageCount) return;
-
-        layoutManager.scrollToPositionWithOffset(pageNumber - 1, 0);
-        currentPage = pageNumber;
-        updatePageIndicators();
-        showPageIndicator();
-    }
 
     private void updateCurrentPageFromScroll() {
         if (pageCount == 0 || layoutManager == null) return;
@@ -278,11 +222,11 @@ public class PdfReaderActivity extends AppCompatActivity {
     }
 
     private void updatePageIndicators() {
-        toolbarSubtitle.setText("Page " + currentPage + " of " + pageCount);
+        toolbarSubtitle.setText(getString(R.string.page_info, currentPage, pageCount));
     }
 
     private void showPageIndicator() {
-        pageIndicator.setText("Page " + currentPage + " of " + pageCount);
+        pageIndicator.setText(getString(R.string.page_info, currentPage, pageCount));
         pageIndicator.setVisibility(View.VISIBLE);
 
         if (hideIndicatorRunnable != null) {
@@ -320,7 +264,7 @@ public class PdfReaderActivity extends AppCompatActivity {
                 parcelFileDescriptor.close();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Error closing PDF renderer", e);
         }
 
         if (hideIndicatorRunnable != null) {
@@ -330,7 +274,9 @@ public class PdfReaderActivity extends AppCompatActivity {
         // Clear cache
         File cacheFile = new File(getCacheDir(), "temp.pdf");
         if (cacheFile.exists()) {
-            cacheFile.delete();
+            if (!cacheFile.delete()) {
+                Log.w(TAG, "Failed to delete cache file");
+            }
         }
     }
 }

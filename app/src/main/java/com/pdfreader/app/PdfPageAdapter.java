@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.pdf.PdfRenderer;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -24,6 +25,8 @@ import java.util.concurrent.Executors;
  */
 public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageViewHolder> {
 
+    private static final String TAG = "PdfPageAdapter";
+    
     private final Context context;
     private final PdfRenderer pdfRenderer;
     private final int pageCount;
@@ -41,23 +44,26 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
         this.bitmapCache = new HashMap<>();
         this.executor = Executors.newFixedThreadPool(2);
         this.mainHandler = new Handler(Looper.getMainLooper());
+        Log.d(TAG, "PdfPageAdapter created with " + pageCount + " pages");
     }
 
     @NonNull
     @Override
     public PageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        Log.d(TAG, "onCreateViewHolder called");
         View view = LayoutInflater.from(context).inflate(R.layout.item_pdf_page, parent, false);
         return new PageViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull PageViewHolder holder, int position) {
+        Log.d(TAG, "onBindViewHolder called for position " + position);
         holder.bind(position);
     }
 
     @Override
     public int getItemCount() {
-        android.util.Log.d("PdfPageAdapter", "getItemCount: " + pageCount);
+        Log.d(TAG, "getItemCount: " + pageCount);
         return pageCount;
     }
 
@@ -92,14 +98,13 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
             // Show loading
             progressBar.setVisibility(View.VISIBLE);
             pageImageView.setImageBitmap(null);
-            
-            // Set minimum height to prevent collapse
-            pageImageView.setMinimumHeight(500);
+            pageImageView.setVisibility(View.VISIBLE);
 
             // Check cache first
             if (bitmapCache.containsKey(position)) {
                 Bitmap cached = bitmapCache.get(position);
                 if (cached != null && !cached.isRecycled()) {
+                    Log.d(TAG, "Using cached bitmap for page " + position + ", size: " + cached.getWidth() + "x" + cached.getHeight());
                     pageImageView.setImageBitmap(cached);
                     currentBitmap = cached;
                     progressBar.setVisibility(View.GONE);
@@ -110,19 +115,23 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
             // Render in background
             executor.execute(() -> {
                 try {
-                    android.util.Log.d("PdfPageAdapter", "Rendering page " + position);
+                    Log.d(TAG, "Rendering page " + position);
                     Bitmap bitmap = renderPage(position);
-                    android.util.Log.d("PdfPageAdapter", "Page " + position + " rendered: " + bitmap.getWidth() + "x" + bitmap.getHeight());
+                    Log.d(TAG, "Page " + position + " rendered: " + bitmap.getWidth() + "x" + bitmap.getHeight() + ", isRecycled: " + bitmap.isRecycled());
                     mainHandler.post(() -> {
-                        if (getBindingAdapterPosition() == position) {
+                        int adapterPosition = getBindingAdapterPosition();
+                        Log.d(TAG, "Posting bitmap for position " + position + ", adapter position: " + adapterPosition);
+                        if (adapterPosition == position && adapterPosition != RecyclerView.NO_POSITION) {
                             pageImageView.setImageBitmap(bitmap);
+                            pageImageView.setVisibility(View.VISIBLE);
                             currentBitmap = bitmap;
                             progressBar.setVisibility(View.GONE);
-                            android.util.Log.d("PdfPageAdapter", "Page " + position + " displayed");
+                            Log.d(TAG, "Page " + position + " displayed successfully");
                             
                             // Add to cache and manage cache size
                             cacheBitmap(position, bitmap);
                         } else {
+                            Log.d(TAG, "Page " + position + " scrolled away, recycling bitmap");
                             // Page was scrolled away, recycle immediately
                             if (!bitmap.isRecycled()) {
                                 bitmap.recycle();
@@ -130,8 +139,7 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
                         }
                     });
                 } catch (Exception e) {
-                    android.util.Log.e("PdfPageAdapter", "Error rendering page " + position, e);
-                    e.printStackTrace();
+                    Log.e(TAG, "Error rendering page " + position, e);
                     mainHandler.post(() -> progressBar.setVisibility(View.GONE));
                 }
             });
@@ -141,17 +149,35 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
             synchronized (pdfRenderer) {
                 PdfRenderer.Page page = pdfRenderer.openPage(pageIndex);
                 
-                float scale = (float) screenWidth / page.getWidth();
-                int width = screenWidth;
-                int height = (int) (page.getHeight() * scale);
+                int pageWidth = page.getWidth();
+                int pageHeight = page.getHeight();
+                Log.d(TAG, "Page " + pageIndex + " dimensions: " + pageWidth + "x" + pageHeight);
                 
-                // Use RGB_565 for half the memory usage (no alpha channel needed for PDFs)
-                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+                float scale = (float) screenWidth / pageWidth;
+                int width = screenWidth;
+                int height = (int) (pageHeight * scale);
+                
+                Log.d(TAG, "Creating bitmap: " + width + "x" + height + " with scale: " + scale);
+                
+                // Use ARGB_8888 for better compatibility (some ImageViews have issues with RGB_565)
+                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
                 bitmap.eraseColor(0xFFFFFFFF);
                 
+                Log.d(TAG, "Rendering page " + pageIndex + " to bitmap");
                 page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
                 page.close();
                 
+                // Verify bitmap has content (check if it's not all white)
+                int[] pixels = new int[width * Math.min(100, height)]; // Sample first 100 rows
+                bitmap.getPixels(pixels, 0, width, 0, 0, width, Math.min(100, height));
+                boolean hasContent = false;
+                for (int pixel : pixels) {
+                    if (pixel != 0xFFFFFFFF) { // Not white
+                        hasContent = true;
+                        break;
+                    }
+                }
+                Log.d(TAG, "Page " + pageIndex + " rendered, hasContent: " + hasContent + ", bitmap size: " + bitmap.getByteCount() + " bytes");
                 return bitmap;
             }
         }

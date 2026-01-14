@@ -219,23 +219,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleSelectedFile(Uri uri, boolean isPdf) {
-        // Take persistable permission
-        try {
-            getContentResolver().takePersistableUriPermission(uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
+                // Take persistable permission
+                try {
+                    getContentResolver().takePersistableUriPermission(uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                } catch (SecurityException e) {
+                    e.printStackTrace();
+                }
 
-        String title = getFileNameFromUri(uri);
-        String path = uri.toString();
+                String title = getFileNameFromUri(uri);
+                String path = uri.toString();
 
         if (isPdf) {
-            historyManager.addToHistory(title, path);
-            openPdfReader(path, title);
+                    historyManager.addToHistory(title, path);
+                    openPdfReader(path, title);
         } else {
-            historyManager.addToHistory(title, path);
-            openEpubReader(path, title);
+                    historyManager.addToHistory(title, path);
+                    openEpubReader(path, title);
         }
     }
 

@@ -6,6 +6,7 @@ import android.graphics.Canvas;
 import android.graphics.pdf.PdfRenderer;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +26,8 @@ import java.util.concurrent.Executors;
  */
 public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.PageViewHolder> {
 
+    private static final String TAG = "SignPdfPageAdapter";
+    
     private final Context context;
     private final PdfRenderer pdfRenderer;
     private final int pageCount;
@@ -138,7 +141,7 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
                         }
                     });
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "Error rendering page " + position, e);
                     mainHandler.post(() -> progressBar.setVisibility(View.GONE));
                 }
             });

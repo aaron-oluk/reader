@@ -18,15 +18,17 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:contentDescription="PDF Page" />
+            android:scaleType="fitStart"
+            android:contentDescription="PDF Page"
+            android:importantForAccessibility="no" />
 
         <ProgressBar
             android:id="@+id/page_progress"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_gravity="center"
-            android:indeterminate="true" />
+            android:indeterminate="true"
+            android:visibility="visible" />
 
     </FrameLayout>
 
