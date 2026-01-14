@@ -63,32 +63,103 @@
         app:layout_constraintTop_toBottomOf="@id/top_bar"
         app:layout_constraintVertical_bias="0.4">
 
+        <!-- Dashed border -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/signature_capture_frame" />
+
         <!-- Corner indicators -->
         <View
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="top|start"
             android:background="@drawable/scanner_corner_white_tl" />
 
         <View
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="top|end"
             android:background="@drawable/scanner_corner_white_tr" />
 
         <View
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="bottom|start"
             android:background="@drawable/scanner_corner_white_bl" />
 
         <View
-            android:layout_width="32dp"
-            android:layout_height="32dp"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="bottom|end"
             android:background="@drawable/scanner_corner_white_br" />
 
+        <!-- Center text guide -->
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:alpha="0.7"
+            android:text="Place signature here"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="italic" />
+
     </FrameLayout>
+
+    <!-- Tips Card -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/tips_card"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        app:cardBackgroundColor="#DD000000"
+        app:cardCornerRadius="8dp"
+        app:cardElevation="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_info"
+                    app:tint="@color/primary_blue" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="Tips"
+                    android:textColor="@android:color/white"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                    android:textStyle="bold" />
+
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="• Use white paper\n• Good lighting\n• Avoid shadows\n• Keep phone steady"
+                android:textColor="#CCCCCC"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:lineSpacingExtra="2dp" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Instruction Text -->
     <TextView
@@ -117,30 +188,64 @@
         android:paddingVertical="24dp"
         app:layout_constraintBottom_toBottomOf="parent">
 
-        <!-- Capture Button -->
-        <FrameLayout
-            android:id="@+id/capture_button"
-            android:layout_width="72dp"
-            android:layout_height="72dp">
+        <!-- Capture Button with Gallery -->
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:orientation="horizontal">
 
-            <View
+            <!-- Gallery Button -->
+            <FrameLayout
+                android:id="@+id/gallery_button"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="40dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:padding="12dp"
+                    android:src="@drawable/ic_folder"
+                    android:background="@drawable/circle_background"
+                    android:backgroundTint="#40FFFFFF"
+                    app:tint="@android:color/white" />
+
+            </FrameLayout>
+
+            <!-- Capture Button -->
+            <FrameLayout
+                android:id="@+id/capture_button"
                 android:layout_width="72dp"
-                android:layout_height="72dp"
-                android:background="@drawable/capture_button_outer" />
+                android:layout_height="72dp">
 
+                <View
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/capture_button_outer" />
+
+                <View
+                    android:layout_width="60dp"
+                    android:layout_height="60dp"
+                    android:layout_gravity="center"
+                    android:background="@drawable/capture_button_inner" />
+
+            </FrameLayout>
+
+            <!-- Placeholder for symmetry -->
             <View
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:layout_gravity="center"
-                android:background="@drawable/capture_button_inner" />
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginStart="40dp"
+                android:visibility="invisible" />
 
-        </FrameLayout>
+        </LinearLayout>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="Tap to capture"
+            android:text="Tap to capture or select from gallery"
             android:textColor="#AAAAAA"
             android:textAppearance="@style/TextAppearance.App.BodySmall" />
 

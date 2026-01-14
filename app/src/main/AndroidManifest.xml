@@ -70,6 +70,11 @@
             android:theme="@style/Theme.PDFReader.NoActionBar" />
 
         <activity
+            android:name=".CropSignatureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
             android:name=".ReviewSignatureActivity"
             android:exported="false"
             android:theme="@style/Theme.PDFReader" />

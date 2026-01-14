@@ -25,8 +25,16 @@ public class SignatureManager {
     public SignatureManager(Context context) {
         this.context = context;
         signaturesDir = new File(context.getFilesDir(), SIGNATURES_DIR);
+        // Ensure signatures directory exists
         if (!signaturesDir.exists()) {
-            signaturesDir.mkdirs();
+            boolean created = signaturesDir.mkdirs();
+            if (created) {
+                Log.d(TAG, "Signatures directory created: " + signaturesDir.getAbsolutePath());
+            } else {
+                Log.e(TAG, "Failed to create signatures directory");
+            }
+        } else {
+            Log.d(TAG, "Signatures directory exists: " + signaturesDir.getAbsolutePath());
         }
     }
     
@@ -47,6 +55,15 @@ public class SignatureManager {
             return null;
         }
         
+        // Ensure signatures directory exists before saving
+        if (!signaturesDir.exists()) {
+            boolean created = signaturesDir.mkdirs();
+            if (!created) {
+                Log.e(TAG, "Failed to create signatures directory");
+                return null;
+            }
+        }
+        
         try {
             String fileName;
             if (name != null && !name.trim().isEmpty()) {
@@ -58,6 +75,16 @@ public class SignatureManager {
             }
             
             File signatureFile = new File(signaturesDir, fileName);
+            
+            // If file already exists, append number to make it unique
+            int counter = 1;
+            String baseFileName = fileName.substring(0, fileName.length() - 4); // Remove .png
+            while (signatureFile.exists()) {
+                fileName = baseFileName + "_" + counter + ".png";
+                signatureFile = new File(signaturesDir, fileName);
+                counter++;
+            }
+            
             FileOutputStream fos = new FileOutputStream(signatureFile);
             boolean success = signatureBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.flush();
@@ -69,7 +96,7 @@ public class SignatureManager {
                 return null;
             }
             
-            Log.d(TAG, "Signature saved: " + signatureFile.getAbsolutePath());
+            Log.d(TAG, "Signature saved to: " + signatureFile.getAbsolutePath());
             return signatureFile.getAbsolutePath();
         } catch (IOException e) {
             Log.e(TAG, "Error saving signature", e);
@@ -159,5 +186,23 @@ public class SignatureManager {
             Log.e(TAG, "Error deleting signature", e);
             return false;
         }
+    }
+    
+    /**
+     * Get the signatures directory path
+     */
+    public String getSignaturesDirectory() {
+        return signaturesDir.getAbsolutePath();
+    }
+    
+    /**
+     * Get the number of saved signatures
+     */
+    public int getSignatureCount() {
+        if (signaturesDir.exists() && signaturesDir.isDirectory()) {
+            File[] files = signaturesDir.listFiles((dir, name) -> name.toLowerCase().endsWith(".png"));
+            return files != null ? files.length : 0;
+        }
+        return 0;
     }
 }

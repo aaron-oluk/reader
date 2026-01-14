@@ -28,7 +28,7 @@
                 android:layout_height="100dp"
                 android:layout_gravity="center"
                 app:cardCornerRadius="50dp"
-                app:cardElevation="4dp"
+                app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 app:cardBackgroundColor="@android:color/white"
                 android:layout_marginBottom="16dp">
@@ -73,7 +73,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginHorizontal="16dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -191,7 +191,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -259,7 +259,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -305,7 +305,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -351,7 +351,7 @@
             android:layout_marginHorizontal="16dp"
             android:layout_marginBottom="12dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -432,7 +432,7 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="24dp"
             app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card"
             android:clickable="true"

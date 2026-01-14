@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -17,6 +18,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.slider.Slider;
+import com.pdfreader.app.views.ZoomableImageView;
 
 import java.io.File;
 import java.util.concurrent.ExecutorService;
@@ -27,8 +29,13 @@ public class ReviewSignatureActivity extends AppCompatActivity {
     public static final String EXTRA_SAVED_SIGNATURE_PATH = "saved_signature_path";
 
     private ImageView originalImage;
-    private ImageView processedImage;
+    private ZoomableImageView processedImage;
     private Slider sensitivitySlider;
+    private SeekBar zoomSlider;
+    private ImageView btnZoomIn;
+    private ImageView btnZoomOut;
+    private ImageView btnResetZoom;
+    private TextView zoomLevelText;
     private MaterialButton btnRetake;
     private MaterialButton btnSave;
     private ImageView btnBack;
@@ -42,6 +49,7 @@ public class ReviewSignatureActivity extends AppCompatActivity {
     private ExecutorService executorService;
 
     private int currentSensitivity = 50;
+    private float[] savedViewState = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +59,11 @@ public class ReviewSignatureActivity extends AppCompatActivity {
         originalImage = findViewById(R.id.original_image);
         processedImage = findViewById(R.id.processed_image);
         sensitivitySlider = findViewById(R.id.sensitivity_slider);
+        zoomSlider = findViewById(R.id.zoom_slider);
+        btnZoomIn = findViewById(R.id.btn_zoom_in);
+        btnZoomOut = findViewById(R.id.btn_zoom_out);
+        btnResetZoom = findViewById(R.id.btn_reset_zoom);
+        zoomLevelText = findViewById(R.id.zoom_level_text);
         btnRetake = findViewById(R.id.btn_retake);
         btnSave = findViewById(R.id.btn_save);
         btnBack = findViewById(R.id.btn_back);
@@ -87,6 +100,56 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                 reprocessImage();
             }
         });
+
+        // Setup zoom controls
+        btnZoomIn.setOnClickListener(v -> {
+            float currentZoom = processedImage.getZoomLevel();
+            processedImage.setZoomLevel(currentZoom + 0.5f);
+            updateZoomSlider();
+        });
+
+        btnZoomOut.setOnClickListener(v -> {
+            float currentZoom = processedImage.getZoomLevel();
+            processedImage.setZoomLevel(currentZoom - 0.5f);
+            updateZoomSlider();
+        });
+
+        btnResetZoom.setOnClickListener(v -> {
+            processedImage.resetZoom();
+            updateZoomSlider();
+        });
+
+        zoomSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    // Progress 0-100 maps to zoom 1.0-5.0
+                    float zoom = 1.0f + (progress / 25.0f);
+                    processedImage.setZoomLevel(zoom);
+                    
+                    // Update zoom level text
+                    int zoomPercent = (int) (zoom * 100);
+                    zoomLevelText.setText(zoomPercent + "%");
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {}
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {}
+        });
+    }
+
+    private void updateZoomSlider() {
+        float zoom = processedImage.getZoomLevel();
+        // Zoom 1.0-5.0 maps to progress 0-100
+        int progress = (int) ((zoom - 1.0f) * 25.0f);
+        zoomSlider.setProgress(Math.max(0, Math.min(100, progress)));
+        
+        // Update zoom level text
+        int zoomPercent = (int) (zoom * 100);
+        zoomLevelText.setText(zoomPercent + "%");
     }
 
     private void loadAndProcessImage() {
@@ -143,6 +206,12 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                     hideProcessing();
                     originalImage.setImageBitmap(originalBitmap);
                     processedImage.setImageBitmap(processedBitmap);
+                    
+                    // Ensure the image is properly fitted after a brief delay
+                    processedImage.postDelayed(() -> {
+                        processedImage.resetZoom();
+                        updateZoomSlider();
+                    }, 100);
                 });
             } catch (Exception e) {
                 e.printStackTrace();
@@ -158,6 +227,9 @@ public class ReviewSignatureActivity extends AppCompatActivity {
 
     private void reprocessImage() {
         if (originalBitmap == null || originalBitmap.isRecycled()) return;
+
+        // Save current zoom and pan state
+        savedViewState = processedImage.getViewState();
 
         showProcessing("Adjusting...");
 
@@ -183,6 +255,16 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     hideProcessing();
                     processedImage.setImageBitmap(processedBitmap);
+                    
+                    // Restore previous zoom and pan state, or fit to screen if none saved
+                    processedImage.postDelayed(() -> {
+                        if (savedViewState != null) {
+                            processedImage.restoreViewState(savedViewState);
+                        } else {
+                            processedImage.resetZoom();
+                        }
+                        updateZoomSlider();
+                    }, 50);
 
                     // Recycle old bitmap after UI has been updated
                     processedImage.post(() -> {

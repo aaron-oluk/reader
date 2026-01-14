@@ -50,8 +50,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/primary_blue">
 
@@ -122,9 +122,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="6dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
+                android:layout_marginEnd="8dp"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 android:backgroundTint="@color/background_card">
 
@@ -166,10 +166,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="3dp"
-                android:layout_marginEnd="3dp"
+                android:layout_marginStart="4dp"
+                android:layout_marginEnd="4dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
+                app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 android:backgroundTint="@color/background_card">
 
@@ -228,9 +228,9 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="6dp"
+                android:layout_marginStart="8dp"
                 app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
+                app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 android:backgroundTint="@color/background_card">
 
@@ -291,8 +291,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -354,8 +354,8 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
             app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
@@ -425,109 +425,6 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
-        <!-- Personal Habits -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Personal Habits"
-            android:textSize="20sp"
-            android:textColor="@color/text_primary"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp" />
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="2dp"
-            app:strokeWidth="0dp"
-            android:backgroundTint="@color/background_card">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <View
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="@drawable/circle_background_blue" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Evening Reader"
-                        android:textAppearance="@style/TextAppearance.App.BodyLarge"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Active between 9 PM — 11 PM"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp" />
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardCornerRadius="12dp"
-            app:cardElevation="2dp"
-            android:backgroundTint="@color/background_card">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:padding="16dp"
-                android:gravity="center_vertical">
-
-                <View
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:background="@drawable/circle_background_blue" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:orientation="vertical"
-                    android:layout_marginStart="16dp">
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Fiction Enthusiast"
-                        android:textAppearance="@style/TextAppearance.App.BodyLarge"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="74% Classic Literature focus"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="4dp" />
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
         <!-- Export Report Button -->
         <Button
             android:id="@+id/export_report_button"
@@ -539,6 +436,6 @@
             android:textStyle="bold"
             android:backgroundTint="@color/primary_blue"
             android:layout_marginBottom="20dp"
-            app:cornerRadius="28dp" />
+            app:cornerRadius="12dp" />
     </LinearLayout>
 </ScrollView>

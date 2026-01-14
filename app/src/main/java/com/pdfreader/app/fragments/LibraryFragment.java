@@ -127,6 +127,9 @@ public class LibraryFragment extends Fragment {
                 intent.putExtra("PDF_TITLE", book.getTitle());
                 startActivity(intent);
             }
+        }, book -> {
+            // Delete book callback
+            showDeleteConfirmationDialog(book);
         });
         booksRecycler.setAdapter(adapter);
 
@@ -316,11 +319,38 @@ public class LibraryFragment extends Fragment {
         adapter.notifyDataSetChanged();
     }
 
+    private void showDeleteConfirmationDialog(PdfBook book) {
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Remove Book")
+                .setMessage("Are you sure you want to remove \"" + book.getTitle() + "\" from your library?")
+                .setPositiveButton("Remove", (dialog, which) -> {
+                    deleteBook(book);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void deleteBook(PdfBook book) {
+        // Remove from history manager
+        historyManager.removeFromHistory(book.getFilePath());
+        
+        // Remove from lists
+        allBooks.remove(book);
+        filteredBooks.remove(book);
+        
+        // Notify adapter
+        adapter.notifyDataSetChanged();
+        
+        // Show confirmation
+        android.widget.Toast.makeText(requireContext(), "\"" + book.getTitle() + "\" removed from library", android.widget.Toast.LENGTH_SHORT).show();
+    }
+
     // Inner adapter class for grid display
     private static class LibraryBookAdapter extends RecyclerView.Adapter<LibraryBookAdapter.ViewHolder> {
 
         private final List<PdfBook> books;
         private final OnBookClickListener listener;
+        private final OnBookDeleteListener deleteListener;
         private final ExecutorService executorService;
         private final Handler mainHandler;
 
@@ -328,9 +358,15 @@ public class LibraryFragment extends Fragment {
             void onBookClick(PdfBook book);
         }
 
-        LibraryBookAdapter(List<PdfBook> books, ExecutorService executorService, Handler mainHandler, OnBookClickListener listener) {
+        interface OnBookDeleteListener {
+            void onBookDelete(PdfBook book);
+        }
+
+        LibraryBookAdapter(List<PdfBook> books, ExecutorService executorService, Handler mainHandler, 
+                          OnBookClickListener listener, OnBookDeleteListener deleteListener) {
             this.books = books;
             this.listener = listener;
+            this.deleteListener = deleteListener;
             this.executorService = executorService;
             this.mainHandler = mainHandler;
         }
@@ -346,7 +382,7 @@ public class LibraryFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             PdfBook book = books.get(position);
-            holder.bind(book, listener, executorService, mainHandler);
+            holder.bind(book, listener, deleteListener, executorService, mainHandler);
         }
 
         @Override
@@ -357,17 +393,27 @@ public class LibraryFragment extends Fragment {
         static class ViewHolder extends RecyclerView.ViewHolder {
             private final TextView titleText;
             private final android.widget.ImageView coverImage;
+            private final View btnDelete;
             private final ProgressBar progressBar;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 titleText = itemView.findViewById(R.id.book_title);
                 coverImage = itemView.findViewById(R.id.book_cover);
+                btnDelete = itemView.findViewById(R.id.btn_delete);
                 progressBar = itemView.findViewById(R.id.reading_progress);
             }
 
-            void bind(PdfBook book, OnBookClickListener listener, ExecutorService executorService, Handler mainHandler) {
+            void bind(PdfBook book, OnBookClickListener listener, OnBookDeleteListener deleteListener, 
+                     ExecutorService executorService, Handler mainHandler) {
                 titleText.setText(book.getTitle());
+                
+                // Setup delete button
+                btnDelete.setOnClickListener(v -> {
+                    if (deleteListener != null) {
+                        deleteListener.onBookDelete(book);
+                    }
+                });
                 
                 // Load thumbnail for PDF files (matching home page implementation)
                 String path = book.getFilePath();

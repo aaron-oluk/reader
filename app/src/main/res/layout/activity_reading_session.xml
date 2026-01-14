@@ -187,7 +187,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
+                app:cardElevation="0dp"
                 android:backgroundTint="@color/background_card">
 
                 <LinearLayout
@@ -261,7 +261,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="20dp"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="2dp"
+                app:cardElevation="0dp"
                 android:backgroundTint="@color/background_card">
 
                 <LinearLayout

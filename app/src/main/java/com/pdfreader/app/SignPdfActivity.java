@@ -101,7 +101,11 @@ public class SignPdfActivity extends AppCompatActivity {
                                 signatureBitmap = signature;
                                 updateSignaturePreview();
                                 Toast.makeText(this, "Signature captured and saved", Toast.LENGTH_SHORT).show();
+                            } else {
+                                Toast.makeText(this, "Failed to load signature", Toast.LENGTH_SHORT).show();
                             }
+                        } else {
+                            Toast.makeText(this, "No signature path received", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -245,8 +249,11 @@ public class SignPdfActivity extends AppCompatActivity {
             Bitmap signature = signatureManager.loadSignature(filePath);
             if (signature != null) {
                 signatureBitmap = signature;
+                updateSignaturePreview();
                 Toast.makeText(this, "Signature selected", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
+            } else {
+                Toast.makeText(this, "Failed to load signature", Toast.LENGTH_SHORT).show();
             }
         });
         
@@ -302,8 +309,11 @@ public class SignPdfActivity extends AppCompatActivity {
                 statusInfo.setVisibility(View.VISIBLE);
             }
             if (statusText != null) {
-                statusText.setText("Signature ready to place");
+                statusText.setText("Tap on any page to place signature");
             }
+            
+            // Show instruction toast
+            Toast.makeText(this, "Tap on a PDF page to place your signature", Toast.LENGTH_LONG).show();
         }
     }
 
@@ -331,7 +341,8 @@ public class SignPdfActivity extends AppCompatActivity {
         btnDone.setOnClickListener(v -> {
             if (signatureView.hasSignature()) {
                 signatureBitmap = signatureView.getSignatureBitmap();
-                Toast.makeText(this, R.string.add_signature, Toast.LENGTH_SHORT).show();
+                updateSignaturePreview();
+                Toast.makeText(this, "Signature ready. Tap a page to place it.", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             } else {
                 Toast.makeText(this, "Please draw your signature", Toast.LENGTH_SHORT).show();
