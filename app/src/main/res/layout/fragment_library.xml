@@ -6,20 +6,18 @@
     android:orientation="vertical"
     android:background="@color/background_light_gray">
 
-    <!-- Header -->
+    <!-- Header with Blue Background -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:padding="20dp"
-        android:background="@color/background_white">
-
-        <ImageView
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:src="@drawable/ic_library"
-            android:contentDescription="Library" />
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="16dp"
+        android:background="@color/primary_blue"
+        android:minHeight="64dp">
 
         <TextView
             android:layout_width="0dp"
@@ -29,72 +27,127 @@
             android:textSize="24sp"
             android:textColor="@color/text_primary"
             android:textStyle="bold"
-            android:layout_marginStart="12dp" />
+            android:gravity="center" />
 
-        <ImageView
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/profile_icon"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:src="@drawable/ic_profile"
-            android:background="@drawable/circle_background"
-            android:padding="8dp"
+            android:insetLeft="0dp"
+            android:insetTop="0dp"
+            android:insetRight="0dp"
+            android:insetBottom="0dp"
+            app:icon="@drawable/ic_profile"
+            app:iconSize="24dp"
+            app:iconGravity="textStart"
+            app:iconPadding="0dp"
+            app:backgroundTint="@color/primary_blue"
+            app:iconTint="@color/text_white"
+            app:cornerRadius="20dp"
             android:contentDescription="Profile" />
     </LinearLayout>
 
     <!-- Tab Layout -->
-    <com.google.android.material.tabs.TabLayout
-        android:id="@+id/tab_layout"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/background_white"
-        app:tabMode="scrollable"
-        app:tabTextColor="@color/text_secondary"
-        app:tabSelectedTextColor="@color/primary_blue"
-        app:tabIndicatorColor="@color/primary_blue"
-        app:tabIndicatorHeight="3dp">
+        android:background="@color/background_white">
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="All" />
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="12dp"
+            android:paddingBottom="12dp"
+            android:gravity="center">
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Reading" />
+            <TextView
+                android:id="@+id/tab_all"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="ALL"
+                android:textSize="14sp"
+                android:textColor="@color/primary_blue"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="To-Read" />
+            <TextView
+                android:id="@+id/tab_reading"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="READING"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
 
-        <com.google.android.material.tabs.TabItem
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Finished" />
-    </com.google.android.material.tabs.TabLayout>
+            <TextView
+                android:id="@+id/tab_to_read"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="TO-READ"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
+
+            <TextView
+                android:id="@+id/tab_finished"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="FINISHED"
+                android:textSize="14sp"
+                android:textColor="@color/text_secondary"
+                android:gravity="center"
+                android:padding="12dp"
+                android:background="@android:color/transparent" />
+        </LinearLayout>
+
+        <!-- Blue Indicator Line -->
+        <View
+            android:id="@+id/tab_indicator"
+            android:layout_width="0dp"
+            android:layout_height="3dp"
+            android:background="@color/primary_blue"
+            android:layout_gravity="bottom|start"
+            android:layout_marginStart="20dp" />
+    </FrameLayout>
 
     <!-- Search Bar -->
-    <androidx.cardview.widget.CardView
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_margin="20dp"
-        app:cardCornerRadius="8dp"
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        app:cardCornerRadius="12dp"
         app:cardElevation="2dp"
-        android:backgroundTint="@color/background_card">
+        app:cardBackgroundColor="@color/background_white">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:padding="12dp">
+            android:padding="14dp">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:src="@drawable/ic_search"
                 android:contentDescription="Search"
+                android:tint="@color/text_secondary"
                 android:layout_marginEnd="12dp" />
 
             <EditText
@@ -110,7 +163,7 @@
                 android:inputType="text"
                 android:maxLines="1" />
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </com.google.android.material.card.MaterialCardView>
 
     <!-- Books Grid -->
     <androidx.recyclerview.widget.RecyclerView

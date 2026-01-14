@@ -46,4 +46,18 @@
     <color name="status_active">#2B7FED</color>
     <color name="status_paused">#FF9500</color>
     <color name="status_completed">#34C759</color>
+
+    <!-- Reader Theme Colors - Light -->
+    <color name="reader_background_light">#FFFFFF</color>
+    <color name="reader_toolbar_background">#FFFFFF</color>
+    <color name="reader_text_primary">#1A1A1A</color>
+    <color name="reader_text_secondary">#8E8E93</color>
+
+    <!-- Reader Theme Colors - Sepia -->
+    <color name="reader_background_sepia">#F5E6D3</color>
+    <color name="reader_text_sepia">#5B4636</color>
+
+    <!-- Reader Theme Colors - Dark -->
+    <color name="reader_background_dark">#1A1A1A</color>
+    <color name="reader_text_dark">#E5E5E5</color>
 </resources>

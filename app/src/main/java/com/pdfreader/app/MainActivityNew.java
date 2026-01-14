@@ -62,4 +62,12 @@ public class MainActivityNew extends AppCompatActivity {
         }
         return false;
     }
+
+    /**
+     * Navigate to a specific tab programmatically
+     * @param tabId The navigation item ID (e.g., R.id.navigation_scan)
+     */
+    public void navigateToTab(int tabId) {
+        bottomNavigation.setSelectedItemId(tabId);
+    }
 }

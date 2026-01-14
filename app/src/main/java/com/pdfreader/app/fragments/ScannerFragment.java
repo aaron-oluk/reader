@@ -32,6 +32,7 @@ import androidx.camera.core.ImageCaptureException;
 import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
+import androidx.camera.view.PreviewView.ImplementationMode;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
@@ -64,11 +65,12 @@ public class ScannerFragment extends Fragment {
     private TextView scanPageTab;
     private TextView signTab;
     private FrameLayout captureButton;
-    private MaterialButton flashToggle;
-    private MaterialButton closeScanner;
+    private View flashToggle;
+    private View closeScanner;
     private MaterialButton savePdfButton;
     private TextView capturedCountText;
     private View capturedImagesInfo;
+    private ImageView flashIcon;
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> savePdfLauncher;
     
@@ -132,10 +134,16 @@ public class ScannerFragment extends Fragment {
         savePdfButton = view.findViewById(R.id.save_pdf_button);
         capturedCountText = view.findViewById(R.id.captured_count_text);
         capturedImagesInfo = view.findViewById(R.id.captured_images_info);
-        
+        flashIcon = view.findViewById(R.id.flash_icon);
+
         // Ensure views are not null
         if (cameraPreview == null || flashToggle == null || closeScanner == null) {
             throw new IllegalStateException("Required views not found in layout");
+        }
+
+        // Configure PreviewView to use TextureView for better compatibility
+        if (cameraPreview != null) {
+            cameraPreview.setImplementationMode(ImplementationMode.COMPATIBLE);
         }
     }
 
@@ -164,15 +172,17 @@ public class ScannerFragment extends Fragment {
     private void selectTab(TextView selectedTab) {
         // Reset all tabs
         scanQuoteTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        scanQuoteTab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.background_light_gray));
+        scanQuoteTab.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.transparent));
+        scanQuoteTab.setTypeface(null, android.graphics.Typeface.NORMAL);
         scanPageTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        scanPageTab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.background_light_gray));
+        scanPageTab.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.transparent));
+        scanPageTab.setTypeface(null, android.graphics.Typeface.NORMAL);
         signTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
-        signTab.setBackgroundColor(ContextCompat.getColor(requireContext(), R.color.background_light_gray));
+        signTab.setBackgroundColor(ContextCompat.getColor(requireContext(), android.R.color.transparent));
+        signTab.setTypeface(null, android.graphics.Typeface.NORMAL);
 
         // Highlight selected
         selectedTab.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue));
-        selectedTab.setTextAppearance(android.R.style.TextAppearance_Material_Body1);
         selectedTab.setTypeface(null, android.graphics.Typeface.BOLD);
         selectedTab.setBackgroundResource(R.drawable.tab_selected_modern);
     }
@@ -267,6 +277,11 @@ public class ScannerFragment extends Fragment {
                     preview,
                     imageCapture
             );
+            
+            // Ensure PreviewView is visible
+            if (cameraPreview != null) {
+                cameraPreview.setVisibility(View.VISIBLE);
+            }
 
         } catch (Exception e) {
             if (isAdded()) {
@@ -281,6 +296,11 @@ public class ScannerFragment extends Fragment {
         if (imageCapture != null) {
             imageCapture.setFlashMode(isFlashOn ?
                     ImageCapture.FLASH_MODE_ON : ImageCapture.FLASH_MODE_OFF);
+        }
+        // Update flash icon tint
+        if (flashIcon != null) {
+            flashIcon.setColorFilter(ContextCompat.getColor(requireContext(),
+                    isFlashOn ? R.color.accent_orange : R.color.text_white));
         }
         Toast.makeText(getContext(), isFlashOn ? "Flash On" : "Flash Off", Toast.LENGTH_SHORT).show();
     }

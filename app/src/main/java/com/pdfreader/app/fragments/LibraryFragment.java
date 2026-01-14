@@ -20,20 +20,34 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.graphics.Bitmap;
+import android.os.Handler;
+import android.os.Looper;
+import android.widget.ProgressBar;
+import android.widget.TextView;
+import android.view.View;
+
+import androidx.core.content.ContextCompat;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.tabs.TabLayout;
 import com.pdfreader.app.HistoryManager;
 import com.pdfreader.app.PdfBook;
 import com.pdfreader.app.PdfReaderActivity;
 import com.pdfreader.app.EpubReaderActivity;
+import com.pdfreader.app.PdfThumbnailGenerator;
+import com.pdfreader.app.ReadingProgressManager;
 import com.pdfreader.app.R;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class LibraryFragment extends Fragment {
 
-    private TabLayout tabLayout;
+    private TextView tabAll, tabReading, tabToRead, tabFinished;
+    private View tabIndicator;
     private RecyclerView booksRecycler;
     private EditText searchInput;
     private FloatingActionButton fabAddBook;
@@ -41,6 +55,9 @@ public class LibraryFragment extends Fragment {
     private LibraryBookAdapter adapter;
     private List<PdfBook> allBooks = new ArrayList<>();
     private List<PdfBook> filteredBooks = new ArrayList<>();
+    private int selectedTab = 0;
+    private ExecutorService executorService;
+    private Handler mainHandler;
 
     private final ActivityResultLauncher<Intent> filePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -60,12 +77,22 @@ public class LibraryFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_library, container, false);
 
         historyManager = new HistoryManager(requireContext());
+        executorService = Executors.newFixedThreadPool(2);
+        mainHandler = new Handler(Looper.getMainLooper());
         initViews(view);
         setupTabs();
         setupSearch();
         loadBooks();
 
         return view;
+    }
+    
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        if (executorService != null) {
+            executorService.shutdown();
+        }
     }
 
     @Override
@@ -75,14 +102,18 @@ public class LibraryFragment extends Fragment {
     }
 
     private void initViews(View view) {
-        tabLayout = view.findViewById(R.id.tab_layout);
+        tabAll = view.findViewById(R.id.tab_all);
+        tabReading = view.findViewById(R.id.tab_reading);
+        tabToRead = view.findViewById(R.id.tab_to_read);
+        tabFinished = view.findViewById(R.id.tab_finished);
+        tabIndicator = view.findViewById(R.id.tab_indicator);
         booksRecycler = view.findViewById(R.id.books_recycler);
         searchInput = view.findViewById(R.id.search_input);
         fabAddBook = view.findViewById(R.id.fab_add_book);
 
         booksRecycler.setLayoutManager(new GridLayoutManager(getContext(), 2));
 
-        adapter = new LibraryBookAdapter(filteredBooks, book -> {
+        adapter = new LibraryBookAdapter(filteredBooks, executorService, mainHandler, book -> {
             String path = book.getFilePath();
             if (path.toLowerCase().contains(".epub")) {
                 Intent intent = new Intent(getActivity(), EpubReaderActivity.class);
@@ -164,18 +195,63 @@ public class LibraryFragment extends Fragment {
     }
 
     private void setupTabs() {
-        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(TabLayout.Tab tab) {
-                filterBooks(tab.getPosition());
+        tabAll.setOnClickListener(v -> selectTab(0));
+        tabReading.setOnClickListener(v -> selectTab(1));
+        tabToRead.setOnClickListener(v -> selectTab(2));
+        tabFinished.setOnClickListener(v -> selectTab(3));
+    }
+    
+    private void selectTab(int position) {
+        selectedTab = position;
+        updateTabAppearance();
+        filterBooks(position);
+    }
+    
+    private void updateTabAppearance() {
+        // Reset all tabs
+        tabAll.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabAll.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabReading.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabReading.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabToRead.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabToRead.setTypeface(null, android.graphics.Typeface.NORMAL);
+        tabFinished.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabFinished.setTypeface(null, android.graphics.Typeface.NORMAL);
+        
+        // Highlight selected tab
+        TextView selectedTextView = null;
+        switch (selectedTab) {
+            case 0:
+                selectedTextView = tabAll;
+                break;
+            case 1:
+                selectedTextView = tabReading;
+                break;
+            case 2:
+                selectedTextView = tabToRead;
+                break;
+            case 3:
+                selectedTextView = tabFinished;
+                break;
+        }
+        
+        if (selectedTextView != null) {
+            final TextView finalSelectedTextView = selectedTextView; // Make effectively final for lambda
+            finalSelectedTextView.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue));
+            finalSelectedTextView.setTypeface(null, android.graphics.Typeface.BOLD);
+            
+            // Update indicator position after layout
+            if (tabIndicator != null) {
+                finalSelectedTextView.post(() -> {
+                    int tabWidth = finalSelectedTextView.getWidth();
+                    int tabStart = finalSelectedTextView.getLeft();
+                    android.view.ViewGroup.MarginLayoutParams params = (android.view.ViewGroup.MarginLayoutParams) tabIndicator.getLayoutParams();
+                    params.width = tabWidth;
+                    params.leftMargin = tabStart;
+                    tabIndicator.setLayoutParams(params);
+                });
             }
-
-            @Override
-            public void onTabUnselected(TabLayout.Tab tab) {}
-
-            @Override
-            public void onTabReselected(TabLayout.Tab tab) {}
-        });
+        }
     }
 
     private void setupSearch() {
@@ -196,7 +272,7 @@ public class LibraryFragment extends Fragment {
     private void loadBooks() {
         allBooks.clear();
         allBooks.addAll(historyManager.getHistory());
-        filterBooks(tabLayout.getSelectedTabPosition());
+        filterBooks(selectedTab);
     }
 
     private void filterBooks(int tabPosition) {
@@ -210,6 +286,8 @@ public class LibraryFragment extends Fragment {
                 case 1: // Reading
                 case 2: // To-Read
                 case 3: // Finished
+                    // For now, show all books in all tabs
+                    // TODO: Implement proper filtering based on reading status
                     filteredBooks.add(book);
                     break;
             }
@@ -222,7 +300,7 @@ public class LibraryFragment extends Fragment {
         filteredBooks.clear();
 
         if (query.isEmpty()) {
-            filterBooks(tabLayout.getSelectedTabPosition());
+            filterBooks(selectedTab);
             return;
         }
 
@@ -241,14 +319,18 @@ public class LibraryFragment extends Fragment {
 
         private final List<PdfBook> books;
         private final OnBookClickListener listener;
+        private final ExecutorService executorService;
+        private final Handler mainHandler;
 
         interface OnBookClickListener {
             void onBookClick(PdfBook book);
         }
 
-        LibraryBookAdapter(List<PdfBook> books, OnBookClickListener listener) {
+        LibraryBookAdapter(List<PdfBook> books, ExecutorService executorService, Handler mainHandler, OnBookClickListener listener) {
             this.books = books;
             this.listener = listener;
+            this.executorService = executorService;
+            this.mainHandler = mainHandler;
         }
 
         @NonNull
@@ -262,7 +344,7 @@ public class LibraryFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
             PdfBook book = books.get(position);
-            holder.bind(book, listener);
+            holder.bind(book, listener, executorService, mainHandler);
         }
 
         @Override
@@ -271,17 +353,52 @@ public class LibraryFragment extends Fragment {
         }
 
         static class ViewHolder extends RecyclerView.ViewHolder {
-            private final android.widget.TextView titleText;
+            private final TextView titleText;
             private final android.widget.ImageView coverImage;
+            private final ProgressBar progressBar;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
                 titleText = itemView.findViewById(R.id.book_title);
                 coverImage = itemView.findViewById(R.id.book_cover);
+                progressBar = itemView.findViewById(R.id.reading_progress);
             }
 
-            void bind(PdfBook book, OnBookClickListener listener) {
+            void bind(PdfBook book, OnBookClickListener listener, ExecutorService executorService, Handler mainHandler) {
                 titleText.setText(book.getTitle());
+                
+                // Load progress (for now, set a default progress - actual progress calculation needs page count)
+                if (progressBar != null) {
+                    // TODO: Calculate actual progress percentage based on scroll position and total pages
+                    progressBar.setProgress(30); // Placeholder
+                }
+                
+                // Load thumbnail for PDF files
+                String path = book.getFilePath();
+                if (path.toLowerCase().endsWith(".pdf")) {
+                    // Set placeholder first
+                    coverImage.setImageResource(R.drawable.placeholder_book);
+                    
+                    // Load thumbnail in background
+                    executorService.execute(() -> {
+                        Bitmap thumbnail = PdfThumbnailGenerator.generateThumbnail(
+                            itemView.getContext(),
+                            path,
+                            400, // max width
+                            300  // max height
+                        );
+                        
+                        mainHandler.post(() -> {
+                            if (thumbnail != null) {
+                                coverImage.setImageBitmap(thumbnail);
+                            }
+                        });
+                    });
+                } else {
+                    // EPUB or other - use placeholder
+                    coverImage.setImageResource(R.drawable.placeholder_book);
+                }
+                
                 itemView.setOnClickListener(v -> listener.onBookClick(book));
             }
         }
