@@ -31,6 +31,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import com.google.android.material.card.MaterialCardView;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -58,15 +60,22 @@ public class SignPdfActivity extends AppCompatActivity {
     private Bitmap signatureBitmap;
     private int selectedPageIndex = -1;
     private ActivityResultLauncher<Intent> pdfPickerLauncher;
+    private ActivityResultLauncher<Intent> cameraSignatureLauncher;
     private SignatureManager signatureManager;
     private ExecutorService executorService;
+
+    // UI elements for preview
+    private MaterialCardView signaturePreviewCard;
+    private ImageView signaturePreviewImage;
+    private LinearLayout statusInfo;
+    private TextView statusText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_pdf);
         
-        // Register activity result launcher
+        // Register activity result launcher for PDF picker
         pdfPickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -75,6 +84,24 @@ public class SignPdfActivity extends AppCompatActivity {
                         if (uri != null) {
                             pdfPath = uri.toString();
                             loadPdf(uri);
+                        }
+                    }
+                });
+
+        // Register activity result launcher for camera signature capture
+        cameraSignatureLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String savedPath = result.getData().getStringExtra(
+                                ReviewSignatureActivity.EXTRA_SAVED_SIGNATURE_PATH);
+                        if (savedPath != null) {
+                            Bitmap signature = signatureManager.loadSignature(savedPath);
+                            if (signature != null) {
+                                signatureBitmap = signature;
+                                updateSignaturePreview();
+                                Toast.makeText(this, "Signature captured and saved", Toast.LENGTH_SHORT).show();
+                            }
                         }
                     }
                 });
@@ -97,6 +124,12 @@ public class SignPdfActivity extends AppCompatActivity {
         if (btnSelectPdfEmpty != null) {
             btnSelectPdfEmpty.setOnClickListener(v -> openFilePicker());
         }
+
+        // Initialize signature preview UI elements
+        signaturePreviewCard = findViewById(R.id.signaturePreviewCard);
+        signaturePreviewImage = findViewById(R.id.signaturePreviewImage);
+        statusInfo = findViewById(R.id.statusInfo);
+        statusText = findViewById(R.id.statusText);
 
         pagesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         pagesWithSignature = new ArrayList<>();
@@ -246,14 +279,34 @@ public class SignPdfActivity extends AppCompatActivity {
             showCreateSignatureDialog();
         });
         
-        // Handle camera signature option (not implemented yet)
+        // Handle camera signature option
         cardCameraSignature.setOnClickListener(v -> {
-            Toast.makeText(this, "Camera signature feature coming soon", Toast.LENGTH_SHORT).show();
+            dialog.dismiss();
+            openCameraSignatureCapture();
         });
         
         dialog.show();
     }
-    
+
+    private void openCameraSignatureCapture() {
+        Intent intent = new Intent(this, CaptureSignatureActivity.class);
+        cameraSignatureLauncher.launch(intent);
+    }
+
+    private void updateSignaturePreview() {
+        if (signatureBitmap != null && signaturePreviewCard != null) {
+            signaturePreviewCard.setVisibility(View.VISIBLE);
+            signaturePreviewImage.setImageBitmap(signatureBitmap);
+
+            if (statusInfo != null) {
+                statusInfo.setVisibility(View.VISIBLE);
+            }
+            if (statusText != null) {
+                statusText.setText("Signature ready to place");
+            }
+        }
+    }
+
     private void showCreateSignatureDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature, null);
@@ -345,16 +398,23 @@ public class SignPdfActivity extends AppCompatActivity {
                         bitmap.eraseColor(0xFFFFFFFF);
                         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
                         
-                        // Add signature if present
-                        if (pagesWithSignature.get(i) && signatureBitmap != null) {
-                            Canvas canvas = new Canvas(bitmap);
-                            int sigWidth = bitmap.getWidth() / 4;
-                            int sigHeight = (int) ((float) signatureBitmap.getHeight() / signatureBitmap.getWidth() * sigWidth);
-                            Bitmap scaledSignature = Bitmap.createScaledBitmap(signatureBitmap, sigWidth, sigHeight, true);
-                            int x = bitmap.getWidth() - sigWidth - 50;
-                            int y = bitmap.getHeight() - sigHeight - 100;
-                            canvas.drawBitmap(scaledSignature, x, y, null);
-                            scaledSignature.recycle();
+                        // Add signature if present at the user-defined position
+                        if (signPdfPageAdapter.hasSignature(i)) {
+                            SignPdfPageAdapter.SignaturePosition sigPos = signPdfPageAdapter.getSignaturePosition(i);
+                            if (sigPos != null && sigPos.bitmap != null && !sigPos.bitmap.isRecycled()) {
+                                Canvas canvas = new Canvas(bitmap);
+                                // Use the position and size set by the user
+                                int sigWidth = (int) sigPos.width;
+                                int sigHeight = (int) sigPos.height;
+                                int x = (int) sigPos.x;
+                                int y = (int) sigPos.y;
+
+                                if (sigWidth > 0 && sigHeight > 0) {
+                                    Bitmap scaledSignature = Bitmap.createScaledBitmap(sigPos.bitmap, sigWidth, sigHeight, true);
+                                    canvas.drawBitmap(scaledSignature, x, y, null);
+                                    scaledSignature.recycle();
+                                }
+                            }
                         }
                         
                         PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(

@@ -58,4 +58,13 @@
         <item name="fontFamily">@font/montserrat</item>
         <item name="android:fontFamily">@font/montserrat</item>
     </style>
+
+    <!-- NoActionBar variant for fullscreen activities like camera -->
+    <style name="Theme.PDFReader.NoActionBar" parent="Theme.PDFReader">
+        <item name="windowNoTitle">true</item>
+        <item name="windowActionBar">false</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>

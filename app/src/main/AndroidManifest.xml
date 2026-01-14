@@ -62,6 +62,17 @@
             android:theme="@style/Theme.PDFReader" />
 
         <activity
+            android:name=".CaptureSignatureActivity"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.PDFReader.NoActionBar" />
+
+        <activity
+            android:name=".ReviewSignatureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
             android:name=".MergePdfActivity"
             android:exported="false"
             android:theme="@style/Theme.PDFReader" />

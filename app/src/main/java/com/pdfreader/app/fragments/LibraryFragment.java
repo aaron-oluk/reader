@@ -368,21 +368,51 @@ public class LibraryFragment extends Fragment {
             void bind(PdfBook book, OnBookClickListener listener, ExecutorService executorService, Handler mainHandler) {
                 titleText.setText(book.getTitle());
                 
-                // Load actual reading progress
-                if (progressBar != null) {
-                    ReadingProgressManager progressManager = new ReadingProgressManager(itemView.getContext());
-                    int progress = progressManager.getProgress(book.getFilePath());
-                    progressBar.setProgress(progress);
-                }
-                
                 // Load thumbnail for PDF files (matching home page implementation)
                 String path = book.getFilePath();
+                String title = book.getTitle();
                 
+                // Load actual reading progress (calculate percentage from page number)
+                if (progressBar != null) {
+                    ReadingProgressManager progressManager = new ReadingProgressManager(itemView.getContext());
+                    
+                    // Get scroll position (stored as firstVisiblePosition * 1000)
+                    int savedProgress = progressManager.getProgress(path);
+                    int currentPage = savedProgress / 1000;
+                    
+                    // Calculate progress percentage asynchronously
+                    executorService.execute(() -> {
+                        try {
+                            int totalPages = getPdfPageCount(itemView.getContext(), path);
+                            
+                            mainHandler.post(() -> {
+                                if (totalPages > 0 && currentPage > 0) {
+                                    // Calculate percentage: (currentPage / totalPages) * 100
+                                    int progressPercent = Math.min(100, (int) ((currentPage * 100.0f) / totalPages));
+                                    progressBar.setProgress(progressPercent);
+                                } else {
+                                    // No progress yet or can't read PDF
+                                    progressBar.setProgress(0);
+                                }
+                            });
+                        } catch (Exception e) {
+                            android.util.Log.e("LibraryFragment", "Error calculating progress for: " + book.getTitle(), e);
+                            mainHandler.post(() -> progressBar.setProgress(0));
+                        }
+                    });
+                }
+
                 // Show placeholder while loading
                 coverImage.setImageResource(R.drawable.placeholder_book);
                 coverImage.setTag(path); // Use path as tag to track which book this view is showing
-                
-                if (path != null && path.toLowerCase().endsWith(".pdf")) {
+
+                // Check if this is a PDF file - check both path and title for .pdf extension
+                // Content URIs don't have extensions in the URI itself
+                boolean isPdf = (path != null && path.toLowerCase().contains(".pdf")) ||
+                               (title != null && title.toLowerCase().endsWith(".pdf")) ||
+                               (path != null && !path.toLowerCase().contains(".epub"));
+
+                if (path != null && isPdf) {
                     // Load thumbnail in background (same as home page)
                     executorService.execute(() -> {
                         try {
@@ -430,6 +460,34 @@ public class LibraryFragment extends Fragment {
                 }
                 
                 itemView.setOnClickListener(v -> listener.onBookClick(book));
+            }
+            
+            private int getPdfPageCount(android.content.Context context, String pdfPath) {
+                try {
+                    android.graphics.pdf.PdfRenderer renderer = null;
+                    android.os.ParcelFileDescriptor pfd = null;
+                    
+                    if (pdfPath.startsWith("content://") || pdfPath.startsWith("file://")) {
+                        android.net.Uri uri = android.net.Uri.parse(pdfPath);
+                        pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+                    } else {
+                        java.io.File file = new java.io.File(pdfPath);
+                        if (file.exists()) {
+                            pfd = android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY);
+                        }
+                    }
+                    
+                    if (pfd != null) {
+                        renderer = new android.graphics.pdf.PdfRenderer(pfd);
+                        int pageCount = renderer.getPageCount();
+                        renderer.close();
+                        pfd.close();
+                        return pageCount;
+                    }
+                } catch (Exception e) {
+                    android.util.Log.e("LibraryFragment", "Error reading PDF page count", e);
+                }
+                return 0;
             }
         }
     }
