@@ -12,7 +12,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Select Signature"
-        android:textSize="20sp"
+        android:textAppearance="@style/TextAppearance.App.TitleLarge"
         android:textStyle="bold"
         android:textColor="@color/text_primary"
         android:paddingBottom="20dp" />
@@ -58,7 +58,7 @@
                     android:layout_marginTop="8dp"
                     android:text="Draw"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textStyle="bold" />
 
                 <TextView
@@ -68,7 +68,7 @@
                     android:gravity="center"
                     android:text="Sign on screen"
                     android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
+                    android:textAppearance="@style/TextAppearance.App.LabelSmall" />
 
             </LinearLayout>
 
@@ -108,7 +108,7 @@
                     android:layout_marginTop="8dp"
                     android:text="Camera"
                     android:textColor="@color/text_primary"
-                    android:textSize="14sp"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textStyle="bold" />
 
                 <TextView
@@ -118,7 +118,7 @@
                     android:gravity="center"
                     android:text="Photograph signature"
                     android:textColor="@color/text_secondary"
-                    android:textSize="11sp" />
+                    android:textAppearance="@style/TextAppearance.App.LabelSmall" />
 
             </LinearLayout>
 
@@ -146,7 +146,7 @@
             android:paddingHorizontal="12dp"
             android:text="Saved Signatures"
             android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
+            android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
         <View
             android:layout_width="0dp"
@@ -181,7 +181,7 @@
             android:gravity="center"
             android:text="No saved signatures yet\nCreate one using the options above"
             android:textColor="@color/text_secondary"
-            android:textSize="14sp" />
+            android:textAppearance="@style/TextAppearance.App.BodyMedium" />
 
     </LinearLayout>
 

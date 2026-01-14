@@ -26,6 +26,8 @@ import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.pdfreader.app.HistoryManager;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -42,6 +44,7 @@ public class PdfReaderActivity extends AppCompatActivity {
     private PdfRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private ReadingProgressManager progressManager;
+    private HistoryManager historyManager;
     private PdfPageAdapter pdfPageAdapter;
 
     // UI Elements
@@ -67,9 +70,15 @@ public class PdfReaderActivity extends AppCompatActivity {
         setupListeners();
 
         progressManager = new ReadingProgressManager(this);
+        historyManager = new HistoryManager(this);
 
         pdfPath = getIntent().getStringExtra("PDF_PATH");
         pdfTitle = getIntent().getStringExtra("PDF_TITLE");
+        
+        // Save to history when PDF is opened
+        if (pdfPath != null && pdfTitle != null && !pdfPath.isEmpty()) {
+            historyManager.addToHistory(pdfTitle, pdfPath);
+        }
 
         if (pdfTitle != null) {
             toolbarTitle.setText(pdfTitle);

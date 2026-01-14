@@ -30,7 +30,7 @@
             android:layout_weight="1"
             android:text="Review Signature"
             android:textColor="@color/text_primary"
-            android:textSize="18sp"
+            android:textAppearance="@style/TextAppearance.App.TitleMedium"
             android:textStyle="bold" />
 
     </LinearLayout>
@@ -63,7 +63,7 @@
                 android:layout_height="wrap_content"
                 android:text="Original"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp" />
+                android:textAppearance="@style/TextAppearance.App.LabelSmall" />
 
             <ImageView
                 android:id="@+id/original_image"
@@ -103,7 +103,7 @@
                 android:layout_height="wrap_content"
                 android:text="Cleaned Signature"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
             <FrameLayout
                 android:layout_width="match_parent"
@@ -141,7 +141,7 @@
             android:layout_height="wrap_content"
             android:text="Cleanup Sensitivity"
             android:textColor="@color/text_primary"
-            android:textSize="14sp"
+            android:textAppearance="@style/TextAppearance.App.BodyMedium"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -156,7 +156,7 @@
                 android:layout_height="wrap_content"
                 android:text="Less"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
             <com.google.android.material.slider.Slider
                 android:id="@+id/sensitivity_slider"
@@ -176,7 +176,7 @@
                 android:layout_height="wrap_content"
                 android:text="More"
                 android:textColor="@color/text_secondary"
-                android:textSize="12sp" />
+                android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
         </LinearLayout>
 
@@ -199,7 +199,7 @@
             android:layout_marginEnd="8dp"
             android:layout_weight="1"
             android:text="Retake"
-            android:textSize="16sp"
+            android:textAppearance="@style/TextAppearance.App.BodyLarge"
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_camera"
             app:iconGravity="textStart"
@@ -212,7 +212,7 @@
             android:layout_marginStart="8dp"
             android:layout_weight="1"
             android:text="Save Signature"
-            android:textSize="16sp"
+            android:textAppearance="@style/TextAppearance.App.BodyLarge"
             app:backgroundTint="@color/primary_blue"
             app:cornerRadius="12dp"
             app:icon="@drawable/ic_save"
@@ -248,7 +248,7 @@
                 android:layout_marginTop="16dp"
                 android:text="Processing..."
                 android:textColor="@android:color/white"
-                android:textSize="16sp" />
+                android:textAppearance="@style/TextAppearance.App.BodyLarge" />
 
         </LinearLayout>
 

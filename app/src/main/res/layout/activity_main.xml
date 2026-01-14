@@ -64,7 +64,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/open_pdf"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -100,7 +100,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/search_files"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -144,7 +144,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/history"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -180,7 +180,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/merge_pdfs"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -224,7 +224,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/sign_document"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -260,7 +260,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/image_to_pdf"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -304,7 +304,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/open_epub"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textStyle="bold"
                             android:textColor="@color/black"
                             android:layout_marginTop="8dp" />
@@ -327,7 +327,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/recent_files"
-                android:textSize="18sp"
+                android:textAppearance="@style/TextAppearance.App.TitleMedium"
                 android:textStyle="bold"
                 android:textColor="@color/black"
                 android:layout_marginTop="24dp"

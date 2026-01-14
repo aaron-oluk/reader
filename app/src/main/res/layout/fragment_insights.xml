@@ -32,7 +32,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="Reading Insights"
-                android:textSize="20sp"
+                android:textAppearance="@style/TextAppearance.App.TitleLarge"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold"
                 android:gravity="center" />
@@ -64,7 +64,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="MONTHLY VOLUME"
-                    android:textSize="12sp"
+                    android:textAppearance="@style/TextAppearance.App.BodySmall"
                     android:textColor="@color/text_white"
                     android:alpha="0.8"
                     android:letterSpacing="0.05" />
@@ -89,7 +89,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=" pages"
-                        android:textSize="20sp"
+                        android:textAppearance="@style/TextAppearance.App.TitleLarge"
                         android:textColor="@color/text_white"
                         android:layout_marginStart="8dp" />
                 </LinearLayout>
@@ -98,7 +98,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Activity in October"
-                    android:textSize="14sp"
+                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textColor="@color/text_white"
                     android:alpha="0.8"
                     android:layout_marginTop="8dp" />
@@ -137,7 +137,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="FINISHED"
-                        android:textSize="10sp"
+                        android:textAppearance="@style/TextAppearance.App.LabelSmall"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="8dp" />
 
@@ -179,7 +179,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="SPEED"
-                        android:textSize="10sp"
+                        android:textAppearance="@style/TextAppearance.App.LabelSmall"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="8dp" />
 
@@ -203,7 +203,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=" wpm"
-                            android:textSize="12sp"
+                            android:textAppearance="@style/TextAppearance.App.BodySmall"
                             android:textColor="@color/text_secondary"
                             android:layout_marginStart="4dp" />
                     </LinearLayout>
@@ -235,7 +235,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="STREAK"
-                        android:textSize="10sp"
+                        android:textAppearance="@style/TextAppearance.App.LabelSmall"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="8dp" />
 
@@ -259,7 +259,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text=" days"
-                            android:textSize="12sp"
+                            android:textAppearance="@style/TextAppearance.App.BodySmall"
                             android:textColor="@color/text_secondary"
                             android:layout_marginStart="4dp" />
                     </LinearLayout>
@@ -299,7 +299,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Weekly Progress"
-                            android:textSize="18sp"
+                            android:textAppearance="@style/TextAppearance.App.TitleMedium"
                             android:textColor="@color/text_primary"
                             android:textStyle="bold" />
 
@@ -307,7 +307,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Last 7 days  +12%"
-                            android:textSize="14sp"
+                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="4dp" />
                     </LinearLayout>
@@ -364,7 +364,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="50%"
-                        android:textSize="16sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyLarge"
                         android:textColor="@color/primary_blue"
                         android:textStyle="bold" />
                 </LinearLayout>
@@ -389,7 +389,7 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="12 books read"
-                        android:textSize="14sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -397,7 +397,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="24 books goal"
-                        android:textSize="14sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </LinearLayout>
@@ -444,7 +444,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Evening Reader"
-                        android:textSize="16sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyLarge"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold" />
 
@@ -452,7 +452,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Active between 9 PM — 11 PM"
-                        android:textSize="14sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>
@@ -490,7 +490,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Fiction Enthusiast"
-                        android:textSize="16sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyLarge"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold" />
 
@@ -498,7 +498,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="74% Classic Literature focus"
-                        android:textSize="14sp"
+                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="4dp" />
                 </LinearLayout>

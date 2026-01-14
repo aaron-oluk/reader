@@ -5,20 +5,39 @@ import android.graphics.Bitmap;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
+import android.util.Log;
 
+import java.io.File;
 import java.io.IOException;
 
 public class PdfThumbnailGenerator {
+    
+    private static final String TAG = "PdfThumbnailGenerator";
     
     public static Bitmap generateThumbnail(Context context, String pdfPath, int maxWidth, int maxHeight) {
         ParcelFileDescriptor pfd = null;
         PdfRenderer renderer = null;
         
         try {
-            Uri uri = Uri.parse(pdfPath);
-            pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+            // Handle both URI strings and file paths
+            if (pdfPath.startsWith("content://") || pdfPath.startsWith("file://")) {
+                // URI path
+                Uri uri = Uri.parse(pdfPath);
+                pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+            } else {
+                // File path
+                File file = new File(pdfPath);
+                if (file.exists()) {
+                    pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+                } else {
+                    // Try as URI anyway
+                    Uri uri = Uri.parse(pdfPath);
+                    pfd = context.getContentResolver().openFileDescriptor(uri, "r");
+                }
+            }
             
             if (pfd == null) {
+                Log.w(TAG, "Failed to open PDF: " + pdfPath);
                 return null;
             }
             
@@ -52,8 +71,8 @@ public class PdfThumbnailGenerator {
             
             return bitmap;
             
-        } catch (IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.e(TAG, "Error generating thumbnail for: " + pdfPath, e);
             return null;
         } finally {
             if (renderer != null) {

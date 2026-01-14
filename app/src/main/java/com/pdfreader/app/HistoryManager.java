@@ -77,6 +77,12 @@ public class HistoryManager {
         prefs.edit().putString(KEY_HISTORY, array.toString()).apply();
     }
 
+    public void removeFromHistory(String filePath) {
+        List<PdfBook> history = getHistory();
+        history.removeIf(book -> book.getFilePath().equals(filePath));
+        saveHistory(history);
+    }
+
     public void clearHistory() {
         prefs.edit().remove(KEY_HISTORY).apply();
     }

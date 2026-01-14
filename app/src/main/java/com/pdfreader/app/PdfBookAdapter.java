@@ -1,13 +1,13 @@
 package com.pdfreader.app;
 
 import android.content.Context;
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
-import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.List;
@@ -35,9 +35,15 @@ public class PdfBookAdapter extends RecyclerView.Adapter<PdfBookAdapter.ViewHold
         holder.titleTextView.setText(book.getTitle());
         holder.sizeTextView.setText(book.getFileSize());
 
-        holder.cardView.setOnClickListener(v -> {
+        holder.itemView.setOnClickListener(v -> {
             if (context instanceof MainActivity) {
                 ((MainActivity) context).openPdfReader(book.getFilePath(), book.getTitle());
+            } else {
+                // Handle click from Fragment (HomeFragment)
+                Intent intent = new Intent(context, PdfReaderActivity.class);
+                intent.putExtra("PDF_PATH", book.getFilePath());
+                intent.putExtra("PDF_TITLE", book.getTitle());
+                context.startActivity(intent);
             }
         });
     }
@@ -48,13 +54,13 @@ public class PdfBookAdapter extends RecyclerView.Adapter<PdfBookAdapter.ViewHold
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
-        CardView cardView;
+        View itemView;
         TextView titleTextView;
         TextView sizeTextView;
 
         public ViewHolder(@NonNull View itemView) {
             super(itemView);
-            cardView = itemView.findViewById(R.id.cardView);
+            this.itemView = itemView.findViewById(R.id.cardView);
             titleTextView = itemView.findViewById(R.id.titleTextView);
             sizeTextView = itemView.findViewById(R.id.sizeTextView);
         }

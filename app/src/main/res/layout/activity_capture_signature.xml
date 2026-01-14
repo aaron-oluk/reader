@@ -38,7 +38,7 @@
             android:gravity="center"
             android:text="Capture Signature"
             android:textColor="@android:color/white"
-            android:textSize="18sp"
+            android:textAppearance="@style/TextAppearance.App.TitleMedium"
             android:textStyle="bold" />
 
         <ImageView
@@ -101,7 +101,7 @@
         android:paddingVertical="10dp"
         android:text="Position signature within the frame"
         android:textColor="@android:color/white"
-        android:textSize="14sp"
+        android:textAppearance="@style/TextAppearance.App.BodyMedium"
         app:layout_constraintBottom_toTopOf="@id/bottom_controls"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
@@ -142,7 +142,7 @@
             android:layout_marginTop="12dp"
             android:text="Tap to capture"
             android:textColor="#AAAAAA"
-            android:textSize="12sp" />
+            android:textAppearance="@style/TextAppearance.App.BodySmall" />
 
     </LinearLayout>
 
@@ -173,7 +173,7 @@
                 android:layout_marginTop="16dp"
                 android:text="Processing signature..."
                 android:textColor="@android:color/white"
-                android:textSize="16sp" />
+                android:textAppearance="@style/TextAppearance.App.BodyLarge" />
 
         </LinearLayout>
 
