@@ -69,11 +69,11 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="ALL"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
                 android:textColor="@color/primary_blue"
                 android:textStyle="bold"
                 android:gravity="center"
-                android:padding="12dp"
+                android:padding="10dp"
                 android:background="@android:color/transparent" />
 
             <TextView
@@ -82,10 +82,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="READING"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                android:textColor="@color/text_secondary"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="#666666"
                 android:gravity="center"
-                android:padding="12dp"
+                android:padding="10dp"
                 android:background="@android:color/transparent" />
 
             <TextView
@@ -94,10 +94,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="TO-READ"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                android:textColor="@color/text_secondary"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="#666666"
                 android:gravity="center"
-                android:padding="12dp"
+                android:padding="10dp"
                 android:background="@android:color/transparent" />
 
             <TextView
@@ -106,10 +106,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:text="FINISHED"
-                android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                android:textColor="@color/text_secondary"
+                android:textAppearance="@style/TextAppearance.App.BodySmall"
+                android:textColor="#666666"
                 android:gravity="center"
-                android:padding="12dp"
+                android:padding="10dp"
                 android:background="@android:color/transparent" />
         </LinearLayout>
 
@@ -156,7 +156,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:hint="Search your library..."
-                android:textAppearance="@style/TextAppearance.App.BodyLarge"
+                android:textAppearance="@style/TextAppearance.App.BodyMedium"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:background="@android:color/transparent"

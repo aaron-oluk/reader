@@ -208,14 +208,15 @@ public class LibraryFragment extends Fragment {
     }
     
     private void updateTabAppearance() {
-        // Reset all tabs
-        tabAll.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        // Reset all tabs with more visible colors
+        int unselectedColor = ContextCompat.getColor(requireContext(), android.R.color.darker_gray);
+        tabAll.setTextColor(unselectedColor);
         tabAll.setTypeface(null, android.graphics.Typeface.NORMAL);
-        tabReading.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabReading.setTextColor(unselectedColor);
         tabReading.setTypeface(null, android.graphics.Typeface.NORMAL);
-        tabToRead.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabToRead.setTextColor(unselectedColor);
         tabToRead.setTypeface(null, android.graphics.Typeface.NORMAL);
-        tabFinished.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_secondary));
+        tabFinished.setTextColor(unselectedColor);
         tabFinished.setTypeface(null, android.graphics.Typeface.NORMAL);
         
         // Highlight selected tab
@@ -367,32 +368,61 @@ public class LibraryFragment extends Fragment {
             void bind(PdfBook book, OnBookClickListener listener, ExecutorService executorService, Handler mainHandler) {
                 titleText.setText(book.getTitle());
                 
-                // Load progress (for now, set a default progress - actual progress calculation needs page count)
+                // Load actual reading progress
                 if (progressBar != null) {
-                    // TODO: Calculate actual progress percentage based on scroll position and total pages
-                    progressBar.setProgress(30); // Placeholder
+                    ReadingProgressManager progressManager = new ReadingProgressManager(itemView.getContext());
+                    int progress = progressManager.getProgress(book.getFilePath());
+                    progressBar.setProgress(progress);
                 }
                 
-                // Load thumbnail for PDF files
+                // Load thumbnail for PDF files (matching home page implementation)
                 String path = book.getFilePath();
-                if (path.toLowerCase().endsWith(".pdf")) {
-                    // Set placeholder first
-                    coverImage.setImageResource(R.drawable.placeholder_book);
-                    
-                    // Load thumbnail in background
+                
+                // Show placeholder while loading
+                coverImage.setImageResource(R.drawable.placeholder_book);
+                coverImage.setTag(path); // Use path as tag to track which book this view is showing
+                
+                if (path != null && path.toLowerCase().endsWith(".pdf")) {
+                    // Load thumbnail in background (same as home page)
                     executorService.execute(() -> {
-                        Bitmap thumbnail = PdfThumbnailGenerator.generateThumbnail(
-                            itemView.getContext(),
-                            path,
-                            400, // max width
-                            300  // max height
-                        );
-                        
-                        mainHandler.post(() -> {
-                            if (thumbnail != null) {
-                                coverImage.setImageBitmap(thumbnail);
+                        try {
+                            android.content.Context context = itemView.getContext();
+                            if (context == null) {
+                                return;
                             }
-                        });
+                            
+                            // Get display dimensions for thumbnail (matching home page)
+                            int maxWidth = 400; // Cover width
+                            int maxHeight = 560; // Cover height (maintaining aspect ratio)
+                            
+                            Bitmap thumbnail = PdfThumbnailGenerator.generateThumbnail(
+                                context,
+                                path,
+                                maxWidth,
+                                maxHeight
+                            );
+                            
+                            if (thumbnail != null && !thumbnail.isRecycled()) {
+                                mainHandler.post(() -> {
+                                    // Check if this view is still showing the same book (using path as tag)
+                                    if (coverImage != null && coverImage.getTag() != null && 
+                                        coverImage.getTag().equals(path)) {
+                                        coverImage.setImageBitmap(thumbnail);
+                                        coverImage.invalidate(); // Force redraw
+                                        android.util.Log.d("LibraryFragment", "Cover loaded successfully for: " + book.getTitle());
+                                    } else {
+                                        // Fragment detached or view recycled, recycle bitmap
+                                        if (thumbnail != null && !thumbnail.isRecycled()) {
+                                            thumbnail.recycle();
+                                        }
+                                    }
+                                });
+                            } else {
+                                android.util.Log.w("LibraryFragment", "Thumbnail is null or recycled for: " + book.getTitle());
+                            }
+                        } catch (Exception e) {
+                            android.util.Log.e("LibraryFragment", "Error loading cover for: " + path, e);
+                        }
                     });
                 } else {
                     // EPUB or other - use placeholder

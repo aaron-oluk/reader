@@ -50,8 +50,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
+            app:strokeWidth="0dp"
             android:backgroundTint="@color/primary_blue">
 
             <LinearLayout
@@ -70,34 +71,39 @@
                     android:letterSpacing="0.05" />
 
                 <LinearLayout
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="bottom"
+                    android:gravity="bottom|start"
                     android:layout_marginTop="8dp">
 
                     <TextView
                         android:id="@+id/monthly_pages"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
+                        android:layout_weight="0"
                         android:text="1,420"
-                        android:textSize="56sp"
+                        android:textAppearance="@style/TextAppearance.App.DisplaySmall"
                         android:textColor="@color/text_white"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        android:maxLines="1"
+                        android:ellipsize="none" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text=" pages"
-                        android:textAppearance="@style/TextAppearance.App.TitleLarge"
+                        android:textAppearance="@style/TextAppearance.App.TitleMedium"
                         android:textColor="@color/text_white"
-                        android:layout_marginStart="8dp" />
+                        android:layout_marginStart="8dp"
+                        android:maxLines="1" />
                 </LinearLayout>
 
                 <TextView
+                    android:id="@+id/monthly_activity_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Activity in October"
+                    android:text="Activity this month"
                     android:textAppearance="@style/TextAppearance.App.BodyMedium"
                     android:textColor="@color/text_white"
                     android:alpha="0.8"
@@ -116,9 +122,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                app:cardCornerRadius="12dp"
+                android:layout_marginEnd="6dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
+                app:strokeWidth="0dp"
                 android:backgroundTint="@color/background_card">
 
                 <LinearLayout
@@ -143,13 +150,15 @@
 
                     <TextView
                         android:id="@+id/books_finished"
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:text="12"
-                        android:textSize="32sp"
+                        android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
-                        android:layout_marginTop="4dp" />
+                        android:layout_marginTop="4dp"
+                        android:maxLines="1"
+                        android:ellipsize="none" />
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -157,10 +166,11 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                app:cardCornerRadius="12dp"
+                android:layout_marginStart="3dp"
+                android:layout_marginEnd="3dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
+                app:strokeWidth="0dp"
                 android:backgroundTint="@color/background_card">
 
                 <LinearLayout
@@ -184,20 +194,23 @@
                         android:layout_marginTop="8dp" />
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="bottom"
-                        android:layout_marginTop="4dp">
+                        android:gravity="bottom|start"
+                        android:layout_marginTop="2dp">
 
                         <TextView
                             android:id="@+id/reading_speed"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="0"
                             android:text="280"
-                            android:textSize="32sp"
+                            android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
                             android:textColor="@color/text_primary"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="none" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -205,7 +218,8 @@
                             android:text=" wpm"
                             android:textAppearance="@style/TextAppearance.App.BodySmall"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginStart="4dp" />
+                            android:layout_marginStart="4dp"
+                            android:maxLines="1" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -214,9 +228,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                app:cardCornerRadius="12dp"
+                android:layout_marginStart="6dp"
+                app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
+                app:strokeWidth="0dp"
                 android:backgroundTint="@color/background_card">
 
                 <LinearLayout
@@ -240,20 +255,23 @@
                         android:layout_marginTop="8dp" />
 
                     <LinearLayout
-                        android:layout_width="wrap_content"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="horizontal"
-                        android:gravity="bottom"
+                        android:gravity="bottom|start"
                         android:layout_marginTop="4dp">
 
                         <TextView
                             android:id="@+id/current_streak"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
+                            android:layout_weight="0"
                             android:text="15"
-                            android:textSize="32sp"
+                            android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
                             android:textColor="@color/text_primary"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:maxLines="1"
+                            android:ellipsize="none" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -261,7 +279,8 @@
                             android:text=" days"
                             android:textAppearance="@style/TextAppearance.App.BodySmall"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginStart="4dp" />
+                            android:layout_marginStart="4dp"
+                            android:maxLines="1" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -272,8 +291,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="2dp"
+            app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
             <LinearLayout
@@ -333,8 +353,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="20dp"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="2dp"
+            app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
             <LinearLayout
@@ -417,8 +438,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:cardCornerRadius="12dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="2dp"
+            app:strokeWidth="0dp"
             android:backgroundTint="@color/background_card">
 
             <LinearLayout
