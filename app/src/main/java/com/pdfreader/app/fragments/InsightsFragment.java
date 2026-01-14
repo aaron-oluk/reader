@@ -45,6 +45,7 @@ public class InsightsFragment extends Fragment {
     private TextView booksGoalCount;
     private ProgressBar goalProgress;
     private TextView monthlyActivityText;
+    private TextView weeklyProgressText;
     
     private HistoryManager historyManager;
     private ReadingProgressManager readingProgressManager;
@@ -85,6 +86,7 @@ public class InsightsFragment extends Fragment {
         booksGoalCount = view.findViewById(R.id.books_goal_count);
         goalProgress = view.findViewById(R.id.goal_progress);
         monthlyActivityText = view.findViewById(R.id.monthly_activity_text);
+        weeklyProgressText = view.findViewById(R.id.weekly_progress_text);
     }
 
     private void loadStats() {
@@ -155,6 +157,15 @@ public class InsightsFragment extends Fragment {
                 SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM", Locale.getDefault());
                 String monthName = monthFormat.format(cal.getTime());
                 
+                // Calculate weekly progress (last 7 days)
+                // For now, estimate based on monthly pages / 4 (rough weekly average)
+                int weeklyPages = monthlyPagesRead / 4;
+                int weeklyChange = 0; // TODO: Calculate actual weekly change when date tracking is implemented
+                String weeklyProgressStr = "Last 7 days";
+                if (weeklyChange != 0) {
+                    weeklyProgressStr += weeklyChange > 0 ? " +" + Math.abs(weeklyChange) + "%" : " " + weeklyChange + "%";
+                }
+                
                 // Update UI on main thread
                 final int finalMonthlyPages = monthlyPagesRead;
                 final int finalFinishedBooks = finishedBooks;
@@ -162,7 +173,9 @@ public class InsightsFragment extends Fragment {
                 final int finalStreak = streak;
                 final int finalTotalBooks = totalBooks;
                 final int finalGoalPercent = goalPercent;
+                final int finalYearlyGoal = yearlyGoal;
                 final String finalMonthName = monthName;
+                final String finalWeeklyProgressStr = weeklyProgressStr;
                 
                 mainHandler.post(() -> {
                     monthlyPages.setText(String.format("%,d", finalMonthlyPages));
@@ -175,13 +188,18 @@ public class InsightsFragment extends Fragment {
                         monthlyActivityText.setText("Activity in " + finalMonthName);
                     }
                     
+                    // Update weekly progress text
+                    if (weeklyProgressText != null) {
+                        weeklyProgressText.setText(finalWeeklyProgressStr);
+                    }
+                    
                     // Update goal section
                     goalPercentage.setText(finalGoalPercent + "%");
                     if (goalProgress != null) {
                         goalProgress.setProgress(finalGoalPercent);
                     }
                     booksReadCount.setText(finalTotalBooks + " books read");
-                    booksGoalCount.setText(yearlyGoal + " books goal");
+                    booksGoalCount.setText(finalYearlyGoal + " books goal");
                 });
                 
             } catch (Exception e) {
@@ -190,12 +208,20 @@ public class InsightsFragment extends Fragment {
                 mainHandler.post(() -> {
                     monthlyPages.setText("0");
                     booksFinished.setText("0");
-                    readingSpeed.setText("250");
+                    readingSpeed.setText("0");
                     currentStreak.setText("0");
                     if (goalPercentage != null) goalPercentage.setText("0%");
                     if (goalProgress != null) goalProgress.setProgress(0);
                     if (booksReadCount != null) booksReadCount.setText("0 books read");
                     if (booksGoalCount != null) booksGoalCount.setText("24 books goal");
+                    if (monthlyActivityText != null) {
+                        Calendar cal = Calendar.getInstance();
+                        SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM", Locale.getDefault());
+                        monthlyActivityText.setText("Activity in " + monthFormat.format(cal.getTime()));
+                    }
+                    if (weeklyProgressText != null) {
+                        weeklyProgressText.setText("Last 7 days");
+                    }
                 });
             }
         });

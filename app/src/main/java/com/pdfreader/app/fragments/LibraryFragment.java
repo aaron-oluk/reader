@@ -111,7 +111,8 @@ public class LibraryFragment extends Fragment {
         searchInput = view.findViewById(R.id.search_input);
         fabAddBook = view.findViewById(R.id.fab_add_book);
 
-        booksRecycler.setLayoutManager(new GridLayoutManager(getContext(), 2));
+        // Use 3 columns for better space utilization (each book ~33% width instead of 50%)
+        booksRecycler.setLayoutManager(new GridLayoutManager(getContext(), 3));
 
         adapter = new LibraryBookAdapter(filteredBooks, executorService, mainHandler, book -> {
             String path = book.getFilePath();

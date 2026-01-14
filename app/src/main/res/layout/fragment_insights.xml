@@ -82,7 +82,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="0"
-                        android:text="1,420"
+                        android:text="0"
                         android:textAppearance="@style/TextAppearance.App.DisplaySmall"
                         android:textColor="@color/text_white"
                         android:textStyle="bold"
@@ -152,7 +152,7 @@
                         android:id="@+id/books_finished"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="12"
+                        android:text="0"
                         android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold"
@@ -205,7 +205,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="0"
-                            android:text="280"
+                            android:text="0"
                             android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
                             android:textColor="@color/text_primary"
                             android:textStyle="bold"
@@ -266,7 +266,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="0"
-                            android:text="15"
+                            android:text="0"
                             android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
                             android:textColor="@color/text_primary"
                             android:textStyle="bold"
@@ -324,9 +324,10 @@
                             android:textStyle="bold" />
 
                         <TextView
+                            android:id="@+id/weekly_progress_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Last 7 days  +12%"
+                            android:text="Last 7 days"
                             android:textAppearance="@style/TextAppearance.App.BodyMedium"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="4dp" />
@@ -384,7 +385,7 @@
                         android:id="@+id/goal_percentage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="50%"
+                        android:text="0%"
                         android:textAppearance="@style/TextAppearance.App.BodyLarge"
                         android:textColor="@color/primary_blue"
                         android:textStyle="bold" />
@@ -395,7 +396,7 @@
                     style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
                     android:layout_height="12dp"
-                    android:progress="50"
+                    android:progress="0"
                     android:progressDrawable="@drawable/progress_bar_horizontal"
                     android:layout_marginBottom="12dp" />
 
@@ -409,7 +410,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="12 books read"
+                        android:text="0 books read"
                         android:textAppearance="@style/TextAppearance.App.BodyMedium"
                         android:textColor="@color/text_primary" />
 

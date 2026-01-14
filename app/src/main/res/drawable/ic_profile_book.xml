@@ -1,0 +1,49 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="100dp"
+    android:height="100dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    
+    <!-- Book Background -->
+    <path
+        android:fillColor="#2B7FED"
+        android:pathData="M20,15 L20,85 L50,85 L50,15 Z"/>
+    
+    <!-- Open Book Pages -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M25,20 L25,80 L45,80 L45,20 Z"/>
+    
+    <!-- Book Spine -->
+    <path
+        android:fillColor="#1E5DB8"
+        android:pathData="M20,15 L50,15 L50,85 L20,85 Z"/>
+    
+    <!-- Right Page -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M50,15 L80,15 L80,85 L50,85 Z"/>
+    
+    <!-- Text Lines on Left Page -->
+    <path
+        android:fillColor="#E5E5EA"
+        android:pathData="M28,30 L42,30 M28,35 L42,35 M28,40 L38,40 M28,45 L42,45 M28,50 L40,50"/>
+    
+    <!-- Text Lines on Right Page -->
+    <path
+        android:fillColor="#E5E5EA"
+        android:pathData="M55,30 L75,30 M55,35 L75,35 M55,40 L70,40 M55,45 L75,45 M55,50 L72,50"/>
+    
+    <!-- Decorative Circle (representing digital elements) -->
+    <path
+        android:fillColor="#5FA4F5"
+        android:pathData="M70,17 A8,8 0 1,1 70,33 A8,8 0 1,1 70,17 Z"/>
+    
+    <!-- Small Device Icon -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M12,40 L12,60 L18,60 L18,40 Z"/>
+    <path
+        android:fillColor="#2B7FED"
+        android:pathData="M13,42 L17,42 M13,45 L17,45 M13,48 L16,48"/>
+</vector>
