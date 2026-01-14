@@ -25,7 +25,7 @@
             android:layout_weight="1"
             android:text="My Library"
             android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
-            android:textColor="@color/text_primary"
+            android:textColor="@color/text_white"
             android:textStyle="bold"
             android:gravity="center" />
 

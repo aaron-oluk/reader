@@ -49,7 +49,6 @@ public class HomeFragment extends Fragment {
     private static final String TAG = "HomeFragment";
 
     private TextView greetingText;
-    private TextView streakNumber;
     private TextView bookTitle;
     private TextView bookAuthor;
     private TextView progressPercentage;
@@ -162,7 +161,6 @@ public class HomeFragment extends Fragment {
 
     private void initViews(View view) {
         greetingText = view.findViewById(R.id.greeting_text);
-        streakNumber = view.findViewById(R.id.streak_number);
         bookTitle = view.findViewById(R.id.book_title);
         bookAuthor = view.findViewById(R.id.book_author);
         progressPercentage = view.findViewById(R.id.progress_percentage);
@@ -196,7 +194,6 @@ public class HomeFragment extends Fragment {
         }
 
         greetingText.setText(greeting);
-        streakNumber.setText("12");
     }
 
     private void setupQuickActions(View view) {

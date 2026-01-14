@@ -1,39 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/cardView"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardElevation="1dp"
+    app:strokeWidth="0.5dp"
+    app:strokeColor="#E5E5EA"
+    app:cardBackgroundColor="@color/background_card"
     android:clickable="true"
     android:focusable="true"
-    android:background="?selectableItemBackground">
+    android:foreground="?android:attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center_vertical"
-        android:paddingVertical="16dp"
-        android:paddingHorizontal="0dp"
+        android:padding="16dp"
         android:baselineAligned="false">
 
-        <!-- PDF Icon Container -->
-        <FrameLayout
-            android:layout_width="28dp"
-            android:layout_height="28dp"
-            android:layout_marginEnd="16dp"
-            android:gravity="center">
+        <!-- PDF Thumbnail Cover -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="60dp"
+            android:layout_height="80dp"
+            android:layout_marginEnd="12dp"
+            app:cardCornerRadius="6dp"
+            app:cardElevation="2dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#E5E5EA">
 
             <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_pdf"
-                app:tint="@color/primary_blue"
-                android:contentDescription="PDF"
-                android:layout_gravity="center"
-                android:scaleType="fitCenter" />
-        </FrameLayout>
+                android:id="@+id/thumbnailImageView"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:background="@android:color/white"
+                android:contentDescription="PDF Cover" />
+        </com.google.android.material.card.MaterialCardView>
 
         <!-- File Info -->
         <LinearLayout
@@ -85,11 +91,4 @@
         </FrameLayout>
     </LinearLayout>
 
-    <!-- Divider -->
-    <View
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:background="@drawable/list_divider"
-        android:layout_marginStart="40dp" />
-
-</LinearLayout>
+</com.google.android.material.card.MaterialCardView>
