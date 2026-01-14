@@ -37,7 +37,13 @@ public class SignatureManager {
      * @return The saved signature file path, or null if failed
      */
     public String saveSignature(Bitmap signatureBitmap, String name) {
-        if (signatureBitmap == null) {
+        if (signatureBitmap == null || signatureBitmap.isRecycled()) {
+            Log.e(TAG, "Cannot save null or recycled bitmap");
+            return null;
+        }
+        
+        if (signatureBitmap.getWidth() <= 0 || signatureBitmap.getHeight() <= 0) {
+            Log.e(TAG, "Cannot save bitmap with invalid dimensions");
             return null;
         }
         
@@ -53,13 +59,23 @@ public class SignatureManager {
             
             File signatureFile = new File(signaturesDir, fileName);
             FileOutputStream fos = new FileOutputStream(signatureFile);
-            signatureBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            boolean success = signatureBitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.flush();
             fos.close();
+            
+            if (!success) {
+                Log.e(TAG, "Bitmap compression failed");
+                signatureFile.delete();
+                return null;
+            }
             
             Log.d(TAG, "Signature saved: " + signatureFile.getAbsolutePath());
             return signatureFile.getAbsolutePath();
         } catch (IOException e) {
             Log.e(TAG, "Error saving signature", e);
+            return null;
+        } catch (Exception e) {
+            Log.e(TAG, "Unexpected error saving signature", e);
             return null;
         }
     }
@@ -68,14 +84,33 @@ public class SignatureManager {
      * Load a signature bitmap from file path
      */
     public Bitmap loadSignature(String filePath) {
+        if (filePath == null || filePath.trim().isEmpty()) {
+            return null;
+        }
+        
         try {
             File file = new File(filePath);
             if (!file.exists()) {
+                Log.w(TAG, "Signature file does not exist: " + filePath);
                 return null;
             }
-            return BitmapFactory.decodeFile(filePath);
+            
+            if (file.length() == 0) {
+                Log.w(TAG, "Signature file is empty: " + filePath);
+                return null;
+            }
+            
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+            Bitmap bitmap = BitmapFactory.decodeFile(filePath, options);
+            
+            if (bitmap == null) {
+                Log.e(TAG, "Failed to decode signature bitmap: " + filePath);
+            }
+            
+            return bitmap;
         } catch (Exception e) {
-            Log.e(TAG, "Error loading signature", e);
+            Log.e(TAG, "Error loading signature from " + filePath, e);
             return null;
         }
     }

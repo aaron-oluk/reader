@@ -93,52 +93,111 @@ public class ReviewSignatureActivity extends AppCompatActivity {
         showProcessing("Loading image...");
 
         executorService.execute(() -> {
-            // Load original bitmap
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inSampleSize = 2; // Scale down to save memory
-            originalBitmap = BitmapFactory.decodeFile(capturedImagePath, options);
+            try {
+                // First, check the image dimensions
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(capturedImagePath, options);
 
-            if (originalBitmap == null) {
+                // Calculate appropriate sample size
+                int maxDimension = 2048; // Max width or height
+                int sampleSize = 1;
+                if (options.outHeight > maxDimension || options.outWidth > maxDimension) {
+                    final int heightRatio = Math.round((float) options.outHeight / (float) maxDimension);
+                    final int widthRatio = Math.round((float) options.outWidth / (float) maxDimension);
+                    sampleSize = Math.min(heightRatio, widthRatio);
+                }
+
+                // Load the bitmap with appropriate sampling
+                options.inJustDecodeBounds = false;
+                options.inSampleSize = sampleSize;
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                originalBitmap = BitmapFactory.decodeFile(capturedImagePath, options);
+
+                if (originalBitmap == null) {
+                    runOnUiThread(() -> {
+                        hideProcessing();
+                        Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+                    return;
+                }
+
+                // Process the signature
+                runOnUiThread(() -> {
+                    processingText.setText("Processing signature...");
+                });
+
+                processedBitmap = SignatureProcessor.processSignature(originalBitmap, currentSensitivity);
+
+                if (processedBitmap == null) {
+                    runOnUiThread(() -> {
+                        hideProcessing();
+                        Toast.makeText(this, "Failed to process signature", Toast.LENGTH_SHORT).show();
+                        finish();
+                    });
+                    return;
+                }
+
                 runOnUiThread(() -> {
                     hideProcessing();
-                    Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                    originalImage.setImageBitmap(originalBitmap);
+                    processedImage.setImageBitmap(processedBitmap);
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> {
+                    hideProcessing();
+                    Toast.makeText(this, "Error loading image: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
                     finish();
                 });
-                return;
             }
-
-            // Process the signature
-            runOnUiThread(() -> {
-                processingText.setText("Processing signature...");
-            });
-
-            processedBitmap = SignatureProcessor.processSignature(originalBitmap, currentSensitivity);
-
-            runOnUiThread(() -> {
-                hideProcessing();
-                originalImage.setImageBitmap(originalBitmap);
-                processedImage.setImageBitmap(processedBitmap);
-            });
         });
     }
 
     private void reprocessImage() {
-        if (originalBitmap == null) return;
+        if (originalBitmap == null || originalBitmap.isRecycled()) return;
 
         showProcessing("Adjusting...");
 
         executorService.execute(() -> {
-            // Recycle old processed bitmap
-            if (processedBitmap != null && processedBitmap != originalBitmap) {
-                processedBitmap.recycle();
+            try {
+                // Create new processed bitmap
+                Bitmap newProcessedBitmap = SignatureProcessor.processSignature(originalBitmap, currentSensitivity);
+
+                if (newProcessedBitmap == null) {
+                    runOnUiThread(() -> {
+                        hideProcessing();
+                        Toast.makeText(this, "Failed to process signature", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
+                }
+
+                // Store old bitmap reference
+                final Bitmap oldBitmap = processedBitmap;
+
+                // Update to new bitmap
+                processedBitmap = newProcessedBitmap;
+
+                runOnUiThread(() -> {
+                    hideProcessing();
+                    processedImage.setImageBitmap(processedBitmap);
+
+                    // Recycle old bitmap after UI has been updated
+                    processedImage.post(() -> {
+                        if (oldBitmap != null && !oldBitmap.isRecycled() && oldBitmap != originalBitmap) {
+                            oldBitmap.recycle();
+                        }
+                    });
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> {
+                    hideProcessing();
+                    Toast.makeText(this, "Error processing signature", Toast.LENGTH_SHORT).show();
+                });
             }
-
-            processedBitmap = SignatureProcessor.processSignature(originalBitmap, currentSensitivity);
-
-            runOnUiThread(() -> {
-                hideProcessing();
-                processedImage.setImageBitmap(processedBitmap);
-            });
         });
     }
 
@@ -168,28 +227,56 @@ public class ReviewSignatureActivity extends AppCompatActivity {
     }
 
     private void performSave(String name) {
+        if (processedBitmap == null || processedBitmap.isRecycled()) {
+            Toast.makeText(this, "No signature to save", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
         showProcessing("Saving signature...");
 
         executorService.execute(() -> {
-            // Scale signature to a reasonable size
-            Bitmap scaledSignature = SignatureProcessor.scaleSignature(processedBitmap, 800, 400);
-            String savedPath = signatureManager.saveSignature(scaledSignature, name);
-
-            runOnUiThread(() -> {
-                hideProcessing();
-
-                if (savedPath != null) {
-                    Toast.makeText(this, "Signature saved", Toast.LENGTH_SHORT).show();
-
-                    // Return the saved path to the calling activity
-                    Intent resultIntent = new Intent();
-                    resultIntent.putExtra(EXTRA_SAVED_SIGNATURE_PATH, savedPath);
-                    setResult(RESULT_OK, resultIntent);
-                    finish();
-                } else {
-                    Toast.makeText(this, "Failed to save signature", Toast.LENGTH_SHORT).show();
+            try {
+                // Scale signature to a reasonable size
+                Bitmap scaledSignature = SignatureProcessor.scaleSignature(processedBitmap, 800, 400);
+                
+                if (scaledSignature == null) {
+                    runOnUiThread(() -> {
+                        hideProcessing();
+                        Toast.makeText(this, "Failed to scale signature", Toast.LENGTH_SHORT).show();
+                    });
+                    return;
                 }
-            });
+                
+                String savedPath = signatureManager.saveSignature(scaledSignature, name);
+
+                // Clean up scaled bitmap if it's different from processed
+                if (scaledSignature != processedBitmap && !scaledSignature.isRecycled()) {
+                    scaledSignature.recycle();
+                }
+
+                runOnUiThread(() -> {
+                    hideProcessing();
+
+                    if (savedPath != null) {
+                        Toast.makeText(this, "Signature saved", Toast.LENGTH_SHORT).show();
+
+                        // Return the saved path to the calling activity
+                        Intent resultIntent = new Intent();
+                        resultIntent.putExtra(EXTRA_SAVED_SIGNATURE_PATH, savedPath);
+                        setResult(RESULT_OK, resultIntent);
+                        finish();
+                    } else {
+                        Toast.makeText(this, "Failed to save signature", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> {
+                    hideProcessing();
+                    Toast.makeText(this, "Error saving signature: " + e.getMessage(), 
+                            Toast.LENGTH_SHORT).show();
+                });
+            }
         });
     }
 
