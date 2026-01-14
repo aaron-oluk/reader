@@ -112,10 +112,11 @@ public class HomeFragment extends Fragment {
         upNextRecycler = view.findViewById(R.id.up_next_recycler);
         emptyState = view.findViewById(R.id.empty_state);
 
-        upNextRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
-
-        adapter = new PdfBookAdapter(requireContext(), recentBooks);
-        upNextRecycler.setAdapter(adapter);
+        if (upNextRecycler != null) {
+            upNextRecycler.setLayoutManager(new LinearLayoutManager(getContext(), LinearLayoutManager.HORIZONTAL, false));
+            adapter = new PdfBookAdapter(requireContext(), recentBooks);
+            upNextRecycler.setAdapter(adapter);
+        }
     }
 
     private void setupGreeting() {
@@ -231,10 +232,12 @@ public class HomeFragment extends Fragment {
             recentBooks.add(history.get(i));
         }
 
-        adapter.notifyDataSetChanged();
+        if (adapter != null) {
+            adapter.notifyDataSetChanged();
+        }
 
         // Show/hide empty state
-        if (emptyState != null) {
+        if (emptyState != null && upNextRecycler != null) {
             if (recentBooks.isEmpty()) {
                 emptyState.setVisibility(View.VISIBLE);
                 upNextRecycler.setVisibility(View.GONE);

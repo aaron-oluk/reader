@@ -18,9 +18,12 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -29,26 +32,19 @@ import java.io.InputStream;
 
 public class PdfReaderActivity extends AppCompatActivity {
 
-    private LinearLayout pagesContainer;
-    private ScrollView scrollView;
+    private RecyclerView recyclerView;
     private CoordinatorLayout coordinatorLayout;
     private String pdfPath;
     private String pdfTitle;
     private PdfRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private ReadingProgressManager progressManager;
+    private PdfPageAdapter pdfPageAdapter;
 
     // UI Elements
     private TextView toolbarTitle;
     private TextView toolbarSubtitle;
-    private TextView currentPageText;
-    private TextView totalPagesText;
     private TextView pageIndicator;
-    private SeekBar pageSlider;
-    private SeekBar brightnessSlider;
-    private LinearLayout themeSelector;
-    private LinearLayout brightnessSliderContainer;
-    private View bottomControls;
     private View topToolbar;
 
     // Theme state
@@ -58,9 +54,9 @@ public class PdfReaderActivity extends AppCompatActivity {
     // Page tracking
     private int pageCount = 0;
     private int currentPage = 1;
-    private int[] pagePositions;
     private Handler handler = new Handler(Looper.getMainLooper());
     private Runnable hideIndicatorRunnable;
+    private LinearLayoutManager layoutManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -89,19 +85,14 @@ public class PdfReaderActivity extends AppCompatActivity {
 
     private void initViews() {
         coordinatorLayout = findViewById(R.id.coordinator_layout);
-        pagesContainer = findViewById(R.id.pagesContainer);
-        scrollView = findViewById(R.id.scrollView);
+        recyclerView = findViewById(R.id.pdf_recycler_view);
         toolbarTitle = findViewById(R.id.toolbar_title);
         toolbarSubtitle = findViewById(R.id.toolbar_subtitle);
-        currentPageText = findViewById(R.id.current_page_text);
-        totalPagesText = findViewById(R.id.total_pages_text);
         pageIndicator = findViewById(R.id.page_indicator);
-        pageSlider = findViewById(R.id.page_slider);
-        brightnessSlider = findViewById(R.id.brightness_slider);
-        themeSelector = findViewById(R.id.theme_selector);
-        brightnessSliderContainer = findViewById(R.id.brightness_slider_container);
-        bottomControls = findViewById(R.id.bottom_controls);
         topToolbar = findViewById(R.id.top_toolbar);
+        
+        layoutManager = new LinearLayoutManager(this);
+        recyclerView.setLayoutManager(layoutManager);
     }
 
     private void setupListeners() {
@@ -112,82 +103,39 @@ public class PdfReaderActivity extends AppCompatActivity {
         // Share button
         ImageButton btnShare = findViewById(R.id.btn_share);
         btnShare.setOnClickListener(v -> shareDocument());
+        
+        // Search button
+        ImageButton btnSearch = findViewById(R.id.btn_search);
+        btnSearch.setOnClickListener(v -> {
+            Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show();
+        });
 
-        // Theme button
+        // Theme button - cycles through themes
         View btnTheme = findViewById(R.id.btn_theme);
-        btnTheme.setOnClickListener(v -> toggleThemeSelector());
-
-        // Brightness button
-        View btnBrightness = findViewById(R.id.btn_brightness);
-        btnBrightness.setOnClickListener(v -> toggleBrightnessSlider());
-
-        // Theme options
-        findViewById(R.id.theme_light).setOnClickListener(v -> setTheme(ReaderTheme.LIGHT));
-        findViewById(R.id.theme_sepia).setOnClickListener(v -> setTheme(ReaderTheme.SEPIA));
-        findViewById(R.id.theme_dark).setOnClickListener(v -> setTheme(ReaderTheme.DARK));
-
-        // Page slider
-        pageSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser && pageCount > 0) {
-                    int targetPage = Math.max(1, Math.min(pageCount, progress + 1));
-                    currentPageText.setText(String.valueOf(targetPage));
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {
-                if (pageCount > 0) {
-                    int targetPage = Math.max(1, Math.min(pageCount, seekBar.getProgress() + 1));
-                    scrollToPage(targetPage);
-                }
-            }
-        });
-
-        // Brightness slider
-        brightnessSlider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
-            @Override
-            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                if (fromUser) {
-                    float brightness = progress / 100f;
-                    WindowManager.LayoutParams layoutParams = getWindow().getAttributes();
-                    layoutParams.screenBrightness = Math.max(0.01f, brightness);
-                    getWindow().setAttributes(layoutParams);
-                }
-            }
-
-            @Override
-            public void onStartTrackingTouch(SeekBar seekBar) {}
-
-            @Override
-            public void onStopTrackingTouch(SeekBar seekBar) {}
-        });
+        btnTheme.setOnClickListener(v -> cycleTheme());
 
         // Scroll listener for page tracking
-        scrollView.getViewTreeObserver().addOnScrollChangedListener(() -> {
-            updateCurrentPageFromScroll();
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                updateCurrentPageFromScroll();
+            }
         });
     }
 
-    private void toggleThemeSelector() {
-        if (themeSelector.getVisibility() == View.VISIBLE) {
-            themeSelector.setVisibility(View.GONE);
-        } else {
-            themeSelector.setVisibility(View.VISIBLE);
-            brightnessSliderContainer.setVisibility(View.GONE);
-        }
-    }
-
-    private void toggleBrightnessSlider() {
-        if (brightnessSliderContainer.getVisibility() == View.VISIBLE) {
-            brightnessSliderContainer.setVisibility(View.GONE);
-        } else {
-            brightnessSliderContainer.setVisibility(View.VISIBLE);
-            themeSelector.setVisibility(View.GONE);
+    private void cycleTheme() {
+        // Cycle through: LIGHT -> SEPIA -> DARK -> LIGHT
+        switch (currentTheme) {
+            case LIGHT:
+                setTheme(ReaderTheme.SEPIA);
+                break;
+            case SEPIA:
+                setTheme(ReaderTheme.DARK);
+                break;
+            case DARK:
+                setTheme(ReaderTheme.LIGHT);
+                break;
         }
     }
 
@@ -214,8 +162,12 @@ public class PdfReaderActivity extends AppCompatActivity {
         coordinatorLayout.setBackgroundColor(backgroundColor);
         topToolbar.setBackgroundColor(backgroundColor);
         toolbarTitle.setTextColor(textColor);
-
-        themeSelector.setVisibility(View.GONE);
+        toolbarSubtitle.setTextColor(textColor);
+        
+        // Show toast with current theme
+        String themeName = theme == ReaderTheme.LIGHT ? "Light" : 
+                          theme == ReaderTheme.SEPIA ? "Sepia" : "Dark";
+        Toast.makeText(this, themeName + " theme", Toast.LENGTH_SHORT).show();
     }
 
     private void shareDocument() {
@@ -278,20 +230,21 @@ public class PdfReaderActivity extends AppCompatActivity {
             pdfRenderer = new PdfRenderer(parcelFileDescriptor);
 
             pageCount = pdfRenderer.getPageCount();
-            pagePositions = new int[pageCount];
 
             // Update UI
             toolbarSubtitle.setText(pageCount + " pages");
-            totalPagesText.setText(String.valueOf(pageCount));
-            pageSlider.setMax(Math.max(1, pageCount - 1));
 
-            // Render all pages
-            renderAllPages();
+            // Setup RecyclerView adapter with lazy loading
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            pdfPageAdapter = new PdfPageAdapter(this, pdfRenderer, screenWidth);
+            recyclerView.setAdapter(pdfPageAdapter);
 
             // Restore scroll position after layout
-            scrollView.post(() -> {
-                int savedPosition = progressManager.getProgress(pdfPath);
-                scrollView.scrollTo(0, savedPosition);
+            recyclerView.post(() -> {
+                int savedPage = progressManager.getProgress(pdfPath) / 1000; // Convert to page number
+                if (savedPage > 0 && savedPage < pageCount) {
+                    layoutManager.scrollToPositionWithOffset(savedPage, 0);
+                }
                 updateCurrentPageFromScroll();
             });
 
@@ -302,78 +255,30 @@ public class PdfReaderActivity extends AppCompatActivity {
         }
     }
 
-    private void renderAllPages() {
-        if (pdfRenderer == null) return;
-
-        int screenWidth = getResources().getDisplayMetrics().widthPixels - 32;
-        int accumulatedHeight = 0;
-
-        for (int i = 0; i < pageCount; i++) {
-            PdfRenderer.Page page = pdfRenderer.openPage(i);
-
-            float scale = (float) screenWidth / page.getWidth();
-            int scaledWidth = screenWidth;
-            int scaledHeight = (int) (page.getHeight() * scale);
-
-            // Store page position for navigation
-            pagePositions[i] = accumulatedHeight;
-            accumulatedHeight += scaledHeight + 16; // 16dp margin
-
-            Bitmap bitmap = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.ARGB_8888);
-            bitmap.eraseColor(0xFFFFFFFF);
-
-            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-            page.close();
-
-            ImageView imageView = new ImageView(this);
-            imageView.setImageBitmap(bitmap);
-            imageView.setAdjustViewBounds(true);
-
-            LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT
-            );
-            params.setMargins(0, 0, 0, 16);
-            imageView.setLayoutParams(params);
-
-            pagesContainer.addView(imageView);
-        }
-    }
 
     private void scrollToPage(int pageNumber) {
-        if (pageNumber < 1 || pageNumber > pageCount || pagePositions == null) return;
+        if (pageNumber < 1 || pageNumber > pageCount) return;
 
-        int position = pagePositions[pageNumber - 1];
-        scrollView.smoothScrollTo(0, position);
+        layoutManager.scrollToPositionWithOffset(pageNumber - 1, 0);
         currentPage = pageNumber;
         updatePageIndicators();
         showPageIndicator();
     }
 
     private void updateCurrentPageFromScroll() {
-        if (pagePositions == null || pageCount == 0) return;
+        if (pageCount == 0 || layoutManager == null) return;
 
-        int scrollY = scrollView.getScrollY();
-        int newPage = 1;
+        int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
+        int newPage = firstVisiblePosition + 1;
 
-        for (int i = 0; i < pageCount; i++) {
-            if (scrollY >= pagePositions[i]) {
-                newPage = i + 1;
-            } else {
-                break;
-            }
-        }
-
-        if (newPage != currentPage) {
+        if (newPage > 0 && newPage != currentPage) {
             currentPage = newPage;
             updatePageIndicators();
         }
     }
 
     private void updatePageIndicators() {
-        currentPageText.setText(String.valueOf(currentPage));
         toolbarSubtitle.setText("Page " + currentPage + " of " + pageCount);
-        pageSlider.setProgress(currentPage - 1);
     }
 
     private void showPageIndicator() {
@@ -391,14 +296,22 @@ public class PdfReaderActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        if (pdfPath != null && scrollView != null) {
-            progressManager.saveProgress(pdfPath, scrollView.getScrollY());
+        if (pdfPath != null && layoutManager != null) {
+            // Save current page as progress
+            int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
+            progressManager.saveProgress(pdfPath, firstVisiblePosition * 1000);
         }
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        
+        // Cleanup adapter and bitmaps
+        if (pdfPageAdapter != null) {
+            pdfPageAdapter.cleanup();
+        }
+        
         try {
             if (pdfRenderer != null) {
                 pdfRenderer.close();
@@ -412,6 +325,12 @@ public class PdfReaderActivity extends AppCompatActivity {
 
         if (hideIndicatorRunnable != null) {
             handler.removeCallbacks(hideIndicatorRunnable);
+        }
+        
+        // Clear cache
+        File cacheFile = new File(getCacheDir(), "temp.pdf");
+        if (cacheFile.exists()) {
+            cacheFile.delete();
         }
     }
 }
