@@ -69,6 +69,15 @@
         <item name="cornerSizeBottomRight">0dp</item>
     </style>
 
+    <!-- Scanner Bottom Card with top rounded corners only -->
+    <style name="ShapeAppearance.Scanner.BottomCard" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSizeTopLeft">12dp</item>
+        <item name="cornerSizeTopRight">12dp</item>
+        <item name="cornerSizeBottomLeft">0dp</item>
+        <item name="cornerSizeBottomRight">0dp</item>
+    </style>
+
     <!-- NoActionBar variant for fullscreen activities like camera -->
     <style name="Theme.PDFReader.NoActionBar" parent="Theme.PDFReader">
         <item name="windowNoTitle">true</item>

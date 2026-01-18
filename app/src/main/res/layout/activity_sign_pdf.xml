@@ -145,7 +145,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
         app:cardBackgroundColor="@color/background_white"
-        app:cardCornerRadius="24dp"
+        app:cardCornerRadius="12dp"
         app:cardElevation="0dp">
 
         <LinearLayout
@@ -187,21 +187,25 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
 
                 <!-- Select PDF Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSelectPdf"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_marginEnd="8dp"
+                    android:layout_height="56dp"
+                    android:layout_marginEnd="6dp"
                     android:layout_weight="1"
-                    android:text="PDF"
-                    android:textAppearance="@style/TextAppearance.App.LabelLarge"
-                    app:cornerRadius="16dp"
-                    app:icon="@drawable/ic_folder"
-                    app:iconGravity="textStart"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="8dp"
+                    android:text="Select PDF"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp"
                     app:strokeColor="@color/primary_blue"
                     app:strokeWidth="2dp" />
 
@@ -210,15 +214,18 @@
                     android:id="@+id/btnAddSignature"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_marginHorizontal="4dp"
+                    android:layout_height="56dp"
+                    android:layout_marginHorizontal="6dp"
                     android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="8dp"
                     android:enabled="false"
-                    android:text="SIGNATURE"
-                    android:textAppearance="@style/TextAppearance.App.LabelLarge"
-                    app:cornerRadius="16dp"
-                    app:icon="@drawable/ic_draw"
-                    app:iconGravity="textStart"
+                    android:text="Add Sign"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                    android:textStyle="bold"
+                    app:cornerRadius="8dp"
                     app:strokeColor="@color/primary_blue"
                     app:strokeWidth="2dp" />
 
@@ -226,17 +233,21 @@
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSave"
                     android:layout_width="0dp"
-                    android:layout_height="52dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_height="56dp"
+                    android:layout_marginStart="6dp"
                     android:layout_weight="1"
+                    android:minWidth="0dp"
+                    android:paddingHorizontal="8dp"
                     android:enabled="false"
-                    android:text="SAVE"
-                    android:textAppearance="@style/TextAppearance.App.LabelLarge"
+                    android:text="Save"
+                    android:textColor="@android:color/white"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                    android:textStyle="bold"
                     app:backgroundTint="@color/primary_blue"
-                    app:cornerRadius="16dp"
-                    app:elevation="4dp"
-                    app:icon="@drawable/ic_save"
-                    app:iconGravity="textStart" />
+                    app:cornerRadius="8dp"
+                    app:elevation="2dp" />
 
             </LinearLayout>
 

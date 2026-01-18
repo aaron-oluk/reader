@@ -111,8 +111,9 @@ public class LibraryFragment extends Fragment {
         searchInput = view.findViewById(R.id.search_input);
         fabAddBook = view.findViewById(R.id.fab_add_book);
 
-        // Use 3 columns for better space utilization (each book ~33% width instead of 50%)
-        booksRecycler.setLayoutManager(new GridLayoutManager(getContext(), 3));
+        // Responsive grid: 2 columns on phones, 3-4 on tablets
+        int spanCount = calculateSpanCount();
+        booksRecycler.setLayoutManager(new GridLayoutManager(getContext(), spanCount));
 
         adapter = new LibraryBookAdapter(filteredBooks, executorService, mainHandler, book -> {
             String path = book.getFilePath();
@@ -536,6 +537,25 @@ public class LibraryFragment extends Fragment {
                 }
                 return 0;
             }
+        }
+    }
+
+    /**
+     * Calculate the number of columns for the grid based on screen width.
+     * - Small phones (< 600dp): 2 columns
+     * - Large phones/small tablets (600-900dp): 3 columns
+     * - Tablets (> 900dp): 4 columns
+     */
+    private int calculateSpanCount() {
+        android.util.DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        float screenWidthDp = displayMetrics.widthPixels / displayMetrics.density;
+        
+        if (screenWidthDp >= 900) {
+            return 4; // Large tablets
+        } else if (screenWidthDp >= 600) {
+            return 3; // Small tablets and large phones
+        } else {
+            return 2; // Phones
         }
     }
 }
