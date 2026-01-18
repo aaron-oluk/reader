@@ -21,6 +21,10 @@ public class MainActivityNew extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_new);
 
+        // Initialize app folders on startup
+        FileManager fileManager = new FileManager(this);
+        fileManager.ensureFoldersExist();
+
         bottomNavigation = findViewById(R.id.bottom_navigation);
         
         // Load home fragment by default

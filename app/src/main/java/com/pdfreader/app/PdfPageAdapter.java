@@ -15,7 +15,9 @@ import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,6 +37,8 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
     private final ExecutorService executor;
     private final Handler mainHandler;
     private static final int MAX_CACHE_SIZE = 5; // Only cache 5 pages
+    private String pdfPath;
+    private com.pdfreader.app.views.HighlightOverlayView.OnHighlightListener highlightListener;
 
     public PdfPageAdapter(Context context, PdfRenderer pdfRenderer, int screenWidth) {
         this.context = context;
@@ -45,6 +49,14 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
         this.executor = Executors.newFixedThreadPool(2);
         this.mainHandler = new Handler(Looper.getMainLooper());
         Log.d(TAG, "PdfPageAdapter created with " + pageCount + " pages");
+    }
+
+    public void setPdfPath(String pdfPath) {
+        this.pdfPath = pdfPath;
+    }
+
+    public void setOnHighlightListener(com.pdfreader.app.views.HighlightOverlayView.OnHighlightListener listener) {
+        this.highlightListener = listener;
     }
 
     @NonNull
@@ -86,12 +98,29 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
     class PageViewHolder extends RecyclerView.ViewHolder {
         private final ImageView pageImageView;
         private final ProgressBar progressBar;
+        private final com.pdfreader.app.views.HighlightOverlayView highlightOverlay;
         private Bitmap currentBitmap;
+        private String pdfPath;
+        private NotesManager notesManager;
 
         public PageViewHolder(@NonNull View itemView) {
             super(itemView);
             pageImageView = itemView.findViewById(R.id.page_image);
             progressBar = itemView.findViewById(R.id.page_progress);
+            highlightOverlay = itemView.findViewById(R.id.highlight_overlay);
+        }
+
+        public void setPdfPath(String pdfPath) {
+            this.pdfPath = pdfPath;
+            if (notesManager == null && context != null) {
+                notesManager = new NotesManager(context);
+            }
+        }
+
+        public void setOnHighlightListener(com.pdfreader.app.views.HighlightOverlayView.OnHighlightListener listener) {
+            if (highlightOverlay != null) {
+                highlightOverlay.setOnHighlightListener(listener);
+            }
         }
 
         public void bind(int position) {
@@ -99,6 +128,15 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
             progressBar.setVisibility(View.VISIBLE);
             pageImageView.setImageBitmap(null);
             pageImageView.setVisibility(View.VISIBLE);
+
+            // Setup highlight overlay
+            if (highlightOverlay != null && pdfPath != null) {
+                setPdfPath(pdfPath);
+                if (highlightListener != null) {
+                    setOnHighlightListener(highlightListener);
+                }
+                loadHighlightsForPage(position);
+            }
 
             // Check cache first
             if (bitmapCache.containsKey(position)) {
@@ -108,6 +146,7 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
                     pageImageView.setImageBitmap(cached);
                     currentBitmap = cached;
                     progressBar.setVisibility(View.GONE);
+                    updateOverlaySize(cached);
                     return;
                 }
             }
@@ -127,6 +166,10 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
                             currentBitmap = bitmap;
                             progressBar.setVisibility(View.GONE);
                             Log.d(TAG, "Page " + position + " displayed successfully");
+                            
+                            // Update overlay size and load highlights
+                            updateOverlaySize(bitmap);
+                            loadHighlightsForPage(position);
                             
                             // Add to cache and manage cache size
                             cacheBitmap(position, bitmap);
@@ -203,6 +246,62 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
                 }
             }
             bitmapCache.put(position, bitmap);
+        }
+
+        private void updateOverlaySize(Bitmap bitmap) {
+            if (highlightOverlay != null && pageImageView != null) {
+                // Wait for image view to be laid out and measure
+                pageImageView.post(() -> {
+                    pageImageView.post(() -> {
+                        int position = getBindingAdapterPosition();
+                        if (position != RecyclerView.NO_POSITION) {
+                            // Get actual displayed size of image
+                            int imageWidth = pageImageView.getWidth();
+                            int imageHeight = pageImageView.getHeight();
+                            
+                            // If image view hasn't measured yet, use bitmap size
+                            if (imageWidth <= 0 || imageHeight <= 0) {
+                                imageWidth = pageImageView.getMeasuredWidth();
+                                imageHeight = pageImageView.getMeasuredHeight();
+                            }
+                            
+                            // Fallback to bitmap size if still not available
+                            if (imageWidth <= 0 && bitmap != null) {
+                                imageWidth = bitmap.getWidth();
+                            }
+                            if (imageHeight <= 0 && bitmap != null) {
+                                imageHeight = bitmap.getHeight();
+                            }
+                            
+                            if (imageWidth > 0 && imageHeight > 0) {
+                                highlightOverlay.setPageInfo(position, imageWidth, imageHeight);
+                                // Request layout to ensure overlay matches image size
+                                highlightOverlay.requestLayout();
+                            }
+                        }
+                    });
+                });
+            }
+        }
+
+        private void loadHighlightsForPage(int pageIndex) {
+            if (highlightOverlay != null && notesManager != null && pdfPath != null) {
+                List<NotesManager.Note> notes = notesManager.getNotesForPage(pdfPath, pageIndex);
+                List<com.pdfreader.app.views.HighlightOverlayView.Highlight> highlights = new ArrayList<>();
+                
+                for (NotesManager.Note note : notes) {
+                    if (note.isHighlight) {
+                        // Create highlight with normalized coordinates
+                        com.pdfreader.app.views.HighlightOverlayView.Highlight highlight = 
+                            new com.pdfreader.app.views.HighlightOverlayView.Highlight(
+                                note.id, note.page, note.x, note.y, note.width, note.height, note.text, true
+                            );
+                        highlights.add(highlight);
+                    }
+                }
+                
+                highlightOverlay.setHighlights(highlights);
+            }
         }
 
         public void recycle() {

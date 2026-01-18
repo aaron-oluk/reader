@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 
 public class PdfReaderActivity extends AppCompatActivity {
 
@@ -45,6 +46,8 @@ public class PdfReaderActivity extends AppCompatActivity {
     private ParcelFileDescriptor parcelFileDescriptor;
     private ReadingProgressManager progressManager;
     private HistoryManager historyManager;
+    private NotesManager notesManager;
+    private BookmarkManager bookmarkManager;
     private PdfPageAdapter pdfPageAdapter;
 
     // UI Elements
@@ -71,6 +74,8 @@ public class PdfReaderActivity extends AppCompatActivity {
 
         progressManager = new ReadingProgressManager(this);
         historyManager = new HistoryManager(this);
+        notesManager = new NotesManager(this);
+        bookmarkManager = new BookmarkManager(this);
 
         pdfPath = getIntent().getStringExtra("PDF_PATH");
         pdfTitle = getIntent().getStringExtra("PDF_TITLE");
@@ -109,6 +114,14 @@ public class PdfReaderActivity extends AppCompatActivity {
         ImageButton btnBack = findViewById(R.id.btn_back);
         btnBack.setOnClickListener(v -> finish());
 
+        // Notes button
+        ImageButton btnNotes = findViewById(R.id.btn_notes);
+        btnNotes.setOnClickListener(v -> showNotesDialog());
+        
+        // Bookmark button
+        ImageButton btnBookmark = findViewById(R.id.btn_bookmark);
+        btnBookmark.setOnClickListener(v -> addBookmark());
+        
         // Share button
         ImageButton btnShare = findViewById(R.id.btn_share);
         btnShare.setOnClickListener(v -> shareDocument());
@@ -198,6 +211,18 @@ public class PdfReaderActivity extends AppCompatActivity {
             int screenWidth = getResources().getDisplayMetrics().widthPixels;
             Log.d(TAG, "Creating adapter for " + pageCount + " pages, screen width: " + screenWidth);
             pdfPageAdapter = new PdfPageAdapter(this, pdfRenderer, screenWidth);
+            pdfPageAdapter.setPdfPath(pdfPath);
+            pdfPageAdapter.setOnHighlightListener(new com.pdfreader.app.views.HighlightOverlayView.OnHighlightListener() {
+                @Override
+                public void onLineSelected(int page, float yPosition, float x, float y, float width, float height) {
+                    showLineSelectionDialog(page, yPosition, x, y, width, height);
+                }
+
+                @Override
+                public void onHighlightTapped(com.pdfreader.app.views.HighlightOverlayView.Highlight highlight) {
+                    showHighlightNoteDialog(highlight);
+                }
+            });
             recyclerView.setAdapter(pdfPageAdapter);
             Log.d(TAG, "Adapter set, item count: " + pdfPageAdapter.getItemCount());
 
@@ -246,6 +271,227 @@ public class PdfReaderActivity extends AppCompatActivity {
         handler.postDelayed(hideIndicatorRunnable, 2000);
     }
 
+    private void showNotesDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Notes for Page " + currentPage);
+        
+        // Get existing notes for current page
+        List<NotesManager.Note> pageNotes = notesManager.getNotesForPage(pdfPath, currentPage);
+        
+        if (pageNotes.isEmpty()) {
+            // Show add note dialog
+            showAddNoteDialog();
+        } else {
+            // Show list of notes with option to add new
+            android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+            layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+            layout.setPadding(48, 24, 48, 24);
+            
+            for (NotesManager.Note note : pageNotes) {
+                android.widget.TextView noteView = new android.widget.TextView(this);
+                noteView.setText(note.text);
+                noteView.setPadding(0, 8, 0, 8);
+                noteView.setTextAppearance(android.R.style.TextAppearance_Medium);
+                layout.addView(noteView);
+            }
+            
+            builder.setView(layout);
+            builder.setPositiveButton("Add Note", (dialog, which) -> showAddNoteDialog());
+            builder.setNegativeButton("Close", null);
+            builder.show();
+        }
+    }
+    
+    private void showAddNoteDialog() {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Add Note - Page " + currentPage);
+        
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("Enter your note...");
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        input.setMinLines(3);
+        input.setPadding(48, 32, 48, 32);
+        builder.setView(input);
+        
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String noteText = input.getText().toString().trim();
+            if (!noteText.isEmpty()) {
+                // Calculate approximate Y position (middle of visible area)
+                float yPosition = 0.5f; // Default to middle
+                if (layoutManager != null) {
+                    View firstView = layoutManager.findViewByPosition(currentPage - 1);
+                    if (firstView != null) {
+                        // Could calculate actual scroll position here if needed
+                    }
+                }
+                notesManager.addNote(pdfPath, currentPage, noteText, yPosition);
+                Toast.makeText(this, "Note saved", Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+    
+    private void showLineSelectionDialog(int page, float yPosition, float x, float y, float width, float height) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Select Action");
+        builder.setMessage("Long-press detected on line. What would you like to do?");
+
+        builder.setPositiveButton("Highlight & Note", (dialog, which) -> {
+            showAddHighlightNoteDialog(page, yPosition, x, y, width, height);
+        });
+
+        builder.setNeutralButton("Bookmark", (dialog, which) -> {
+            bookmarkManager.addBookmark(pdfPath, page, "Line " + (int)(yPosition * 100) + "%", yPosition);
+            Toast.makeText(this, "Bookmark added", Toast.LENGTH_SHORT).show();
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void showAddHighlightNoteDialog(int page, float yPosition, float x, float y, float width, float height) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Add Highlight & Note - Page " + (page + 1));
+
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("Enter your note (optional)...");
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        input.setMinLines(3);
+        input.setPadding(48, 32, 48, 32);
+        builder.setView(input);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String noteText = input.getText().toString().trim();
+            // Allow empty note (just highlight)
+            if (noteText.isEmpty()) {
+                noteText = "Highlighted line";
+            }
+            // Store normalized coordinates (x, y, width, height are already normalized 0.0-1.0)
+            notesManager.addHighlight(pdfPath, page, noteText, yPosition, x, y, width, height);
+            Toast.makeText(this, "Highlight saved", Toast.LENGTH_SHORT).show();
+            // Refresh highlights
+            refreshHighlights();
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void showHighlightNoteDialog(com.pdfreader.app.views.HighlightOverlayView.Highlight highlight) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Note on Page " + (highlight.page + 1));
+
+        if (highlight.note != null && !highlight.note.isEmpty()) {
+            builder.setMessage(highlight.note);
+            builder.setPositiveButton("Edit", (dialog, which) -> {
+                showEditHighlightNoteDialog(highlight);
+            });
+            builder.setNeutralButton("Delete", (dialog, which) -> {
+                notesManager.deleteNote(pdfPath, highlight.id);
+                Toast.makeText(this, "Highlight removed", Toast.LENGTH_SHORT).show();
+                refreshHighlights();
+            });
+        } else {
+            builder.setMessage("No note attached");
+            builder.setPositiveButton("Add Note", (dialog, which) -> {
+                showEditHighlightNoteDialog(highlight);
+            });
+            builder.setNeutralButton("Delete", (dialog, which) -> {
+                notesManager.deleteNote(pdfPath, highlight.id);
+                Toast.makeText(this, "Highlight removed", Toast.LENGTH_SHORT).show();
+                refreshHighlights();
+            });
+        }
+
+        builder.setNegativeButton("Close", null);
+        builder.show();
+    }
+
+    private void showEditHighlightNoteDialog(com.pdfreader.app.views.HighlightOverlayView.Highlight highlight) {
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+        builder.setTitle("Edit Note");
+
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setText(highlight.note);
+        input.setHint("Enter your note...");
+        input.setInputType(android.text.InputType.TYPE_CLASS_TEXT | android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE);
+        input.setMinLines(3);
+        input.setPadding(48, 32, 48, 32);
+        builder.setView(input);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            String noteText = input.getText().toString().trim();
+            notesManager.updateNote(pdfPath, highlight.id, noteText);
+            Toast.makeText(this, "Note updated", Toast.LENGTH_SHORT).show();
+            refreshHighlights();
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        builder.show();
+    }
+
+    private void refreshHighlights() {
+        if (pdfPageAdapter != null) {
+            // Notify adapter to refresh highlights
+            int firstVisible = layoutManager.findFirstVisibleItemPosition();
+            int lastVisible = layoutManager.findLastVisibleItemPosition();
+            for (int i = firstVisible; i <= lastVisible; i++) {
+                if (i >= 0 && i < pageCount) {
+                    RecyclerView.ViewHolder holder = recyclerView.findViewHolderForAdapterPosition(i);
+                    if (holder instanceof PdfPageAdapter.PageViewHolder) {
+                        // Trigger rebind to refresh highlights
+                        pdfPageAdapter.notifyItemChanged(i);
+                    }
+                }
+            }
+        }
+    }
+
+    private void addBookmark() {
+        if (pdfPath == null) return;
+        
+        // Check if current page already has a bookmark
+        if (bookmarkManager.hasBookmark(pdfPath, currentPage)) {
+            // Show existing bookmark dialog
+            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+            builder.setTitle("Bookmark Already Exists");
+            builder.setMessage("Page " + currentPage + " is already bookmarked. Would you like to remove it?");
+            builder.setPositiveButton("Remove", (dialog, which) -> {
+                List<BookmarkManager.Bookmark> bookmarks = bookmarkManager.getBookmarks(pdfPath);
+                for (BookmarkManager.Bookmark bookmark : bookmarks) {
+                    if (bookmark.page == currentPage) {
+                        bookmarkManager.deleteBookmark(pdfPath, bookmark.id);
+                        Toast.makeText(this, "Bookmark removed", Toast.LENGTH_SHORT).show();
+                        break;
+                    }
+                }
+            });
+            builder.setNegativeButton("Cancel", null);
+            builder.show();
+        } else {
+            // Add new bookmark
+            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(this);
+            builder.setTitle("Add Bookmark");
+            
+            android.widget.EditText input = new android.widget.EditText(this);
+            input.setHint("Optional label (e.g., 'Important section')");
+            input.setPadding(48, 32, 48, 32);
+            builder.setView(input);
+            
+            builder.setPositiveButton("Save", (dialog, which) -> {
+                String label = input.getText().toString().trim();
+                float scrollPosition = 0.0f; // Could calculate actual scroll position
+                bookmarkManager.addBookmark(pdfPath, currentPage, label, scrollPosition);
+                Toast.makeText(this, "Bookmark added to page " + currentPage, Toast.LENGTH_SHORT).show();
+            });
+            
+            builder.setNegativeButton("Cancel", null);
+            builder.show();
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
@@ -253,6 +499,15 @@ public class PdfReaderActivity extends AppCompatActivity {
             // Save current page as progress
             int firstVisiblePosition = layoutManager.findFirstVisibleItemPosition();
             progressManager.saveProgress(pdfPath, firstVisiblePosition * 1000);
+            
+            // Also save as bookmark (last reading position)
+            if (currentPage > 0) {
+                BookmarkManager.Bookmark lastBookmark = bookmarkManager.getLastBookmark(pdfPath);
+                // Only update if this is a new position or significantly different
+                if (lastBookmark == null || lastBookmark.page != currentPage) {
+                    bookmarkManager.addBookmark(pdfPath, currentPage, "Last read", 0.0f);
+                }
+            }
         }
     }
 

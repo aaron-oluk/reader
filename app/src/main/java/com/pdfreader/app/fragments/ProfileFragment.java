@@ -81,6 +81,16 @@ public class ProfileFragment extends Fragment {
         currentStreakCount = view.findViewById(R.id.current_streak_count);
         dailyGoalsText = view.findViewById(R.id.daily_goals_text);
         
+        // Signature Management button
+        View signatureManagementCard = view.findViewById(R.id.card_signature_management);
+        if (signatureManagementCard != null) {
+            signatureManagementCard.setOnClickListener(v -> {
+                android.content.Intent intent = new android.content.Intent(requireContext(), 
+                    com.pdfreader.app.SignatureManagementActivity.class);
+                startActivity(intent);
+            });
+        }
+        
         // Sign Out button
         View signOutButton = view.findViewById(R.id.sign_out_button);
         if (signOutButton != null) {
@@ -99,7 +109,7 @@ public class ProfileFragment extends Fragment {
     private void loadProfileData() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String userName = prefs.getString(KEY_USER_NAME, "User");
-        String userEmail = prefs.getString(KEY_USER_EMAIL, "reader@example.com");
+        String userEmail = prefs.getString(KEY_USER_EMAIL, "reader@versefoutain.com");
 
         profileName.setText(userName);
         profileEmail.setText(userEmail);

@@ -77,6 +77,10 @@ public class MainActivity extends AppCompatActivity {
 
         historyManager = new HistoryManager(this);
 
+        // Initialize app folders on startup
+        FileManager fileManager = new FileManager(this);
+        fileManager.ensureFoldersExist();
+
         recyclerView = findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         resultsHeader = findViewById(R.id.resultsHeader);

@@ -169,20 +169,38 @@ public class ImageToPdfActivity extends AppCompatActivity {
                     }
                 }
 
-                // Save PDF
+                // Save PDF using FileManager
                 String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                File outputFile = new File(getExternalFilesDir(null), "images_" + timestamp + ".pdf");
+                String fileName = "images_" + timestamp + ".pdf";
+                
+                FileManager fileManager = new FileManager(this);
+                File outputFile = fileManager.getPdfFile(fileName);
 
                 FileOutputStream fos = new FileOutputStream(outputFile);
                 document.writeTo(fos);
                 document.close();
                 fos.close();
+                
+                // Read the saved file as bytes for MediaStore saving
+                byte[] pdfBytes = new byte[(int) outputFile.length()];
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(outputFile)) {
+                    fis.read(pdfBytes);
+                }
+                
+                // Save using MediaStore for proper system integration
+                String savedPath = fileManager.savePdf(pdfBytes, fileName);
+                
+                // Delete temporary file if MediaStore save succeeded
+                if (savedPath != null && outputFile.exists()) {
+                    outputFile.delete();
+                }
 
+                final String finalPath = savedPath != null ? savedPath : outputFile.getAbsolutePath();
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     btnCreatePdf.setEnabled(true);
                     statusText.setText("PDF created successfully!");
-                    Toast.makeText(this, getString(R.string.saved_to, outputFile.getAbsolutePath()), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "PDF saved successfully", Toast.LENGTH_SHORT).show();
                 });
 
             } catch (Exception e) {

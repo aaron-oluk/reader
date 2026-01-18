@@ -155,6 +155,7 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        setupGreeting(); // Update greeting based on current device time
         loadRecentBooks();
         updateCurrentlyReadingCard();
     }
@@ -181,19 +182,25 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupGreeting() {
+        // Use device's current time from system clock
         Calendar calendar = Calendar.getInstance();
         int hour = calendar.get(Calendar.HOUR_OF_DAY);
         String greeting;
 
-        if (hour < 12) {
+        // Determine greeting based on device's current hour
+        if (hour >= 5 && hour < 12) {
             greeting = "Good Morning";
-        } else if (hour < 17) {
+        } else if (hour >= 12 && hour < 17) {
             greeting = "Good Afternoon";
-        } else {
+        } else if (hour >= 17 && hour < 22) {
             greeting = "Good Evening";
+        } else {
+            greeting = "Good Night";
         }
 
-        greetingText.setText(greeting);
+        if (greetingText != null) {
+            greetingText.setText(greeting);
+        }
     }
 
     private void setupQuickActions(View view) {

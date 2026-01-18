@@ -63,13 +63,19 @@ public class UserProfile {
     }
 
     public String getGreeting() {
-        int hour = java.util.Calendar.getInstance().get(java.util.Calendar.HOUR_OF_DAY);
-        if (hour < 12) {
+        // Use device's current time from system clock
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        int hour = calendar.get(java.util.Calendar.HOUR_OF_DAY);
+        
+        // Determine greeting based on device's current hour
+        if (hour >= 5 && hour < 12) {
             return "Good Morning, " + name;
-        } else if (hour < 18) {
+        } else if (hour >= 12 && hour < 17) {
             return "Good Afternoon, " + name;
-        } else {
+        } else if (hour >= 17 && hour < 22) {
             return "Good Evening, " + name;
+        } else {
+            return "Good Night, " + name;
         }
     }
 }

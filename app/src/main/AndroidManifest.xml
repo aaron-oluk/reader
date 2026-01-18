@@ -80,6 +80,16 @@
             android:theme="@style/Theme.PDFReader" />
 
         <activity
+            android:name=".DrawSignatureActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
+            android:name=".SignatureManagementActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
+        <activity
             android:name=".MergePdfActivity"
             android:exported="false"
             android:theme="@style/Theme.PDFReader" />

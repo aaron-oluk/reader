@@ -1,71 +1,50 @@
 # PDF Reader - Android Application
 
-A simple and elegant PDF reader and library manager for Android, built with Java.
+A comprehensive PDF reader and document management Android application with advanced features including document signing, note-taking, bookmarks, and reading progress tracking.
 
-## Features
+## Quick Start
 
-- **PDF Library**: Browse all PDF files from your Downloads and Documents folders
-- **PDF Reader**: Read PDFs with smooth scrolling and page navigation
-- **File Picker**: Add PDFs from anywhere on your device
-- **Page Counter**: Track your reading progress with page numbers
-- **Auto-refresh**: Library automatically refreshes when returning to the app
-- **Material Design**: Clean and modern UI with Material Design components
+1. Open the project in Android Studio
+2. Sync Gradle files
+3. Build and run on an emulator or physical device (Android 8.0+)
+
+## Key Features
+
+- **PDF Reading** - Smooth scrolling with lazy loading
+- **Document Signing** - Capture and add signatures to PDFs
+- **Notes & Bookmarks** - Add notes and mark reading positions
+- **Reading Progress** - Automatic tracking of reading position
+- **Zoom & Pan** - Inspect signatures with zoom controls
+- **File Management** - Automatic folder organization
+- **Document Scanner** - Scan documents using camera
+- **PDF Merging** - Combine multiple PDFs
 
 ## Technical Details
 
 - **Language**: Java
-- **Min SDK**: 21 (Android 5.0 Lollipop)
-- **Target SDK**: 33 (Android 13)
-- **PDF Library**: [AndroidPdfViewer](https://github.com/barteksc/AndroidPdfViewer) by Barteksc
+- **Min SDK**: 26 (Android 8.0 Oreo)
+- **Target SDK**: 34 (Android 14)
+- **Architecture**: Single Activity with Fragments + Feature Activities
 
-## Project Structure
+## Documentation
 
-```
-app/
-├── src/main/
-│   ├── java/com/pdfreader/app/
-│   │   ├── MainActivity.java          # Main library activity
-│   │   ├── PdfReaderActivity.java     # PDF reading activity
-│   │   ├── PdfBook.java               # PDF book model
-│   │   └── PdfBookAdapter.java        # RecyclerView adapter
-│   ├── res/
-│   │   ├── layout/                    # XML layouts
-│   │   ├── values/                    # Strings, colors, themes
-│   │   └── menu/                      # Menu resources
-│   └── AndroidManifest.xml
-├── build.gradle                       # App-level Gradle config
-└── proguard-rules.pro
-```
+For complete documentation including:
+- Feature details and implementation
+- File management strategy
+- Memory optimization techniques
+- Signature processing algorithms
+- Notes and bookmarks system
+- UI design guidelines
+- Building and setup instructions
 
-## Building the Project
-
-1. Open the project in Android Studio
-2. Sync Gradle files
-3. Build and run on an emulator or physical device
+See **[DOCUMENTATION.md](DOCUMENTATION.md)** for full details.
 
 ## Permissions
 
-The app requires storage permissions to access PDF files:
-- `READ_EXTERNAL_STORAGE`
-- `WRITE_EXTERNAL_STORAGE`
-- For Android 11+: `MANAGE_EXTERNAL_STORAGE`
-
-## Usage
-
-1. **Browse Library**: View all PDFs in your Downloads and Documents folders
-2. **Add PDF**: Tap the + button to pick a PDF from anywhere
-3. **Read PDF**: Tap any PDF in the library to open it
-4. **Navigate**: Use swipe gestures or the scroll handle to navigate pages
-5. **Refresh**: Use the refresh icon to update the library
-
-## Dependencies
-
-- AndroidX AppCompat
-- Material Components
-- RecyclerView
-- CardView
-- ConstraintLayout
-- AndroidPdfViewer (Barteksc)
+- `READ_EXTERNAL_STORAGE` (Android 9-)
+- `WRITE_EXTERNAL_STORAGE` (Android 9-)
+- `MANAGE_EXTERNAL_STORAGE` (Android 11+)
+- `CAMERA` (for signature capture and scanning)
 
 ## License
 

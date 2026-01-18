@@ -221,6 +221,7 @@ public class SignPdfActivity extends AppCompatActivity {
     
     private void showSignatureSelectorDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select or Create Signature");
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature_selector, null);
         RecyclerView recyclerView = dialogView.findViewById(R.id.signatures_recycler);
         View cardDrawSignature = dialogView.findViewById(R.id.card_draw_signature);
@@ -440,17 +441,37 @@ public class SignPdfActivity extends AppCompatActivity {
                     }
                 }
 
-                // Save to app directory
+                // Save PDF using FileManager
                 String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-                File outputFile = new File(getExternalFilesDir(null), "signed_" + timestamp + ".pdf");
+                String fileName = "signed_" + timestamp + ".pdf";
+                
+                FileManager fileManager = new FileManager(this);
+                File outputFile = fileManager.getPdfFile(fileName);
 
                 FileOutputStream fos = new FileOutputStream(outputFile);
                 document.writeTo(fos);
                 document.close();
                 fos.close();
+                
+                // Read the saved file as bytes for MediaStore saving
+                byte[] pdfBytes = new byte[(int) outputFile.length()];
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(outputFile)) {
+                    fis.read(pdfBytes);
+                }
+                
+                // Save using MediaStore for proper system integration
+                String savedPath = fileManager.savePdf(pdfBytes, fileName);
+                
+                // Delete temporary file if MediaStore save succeeded
+                if (savedPath != null && outputFile.exists()) {
+                    outputFile.delete();
+                }
 
+                final String finalPath = savedPath != null ? savedPath : outputFile.getAbsolutePath();
                 runOnUiThread(() -> {
-                    Toast.makeText(this, getString(R.string.saved_to, outputFile.getAbsolutePath()), Toast.LENGTH_LONG).show();
+                    Toast.makeText(this, "PDF saved successfully", Toast.LENGTH_SHORT).show();
+                    // Return to app after a brief delay
+                    finish();
                 });
 
             } catch (Exception e) {
