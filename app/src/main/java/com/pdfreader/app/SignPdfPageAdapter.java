@@ -8,6 +8,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -56,7 +57,17 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
     }
 
     public interface OnPageClickListener {
-        void onPageClick(int pageIndex);
+        void onPageClick(int pageIndex, float tapX, float tapY);
+    }
+
+    public interface OnSignatureRemovedListener {
+        void onSignatureRemoved(int pageIndex);
+    }
+
+    private OnSignatureRemovedListener signatureRemovedListener;
+
+    public void setOnSignatureRemovedListener(OnSignatureRemovedListener listener) {
+        this.signatureRemovedListener = listener;
     }
 
     public SignPdfPageAdapter(Context context, PdfRenderer pdfRenderer, int screenWidth,
@@ -96,14 +107,14 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
     }
 
     /**
-     * Set signature for a specific page with initial position
+     * Set signature for a specific page, centred on the user's tap position.
+     * tapX/tapY are coordinates relative to the page card view.
      */
-    public void setSignature(Bitmap signatureBitmap, int pageIndex) {
+    public void setSignature(Bitmap signatureBitmap, int pageIndex, float tapX, float tapY) {
         currentSignatureBitmap = signatureBitmap;
-        // Position will be set when the view is bound
         if (signatureBitmap != null) {
-            // Create default position - will be updated when view binds
-            signaturePositions.put(pageIndex, new SignaturePosition(signatureBitmap, -1, -1, -1, -1));
+            // Store tap position; rendered position is calculated in setupSignatureOverlay
+            signaturePositions.put(pageIndex, new SignaturePosition(signatureBitmap, tapX, tapY, -1, -1));
         }
         notifyItemChanged(pageIndex);
     }
@@ -156,10 +167,21 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
             signatureOverlay = itemView.findViewById(R.id.signature_overlay);
             pageNumber = itemView.findViewById(R.id.page_number);
 
-            // Handle tap on page to add signature
+            // Record tap position on ACTION_DOWN so onClick can pass the exact coordinates
+            final float[] tapPosition = {0f, 0f};
+            itemView.setOnTouchListener((v, event) -> {
+                if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                    tapPosition[0] = event.getX();
+                    tapPosition[1] = event.getY();
+                }
+                return false; // let normal click handling proceed
+            });
+
+            // Handle tap on page to place signature at the tapped position
             itemView.setOnClickListener(v -> {
                 if (onPageClickListener != null && !signatureOverlay.hasSignature()) {
-                    onPageClickListener.onPageClick(getBindingAdapterPosition());
+                    onPageClickListener.onPageClick(
+                            getBindingAdapterPosition(), tapPosition[0], tapPosition[1]);
                 }
             });
 
@@ -173,6 +195,17 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
                         sigPos.y = y;
                         sigPos.width = width;
                         sigPos.height = height;
+                    }
+                }
+            });
+
+            // Listen for deletion via the red ✕ handle
+            signatureOverlay.setOnSignatureDeletedListener(() -> {
+                int pos = getBindingAdapterPosition();
+                if (pos != RecyclerView.NO_POSITION) {
+                    removeSignature(pos);
+                    if (signatureRemovedListener != null) {
+                        signatureRemovedListener.onSignatureRemoved(pos);
                     }
                 }
             });
@@ -231,17 +264,25 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
                 signatureOverlay.setLayoutParams(params);
 
                 signatureOverlay.post(() -> {
-                    if (sigPos.x < 0 || sigPos.y < 0) {
-                        // First time - use default position
-                        signatureOverlay.setSignature(sigPos.bitmap);
-                        // Update stored position with defaults
-                        RectF rect = signatureOverlay.getSignatureRect();
-                        sigPos.x = rect.left;
-                        sigPos.y = rect.top;
-                        sigPos.width = rect.width();
-                        sigPos.height = rect.height();
+                    if (sigPos.width < 0 || sigPos.height < 0) {
+                        // First placement: compute size and centre on the tap position
+                        float w = signatureOverlay.getWidth() * 0.3f;
+                        float h = w * ((float) sigPos.bitmap.getHeight() / sigPos.bitmap.getWidth());
+
+                        float x = sigPos.x - w / 2f;
+                        float y = sigPos.y - h / 2f;
+
+                        // Clamp to overlay bounds
+                        x = Math.max(0, Math.min(x, signatureOverlay.getWidth() - w));
+                        y = Math.max(0, Math.min(y, signatureOverlay.getHeight() - h));
+
+                        signatureOverlay.setSignature(sigPos.bitmap, x, y, w, h);
+                        sigPos.x = x;
+                        sigPos.y = y;
+                        sigPos.width = w;
+                        sigPos.height = h;
                     } else {
-                        // Restore previous position
+                        // Restore previously saved position (e.g. after scroll/rebind)
                         signatureOverlay.setSignature(sigPos.bitmap, sigPos.x, sigPos.y, sigPos.width, sigPos.height);
                     }
                 });

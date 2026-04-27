@@ -3,6 +3,7 @@ package com.pdfreader.app;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.util.Log;
 
 import java.io.File;
@@ -130,12 +131,13 @@ public class SignatureManager {
             BitmapFactory.Options options = new BitmapFactory.Options();
             options.inPreferredConfig = Bitmap.Config.ARGB_8888;
             Bitmap bitmap = BitmapFactory.decodeFile(filePath, options);
-            
+
             if (bitmap == null) {
                 Log.e(TAG, "Failed to decode signature bitmap: " + filePath);
+                return null;
             }
-            
-            return bitmap;
+
+            return removeWhiteBackground(bitmap);
         } catch (Exception e) {
             Log.e(TAG, "Error loading signature from " + filePath, e);
             return null;
@@ -195,6 +197,29 @@ public class SignatureManager {
         return signaturesDir.getAbsolutePath();
     }
     
+    /**
+     * Converts near-white pixels to transparent so signatures blend cleanly onto documents.
+     * Pixels with R, G, B all above 220 are treated as background and made fully transparent.
+     */
+    private static Bitmap removeWhiteBackground(Bitmap source) {
+        Bitmap result = source.copy(Bitmap.Config.ARGB_8888, true);
+        source.recycle();
+        int width = result.getWidth();
+        int height = result.getHeight();
+        int[] pixels = new int[width * height];
+        result.getPixels(pixels, 0, width, 0, 0, width, height);
+        for (int i = 0; i < pixels.length; i++) {
+            if (Color.alpha(pixels[i]) == 0) continue;
+            if (Color.red(pixels[i]) > 220
+                    && Color.green(pixels[i]) > 220
+                    && Color.blue(pixels[i]) > 220) {
+                pixels[i] = Color.TRANSPARENT;
+            }
+        }
+        result.setPixels(pixels, 0, width, 0, 0, width, height);
+        return result;
+    }
+
     /**
      * Get the number of saved signatures
      */

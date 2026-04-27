@@ -190,16 +190,28 @@ public class SignPdfActivity extends AppCompatActivity {
 
                     int screenWidth = getResources().getDisplayMetrics().widthPixels;
                     signPdfPageAdapter = new SignPdfPageAdapter(
-                            SignPdfActivity.this, 
-                            pdfRenderer, 
-                            screenWidth, 
-                            (pageIndex) -> {
+                            SignPdfActivity.this,
+                            pdfRenderer,
+                            screenWidth,
+                            (pageIndex, tapX, tapY) -> {
                                 if (signatureBitmap != null) {
-                                    placeSignatureOnPage(pageIndex);
+                                    placeSignatureOnPage(pageIndex, tapX, tapY);
                                 }
                             }
                     );
                     pagesRecyclerView.setAdapter(signPdfPageAdapter);
+
+                    signPdfPageAdapter.setOnSignatureRemovedListener(pageIndex -> {
+                        if (pageIndex < pagesWithSignature.size()) {
+                            pagesWithSignature.set(pageIndex, false);
+                        }
+                        boolean any = false;
+                        for (Boolean b : pagesWithSignature) {
+                            if (Boolean.TRUE.equals(b)) { any = true; break; }
+                        }
+                        btnSave.setEnabled(any);
+                        Toast.makeText(this, "Signature removed from page " + (pageIndex + 1), Toast.LENGTH_SHORT).show();
+                    });
 
                     btnAddSignature.setEnabled(true);
                     Toast.makeText(this, "PDF loaded. Add your signature.", Toast.LENGTH_SHORT).show();
@@ -379,11 +391,11 @@ public class SignPdfActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void placeSignatureOnPage(int pageIndex) {
+    private void placeSignatureOnPage(int pageIndex, float tapX, float tapY) {
         if (signatureBitmap == null || signPdfPageAdapter == null) return;
 
         pagesWithSignature.set(pageIndex, true);
-        signPdfPageAdapter.setSignature(signatureBitmap, pageIndex);
+        signPdfPageAdapter.setSignature(signatureBitmap, pageIndex, tapX, tapY);
         btnSave.setEnabled(true);
 
         Toast.makeText(this, "Signature added to page " + (pageIndex + 1), Toast.LENGTH_SHORT).show();
