@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 
 import com.google.android.material.card.MaterialCardView;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -453,36 +454,36 @@ public class SignPdfActivity extends AppCompatActivity {
                     }
                 }
 
-                // Save PDF using FileManager – routes to Signed/ category folder
+                // Serialise PDF to bytes in memory (avoids partial-read bugs with large files)
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                document.writeTo(baos);
+                document.close();
+                byte[] pdfBytes = baos.toByteArray();
+
                 String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
                 String fileName = "signed_" + timestamp + ".pdf";
 
                 FileManager fileManager = new FileManager(this);
-                File outputFile = fileManager.getPdfFile(fileName, FileManager.CATEGORY_SIGNED);
-
-                FileOutputStream fos = new FileOutputStream(outputFile);
-                document.writeTo(fos);
-                document.close();
-                fos.close();
-
-                // Read the saved file as bytes for MediaStore saving
-                byte[] pdfBytes = new byte[(int) outputFile.length()];
-                try (java.io.FileInputStream fis = new java.io.FileInputStream(outputFile)) {
-                    fis.read(pdfBytes);
-                }
-
-                // Save using MediaStore for proper system integration
                 String savedPath = fileManager.savePdf(pdfBytes, fileName, FileManager.CATEGORY_SIGNED);
 
-                // Delete temporary file if MediaStore save succeeded
-                if (savedPath != null && outputFile.exists()) {
-                    outputFile.delete();
+                if (savedPath == null) {
+                    // MediaStore failed – fall back to app-specific external storage
+                    File fallback = fileManager.getPdfFile(fileName, FileManager.CATEGORY_SIGNED);
+                    if (fallback != null) {
+                        try (FileOutputStream fos = new FileOutputStream(fallback)) {
+                            fos.write(pdfBytes);
+                        }
+                        savedPath = fallback.getAbsolutePath();
+                    }
                 }
 
-                final String finalPath = savedPath != null ? savedPath : outputFile.getAbsolutePath();
+                final boolean success = savedPath != null;
                 runOnUiThread(() -> {
-                    Toast.makeText(this, "PDF saved successfully", Toast.LENGTH_SHORT).show();
-                    // Return to app after a brief delay
+                    if (success) {
+                        Toast.makeText(this, "PDF saved successfully", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(this, "Failed to save PDF", Toast.LENGTH_LONG).show();
+                    }
                     finish();
                 });
 

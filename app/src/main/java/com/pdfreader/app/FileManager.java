@@ -200,24 +200,32 @@ public class FileManager {
         ContentValues values = new ContentValues();
         values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
         values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH,
-                getMediaStoreRelativePath(category));
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH, getMediaStoreRelativePath(category));
+        values.put(MediaStore.MediaColumns.IS_PENDING, 1);
 
-        Uri uri = resolver.insert(MediaStore.Files.getContentUri("external"), values);
+        // MediaStore.Downloads does not require MANAGE_EXTERNAL_STORAGE
+        Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
         if (uri == null) {
-            Log.e(TAG, "Failed to create MediaStore entry for category: " + category);
+            Log.e(TAG, "MediaStore insert failed for category: " + category);
             return null;
         }
 
         try (OutputStream out = resolver.openOutputStream(uri)) {
-            if (out != null) {
-                out.write(pdfData);
-                out.flush();
-                Log.d(TAG, "PDF saved via MediaStore [" + category + "]: " + uri);
-                return uri.toString();
+            if (out == null) {
+                resolver.delete(uri, null, null);
+                return null;
             }
+            out.write(pdfData);
+            out.flush();
         }
-        return null;
+
+        // Mark the entry as complete so it becomes visible in Downloads
+        ContentValues update = new ContentValues();
+        update.put(MediaStore.MediaColumns.IS_PENDING, 0);
+        resolver.update(uri, update, null, null);
+
+        Log.d(TAG, "PDF saved via MediaStore Downloads [" + category + "]: " + uri);
+        return uri.toString();
     }
 
     private String savePdfDirect(byte[] pdfData, String fileName, String category)

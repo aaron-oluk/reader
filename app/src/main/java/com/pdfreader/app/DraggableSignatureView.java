@@ -191,6 +191,8 @@ public class DraggableSignatureView extends View {
                 } else {
                     return false;
                 }
+                // Prevent the RecyclerView (or any parent) from stealing subsequent move events
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                 lastTouchX = x;
                 lastTouchY = y;
                 return true;
@@ -200,15 +202,17 @@ public class DraggableSignatureView extends View {
                 float dy = y - lastTouchY;
 
                 if (isDragging) {
-                    float newLeft = signatureRect.left + dx;
-                    float newTop = signatureRect.top + dy;
-                    float newRight = signatureRect.right + dx;
-                    float newBottom = signatureRect.bottom + dy;
-                    if (newLeft >= 0 && newRight <= getWidth() && newTop >= 0 && newBottom <= getHeight()) {
-                        signatureRect.offset(dx, dy);
-                        invalidate();
-                        notifyListener();
-                    }
+                    // Clamp each axis independently so the signature slides along edges
+                    // rather than freezing entirely when one side hits a boundary
+                    float clampedDx = dx;
+                    float clampedDy = dy;
+                    if (signatureRect.left + clampedDx < 0) clampedDx = -signatureRect.left;
+                    if (signatureRect.right + clampedDx > getWidth()) clampedDx = getWidth() - signatureRect.right;
+                    if (signatureRect.top + clampedDy < 0) clampedDy = -signatureRect.top;
+                    if (signatureRect.bottom + clampedDy > getHeight()) clampedDy = getHeight() - signatureRect.bottom;
+                    signatureRect.offset(clampedDx, clampedDy);
+                    invalidate();
+                    notifyListener();
                 } else if (isResizing) {
                     resizeWithHandle(activeHandle, dx, dy);
                     invalidate();
@@ -224,6 +228,8 @@ public class DraggableSignatureView extends View {
                 isDragging = false;
                 isResizing = false;
                 activeHandle = -1;
+                // Re-allow parent scrolling once the gesture ends
+                if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
                 return true;
         }
 
