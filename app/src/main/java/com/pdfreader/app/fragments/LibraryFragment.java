@@ -47,7 +47,6 @@ import java.util.List;
 public class LibraryFragment extends Fragment {
 
     private TextView tabAll, tabReading, tabToRead, tabFinished;
-    private View tabIndicator;
     private RecyclerView booksRecycler;
     private EditText searchInput;
     private FloatingActionButton fabAddBook;
@@ -106,7 +105,6 @@ public class LibraryFragment extends Fragment {
         tabReading = view.findViewById(R.id.tab_reading);
         tabToRead = view.findViewById(R.id.tab_to_read);
         tabFinished = view.findViewById(R.id.tab_finished);
-        tabIndicator = view.findViewById(R.id.tab_indicator);
         booksRecycler = view.findViewById(R.id.books_recycler);
         searchInput = view.findViewById(R.id.search_input);
         fabAddBook = view.findViewById(R.id.fab_add_book);
@@ -246,17 +244,6 @@ public class LibraryFragment extends Fragment {
             finalSelectedTextView.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue));
             finalSelectedTextView.setTypeface(null, android.graphics.Typeface.BOLD);
             
-            // Update indicator position after layout
-            if (tabIndicator != null) {
-                finalSelectedTextView.post(() -> {
-                    int tabWidth = finalSelectedTextView.getWidth();
-                    int tabStart = finalSelectedTextView.getLeft();
-                    android.view.ViewGroup.MarginLayoutParams params = (android.view.ViewGroup.MarginLayoutParams) tabIndicator.getLayoutParams();
-                    params.width = tabWidth;
-                    params.leftMargin = tabStart;
-                    tabIndicator.setLayoutParams(params);
-                });
-            }
         }
     }
 

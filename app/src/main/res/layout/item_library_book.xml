@@ -4,77 +4,89 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="6dp"
-    app:cardCornerRadius="6dp"
+    app:cardCornerRadius="12dp"
     app:cardElevation="0dp"
-    app:cardBackgroundColor="@color/background_white"
-    app:strokeWidth="0dp">
+    app:strokeWidth="0dp"
+    app:cardBackgroundColor="@color/background_card"
+    android:clickable="true"
+    android:focusable="true"
+    android:foreground="?android:attr/selectableItemBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Book Cover with Custom Shape (matching home page) -->
+        <!-- Cover image -->
         <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="200dp">
+            android:layout_height="190dp">
 
-            <com.google.android.material.card.MaterialCardView
+            <ImageView
+                android:id="@+id/book_cover"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                app:cardCornerRadius="4dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:cardBackgroundColor="@android:color/white">
+                android:scaleType="centerCrop"
+                android:src="@drawable/placeholder_book"
+                android:contentDescription="Book Cover"
+                android:background="@drawable/book_cover_background" />
 
-                <ImageView
-                    android:id="@+id/book_cover"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:scaleType="fitCenter"
-                    android:src="@drawable/placeholder_book"
-                    android:contentDescription="Book Cover"
-                    android:background="@drawable/book_cover_background" />
-            </com.google.android.material.card.MaterialCardView>
+            <!-- Progress label overlay -->
+            <TextView
+                android:id="@+id/progress_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|start"
+                android:layout_margin="10dp"
+                android:text="0% complete"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:background="#99000000"
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:visibility="gone" />
 
-            <!-- Delete Button -->
+            <!-- Delete button -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btn_delete"
-                android:layout_width="36dp"
-                android:layout_height="36dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:layout_gravity="top|end"
                 android:layout_margin="8dp"
-                app:cardBackgroundColor="#CC000000"
-                app:cardCornerRadius="18dp"
+                app:cardBackgroundColor="#CC1E1B4B"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
                 android:clickable="true"
                 android:focusable="true">
-
                 <ImageView
-                    android:layout_width="20dp"
-                    android:layout_height="20dp"
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
                     android:layout_gravity="center"
                     android:src="@drawable/ic_close"
-                    app:tint="@android:color/white" />
-
+                    app:tint="@android:color/white"
+                    android:contentDescription="Remove" />
             </com.google.android.material.card.MaterialCardView>
 
         </FrameLayout>
 
+        <!-- Info below cover -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="12dp">
+            android:paddingHorizontal="12dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="12dp">
 
             <TextView
                 android:id="@+id/book_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="Book Title"
-                android:textAppearance="@style/TextAppearance.App.BodySmall"
-                android:textColor="@color/text_primary"
+                android:textSize="13sp"
                 android:textStyle="bold"
+                android:textColor="@color/text_primary"
                 android:maxLines="2"
                 android:ellipsize="end"
                 android:lineSpacingExtra="2dp" />
@@ -86,7 +98,7 @@
                 android:layout_height="4dp"
                 android:layout_marginTop="8dp"
                 android:progressDrawable="@drawable/progress_bar_horizontal"
-                android:progress="30" />
+                android:progress="0" />
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

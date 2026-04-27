@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -10,7 +10,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:paddingHorizontal="20dp"
+        android:paddingTop="52dp"
+        android:paddingBottom="100dp">
 
         <!-- Header -->
         <LinearLayout
@@ -18,24 +20,30 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="6dp">
 
-            <ImageView
-                android:id="@+id/back_button"
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@drawable/ic_back"
-                android:contentDescription="Back" />
-
-            <TextView
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:text="Reading Insights"
-                android:textAppearance="@style/TextAppearance.App.TitleLarge"
-                android:textColor="@color/text_primary"
-                android:textStyle="bold"
-                android:gravity="center" />
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Reading Insights"
+                    android:textSize="26sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="A look at how you're doing"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
 
             <ImageView
                 android:id="@+id/share_button"
@@ -45,256 +53,16 @@
                 android:contentDescription="Share" />
         </LinearLayout>
 
-        <!-- Monthly Volume Card -->
-        <androidx.cardview.widget.CardView
+        <!-- Weekly Activity card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardCornerRadius="8dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
-            android:backgroundTint="@color/primary_blue">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="24dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="MONTHLY VOLUME"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                    android:textColor="@color/text_white"
-                    android:alpha="0.8"
-                    android:letterSpacing="0.05" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="bottom|start"
-                    android:layout_marginTop="8dp">
-
-                    <TextView
-                        android:id="@+id/monthly_pages"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="0"
-                        android:text="0"
-                        android:textAppearance="@style/TextAppearance.App.DisplaySmall"
-                        android:textColor="@color/text_white"
-                        android:textStyle="bold"
-                        android:maxLines="1"
-                        android:ellipsize="none" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text=" pages"
-                        android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                        android:textColor="@color/text_white"
-                        android:layout_marginStart="8dp"
-                        android:maxLines="1" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/monthly_activity_text"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Activity this month"
-                    android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                    android:textColor="@color/text_white"
-                    android:alpha="0.8"
-                    android:layout_marginTop="8dp" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- Stats Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:layout_marginBottom="20dp">
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                android:backgroundTint="@color/background_card">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_book_finished"
-                        android:contentDescription="Finished" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="FINISHED"
-                        android:textAppearance="@style/TextAppearance.App.LabelSmall"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="8dp" />
-
-                    <TextView
-                        android:id="@+id/books_finished"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="0"
-                        android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold"
-                        android:layout_marginTop="4dp"
-                        android:maxLines="1"
-                        android:ellipsize="none" />
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="4dp"
-                android:layout_marginEnd="4dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                android:backgroundTint="@color/background_card">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_speed"
-                        android:contentDescription="Speed" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SPEED"
-                        android:textAppearance="@style/TextAppearance.App.LabelSmall"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="8dp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="bottom|start"
-                        android:layout_marginTop="2dp">
-
-                        <TextView
-                            android:id="@+id/reading_speed"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="0"
-                            android:text="0"
-                            android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
-                            android:textColor="@color/text_primary"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="none" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text=" wpm"
-                            android:textAppearance="@style/TextAppearance.App.BodySmall"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginStart="4dp"
-                            android:maxLines="1" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginStart="8dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                android:backgroundTint="@color/background_card">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_fire"
-                        android:contentDescription="Streak" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="STREAK"
-                        android:textAppearance="@style/TextAppearance.App.LabelSmall"
-                        android:textColor="@color/text_secondary"
-                        android:layout_marginTop="8dp" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal"
-                        android:gravity="bottom|start"
-                        android:layout_marginTop="4dp">
-
-                        <TextView
-                            android:id="@+id/current_streak"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="0"
-                            android:text="0"
-                            android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
-                            android:textColor="@color/text_primary"
-                            android:textStyle="bold"
-                            android:maxLines="1"
-                            android:ellipsize="none" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text=" days"
-                            android:textAppearance="@style/TextAppearance.App.BodySmall"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginStart="4dp"
-                            android:maxLines="1" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-        </LinearLayout>
-
-        <!-- Weekly Progress -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardCornerRadius="8dp"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp"
-            android:backgroundTint="@color/background_card">
+            app:cardBackgroundColor="@color/background_card">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -318,46 +86,198 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Weekly Progress"
-                            android:textAppearance="@style/TextAppearance.App.TitleMedium"
-                            android:textColor="@color/text_primary"
-                            android:textStyle="bold" />
+                            android:text="Weekly Activity"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
 
                         <TextView
                             android:id="@+id/weekly_progress_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Last 7 days"
-                            android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                            android:textColor="@color/text_secondary"
-                            android:layout_marginTop="4dp" />
+                            android:text="+0% vs prior week"
+                            android:textSize="12sp"
+                            android:textColor="@color/accent_green"
+                            android:textStyle="bold"
+                            android:layout_marginTop="2dp" />
                     </LinearLayout>
 
-                    <ImageView
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
-                        android:src="@drawable/ic_calendar"
-                        android:contentDescription="Calendar" />
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        app:cardCornerRadius="8dp"
+                        app:cardBackgroundColor="#EEF2FF"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+                        <ImageView
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_calendar"
+                            app:tint="@color/primary_blue"
+                            android:contentDescription="Calendar" />
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
 
-                <!-- Chart Placeholder -->
                 <View
                     android:id="@+id/weekly_chart"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="160dp"
                     android:background="@color/background_light_gray" />
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+        </com.google.android.material.card.MaterialCardView>
 
-        <!-- Reading Goal -->
-        <androidx.cardview.widget.CardView
+        <!-- Current Streak – warm amber card -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            app:cardCornerRadius="8dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
             app:cardElevation="0dp"
             app:strokeWidth="0dp"
-            android:backgroundTint="@color/background_card">
+            app:cardBackgroundColor="@color/accent_amber">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="24dp">
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CURRENT STREAK"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:textColor="#FFE9C7"
+                        android:letterSpacing="0.08" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="bottom"
+                        android:layout_marginTop="6dp">
+
+                        <TextView
+                            android:id="@+id/current_streak"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="44sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" Days"
+                            android:textSize="22sp"
+                            android:textStyle="bold"
+                            android:textColor="#FFFFFF"
+                            android:layout_marginBottom="6dp" />
+                    </LinearLayout>
+                </LinearLayout>
+
+                <ImageView
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:src="@drawable/ic_fire"
+                    android:contentDescription="Streak fire"
+                    app:tint="#FFECB3" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Reading Speed -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:padding="20dp">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginEnd="16dp"
+                    app:cardCornerRadius="8dp"
+                    app:cardBackgroundColor="#EEF2FF"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_speed"
+                        app:tint="@color/primary_blue"
+                        android:contentDescription="Speed" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Reading Speed"
+                        android:textSize="14sp"
+                        android:textColor="@color/text_secondary" />
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="bottom">
+
+                        <TextView
+                            android:id="@+id/reading_speed"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="250"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" WPM"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginBottom="4dp" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Yearly Reading Goal -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="@color/background_card">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -370,72 +290,187 @@
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:gravity="center_vertical"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="14dp">
 
-                    <TextView
+                    <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="2024 Reading Goal"
-                        android:textSize="18sp"
-                        android:textColor="@color/text_primary"
-                        android:textStyle="bold" />
+                        android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/goal_percentage"
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Yearly Reading Goal"
+                            android:textSize="16sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <TextView
+                            android:id="@+id/goal_percentage"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Goal: 24 Books"
+                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginTop="2dp" />
+                    </LinearLayout>
+
+                    <LinearLayout
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="0%"
-                        android:textAppearance="@style/TextAppearance.App.BodyLarge"
-                        android:textColor="@color/primary_blue"
-                        android:textStyle="bold" />
+                        android:orientation="horizontal"
+                        android:gravity="bottom">
+
+                        <TextView
+                            android:id="@+id/books_read_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="0"
+                            android:textSize="28sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/primary_blue" />
+
+                        <TextView
+                            android:id="@+id/books_goal_count"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text=" / 24"
+                            android:textSize="16sp"
+                            android:textColor="@color/text_secondary"
+                            android:layout_marginBottom="4dp" />
+                    </LinearLayout>
                 </LinearLayout>
 
                 <ProgressBar
                     android:id="@+id/goal_progress"
                     style="@style/Widget.AppCompat.ProgressBar.Horizontal"
                     android:layout_width="match_parent"
-                    android:layout_height="12dp"
+                    android:layout_height="10dp"
                     android:progress="0"
-                    android:progressDrawable="@drawable/progress_bar_horizontal"
-                    android:layout_marginBottom="12dp" />
+                    android:progressDrawable="@drawable/progress_bar_horizontal" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0% Completed"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="8dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Stats row – Monthly Pages · Books Finished -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="16dp">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/background_card">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        app:cardCornerRadius="8dp"
+                        app:cardBackgroundColor="#EEF2FF"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_book_finished"
+                            app:tint="@color/primary_blue"
+                            android:contentDescription="Monthly pages" />
+                    </com.google.android.material.card.MaterialCardView>
 
                     <TextView
-                        android:id="@+id/books_read_count"
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="0 books read"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textColor="@color/text_primary" />
-
-                    <TextView
-                        android:id="@+id/books_goal_count"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="24 books goal"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textColor="@color/text_secondary" />
-                </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+                        android:text="Monthly Pages"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="10dp" />
 
-        <!-- Export Report Button -->
-        <Button
-            android:id="@+id/export_report_button"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="⬇  Export Report"
-            android:textColor="@color/text_white"
-            android:textSize="16sp"
-            android:textStyle="bold"
-            android:backgroundTint="@color/primary_blue"
-            android:layout_marginBottom="20dp"
-            app:cornerRadius="12dp" />
+                    <TextView
+                        android:id="@+id/monthly_pages"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        app:cardCornerRadius="8dp"
+                        app:cardBackgroundColor="#D1FAE5"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp">
+                        <ImageView
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_book_finished"
+                            app:tint="@color/accent_green"
+                            android:contentDescription="Books finished" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Books Finished"
+                        android:textSize="12sp"
+                        android:textColor="@color/text_secondary"
+                        android:layout_marginTop="10dp" />
+
+                    <TextView
+                        android:id="@+id/books_finished"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textSize="26sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_primary"
+                        android:layout_marginTop="2dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
+
     </LinearLayout>
-</ScrollView>
+</androidx.core.widget.NestedScrollView>

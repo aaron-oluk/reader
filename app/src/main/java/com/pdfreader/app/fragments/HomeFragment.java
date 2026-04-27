@@ -53,7 +53,6 @@ public class HomeFragment extends Fragment {
     private TextView bookAuthor;
     private TextView progressPercentage;
     private TextView pagesLeft;
-    private TextView progressCorner;
     private ImageView bookCover;
     private RecyclerView upNextRecycler;
     private LinearLayout emptyState;
@@ -166,7 +165,6 @@ public class HomeFragment extends Fragment {
         bookAuthor = view.findViewById(R.id.book_author);
         progressPercentage = view.findViewById(R.id.progress_percentage);
         pagesLeft = view.findViewById(R.id.pages_left);
-        progressCorner = view.findViewById(R.id.progress_corner);
         progressFill = view.findViewById(R.id.progress_fill);
         bookCover = view.findViewById(R.id.book_cover);
         upNextRecycler = view.findViewById(R.id.up_next_recycler);
@@ -468,10 +466,6 @@ public class HomeFragment extends Fragment {
         
         if (progressPercentage != null) {
             progressPercentage.setText(progressText);
-        }
-        
-        if (progressCorner != null) {
-            progressCorner.setText(progressPercent + "%");
         }
         
         if (pagesLeft != null) {

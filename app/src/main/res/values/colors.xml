@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Legacy Colors -->
+    <!-- Legacy (kept for compat) -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -8,58 +8,68 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    
-    <!-- Primary Colors -->
-    <color name="primary_blue">#2B7FED</color>
-    <color name="primary_blue_dark">#1E5DB8</color>
-    <color name="primary_blue_light">#5FA4F5</color>
-    
-    <!-- Background Colors -->
+
+    <!-- Primary – warm indigo (replaces cold navy) -->
+    <color name="primary_blue">#6366F1</color>
+    <color name="primary_blue_dark">#4F46E5</color>
+    <color name="primary_blue_light">#A5B4FC</color>
+    <color name="primary_violet">#8B5CF6</color>
+
+    <!-- Backgrounds -->
     <color name="background_white">#FFFFFF</color>
-    <color name="background_light_gray">#F5F7FA</color>
-    <color name="background_secondary">#F5F7FA</color>
+    <color name="background_light_gray">#F5F3FF</color>
+    <color name="background_secondary">#F5F3FF</color>
     <color name="background_card">#FFFFFF</color>
     <color name="card_background">#FFFFFF</color>
-    
-    <!-- Text Colors -->
-    <color name="text_primary">#1A1A1A</color>
-    <color name="text_secondary">#8E8E93</color>
-    <color name="text_tertiary">#C7C7CC</color>
+
+    <!-- Text -->
+    <color name="text_primary">#1E1B4B</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="text_tertiary">#C4C4D4</color>
     <color name="text_white">#FFFFFF</color>
-    
-    <!-- Accent Colors -->
-    <color name="accent_orange">#FF9500</color>
-    <color name="accent_green">#34C759</color>
-    <color name="accent_red">#FF3B30</color>
-    
-    <!-- Progress Colors -->
-    <color name="progress_blue">#2B7FED</color>
-    <color name="progress_background">#E5E5EA</color>
-    
-    <!-- Card & Divider Colors -->
-    <color name="card_border">#E5E5EA</color>
-    <color name="divider">#E5E5EA</color>
-    
+
+    <!-- Accent palette -->
+    <color name="accent_orange">#F97316</color>
+    <color name="accent_amber">#F59E0B</color>
+    <color name="accent_green">#10B981</color>
+    <color name="accent_red">#EF4444</color>
+    <color name="accent_coral">#F87171</color>
+    <color name="accent_teal">#14B8A6</color>
+
+    <!-- Progress -->
+    <color name="progress_blue">#6366F1</color>
+    <color name="progress_background">#E5E7EB</color>
+
+    <!-- Card & Divider -->
+    <color name="card_border">#E5E7EB</color>
+    <color name="divider">#E5E7EB</color>
+
     <!-- Overlay & Shadow -->
     <color name="overlay_dark">#80000000</color>
-    <color name="shadow">#1A000000</color>
-    
-    <!-- Status Colors -->
-    <color name="status_active">#2B7FED</color>
-    <color name="status_paused">#FF9500</color>
-    <color name="status_completed">#34C759</color>
+    <color name="shadow">#14000000</color>
 
-    <!-- Reader Theme Colors - Light -->
+    <!-- Status -->
+    <color name="status_active">#6366F1</color>
+    <color name="status_paused">#F59E0B</color>
+    <color name="status_completed">#10B981</color>
+
+    <!-- Reader Theme – Light -->
     <color name="reader_background_light">#FFFFFF</color>
     <color name="reader_toolbar_background">#FFFFFF</color>
-    <color name="reader_text_primary">#1A1A1A</color>
-    <color name="reader_text_secondary">#8E8E93</color>
+    <color name="reader_text_primary">#1E1B4B</color>
+    <color name="reader_text_secondary">#6B7280</color>
 
-    <!-- Reader Theme Colors - Sepia -->
-    <color name="reader_background_sepia">#F5E6D3</color>
+    <!-- Reader Theme – Sepia -->
+    <color name="reader_background_sepia">#FDF6EC</color>
     <color name="reader_text_sepia">#5B4636</color>
 
-    <!-- Reader Theme Colors - Dark -->
-    <color name="reader_background_dark">#1A1A1A</color>
-    <color name="reader_text_dark">#E5E5E5</color>
+    <!-- Reader Theme – Dark -->
+    <color name="reader_background_dark">#1A1A2E</color>
+    <color name="reader_text_dark">#E5E7EB</color>
+
+    <!-- Gradient stop colours (referenced from drawables) -->
+    <color name="gradient_start">#6366F1</color>
+    <color name="gradient_end">#8B5CF6</color>
+    <color name="gradient_streak_start">#F59E0B</color>
+    <color name="gradient_streak_end">#F97316</color>
 </resources>

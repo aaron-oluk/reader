@@ -44,7 +44,6 @@ public class InsightsFragment extends Fragment {
     private TextView booksReadCount;
     private TextView booksGoalCount;
     private ProgressBar goalProgress;
-    private TextView monthlyActivityText;
     private TextView weeklyProgressText;
     
     private HistoryManager historyManager;
@@ -85,7 +84,6 @@ public class InsightsFragment extends Fragment {
         booksReadCount = view.findViewById(R.id.books_read_count);
         booksGoalCount = view.findViewById(R.id.books_goal_count);
         goalProgress = view.findViewById(R.id.goal_progress);
-        monthlyActivityText = view.findViewById(R.id.monthly_activity_text);
         weeklyProgressText = view.findViewById(R.id.weekly_progress_text);
     }
 
@@ -152,11 +150,6 @@ public class InsightsFragment extends Fragment {
                 int yearlyGoal = 24; // Default goal
                 int goalPercent = totalBooks > 0 ? Math.min(100, (totalBooks * 100) / yearlyGoal) : 0;
                 
-                // Get current month name
-                Calendar cal = Calendar.getInstance();
-                SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM", Locale.getDefault());
-                String monthName = monthFormat.format(cal.getTime());
-                
                 // Calculate weekly progress (last 7 days)
                 // For now, estimate based on monthly pages / 4 (rough weekly average)
                 int weeklyPages = monthlyPagesRead / 4;
@@ -174,7 +167,6 @@ public class InsightsFragment extends Fragment {
                 final int finalTotalBooks = totalBooks;
                 final int finalGoalPercent = goalPercent;
                 final int finalYearlyGoal = yearlyGoal;
-                final String finalMonthName = monthName;
                 final String finalWeeklyProgressStr = weeklyProgressStr;
                 
                 mainHandler.post(() -> {
@@ -182,11 +174,6 @@ public class InsightsFragment extends Fragment {
                     booksFinished.setText(String.valueOf(finalFinishedBooks));
                     readingSpeed.setText(String.valueOf(finalSpeed));
                     currentStreak.setText(String.valueOf(finalStreak));
-                    
-                    // Update monthly activity text
-                    if (monthlyActivityText != null) {
-                        monthlyActivityText.setText("Activity in " + finalMonthName);
-                    }
                     
                     // Update weekly progress text
                     if (weeklyProgressText != null) {
@@ -198,8 +185,8 @@ public class InsightsFragment extends Fragment {
                     if (goalProgress != null) {
                         goalProgress.setProgress(finalGoalPercent);
                     }
-                    booksReadCount.setText(finalTotalBooks + " books read");
-                    booksGoalCount.setText(finalYearlyGoal + " books goal");
+                    booksReadCount.setText(String.valueOf(finalTotalBooks));
+                    booksGoalCount.setText(" / " + finalYearlyGoal);
                 });
                 
             } catch (Exception e) {
@@ -212,13 +199,8 @@ public class InsightsFragment extends Fragment {
                     currentStreak.setText("0");
                     if (goalPercentage != null) goalPercentage.setText("0%");
                     if (goalProgress != null) goalProgress.setProgress(0);
-                    if (booksReadCount != null) booksReadCount.setText("0 books read");
-                    if (booksGoalCount != null) booksGoalCount.setText("24 books goal");
-                    if (monthlyActivityText != null) {
-                        Calendar cal = Calendar.getInstance();
-                        SimpleDateFormat monthFormat = new SimpleDateFormat("MMMM", Locale.getDefault());
-                        monthlyActivityText.setText("Activity in " + monthFormat.format(cal.getTime()));
-                    }
+                    if (booksReadCount != null) booksReadCount.setText("0");
+                    if (booksGoalCount != null) booksGoalCount.setText(" / 24");
                     if (weeklyProgressText != null) {
                         weeklyProgressText.setText("Last 7 days");
                     }

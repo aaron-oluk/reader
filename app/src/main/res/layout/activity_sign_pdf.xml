@@ -5,87 +5,94 @@
     android:layout_height="match_parent"
     android:background="@color/background_light_gray">
 
-    <!-- Top Toolbar -->
+    <!-- Toolbar -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@android:color/transparent"
+        android:background="@color/background_card"
         app:elevation="0dp">
 
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="64dp"
-            android:background="@color/background_white"
-            android:elevation="2dp"
+            android:background="@color/background_card"
             app:navigationIcon="@drawable/ic_arrow_back"
             app:navigationIconTint="@color/text_primary"
             app:title="Sign Document"
-            app:titleTextAppearance="@style/TextAppearance.App.TitleLarge"
             app:titleTextColor="@color/text_primary" />
 
     </com.google.android.material.appbar.AppBarLayout>
 
-    <!-- Main Content Area -->
+    <!-- Main content -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
-        <!-- Empty State (when no PDF loaded) -->
+        <!-- Empty state -->
         <LinearLayout
             android:id="@+id/emptyStateContainer"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:gravity="center"
             android:orientation="vertical"
-            android:padding="32dp"
+            android:padding="40dp"
             android:visibility="visible">
 
-            <ImageView
-                android:layout_width="120dp"
-                android:layout_height="120dp"
-                android:src="@drawable/ic_pdf"
-                android:alpha="0.5"
-                app:tint="@color/text_secondary" />
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                app:cardCornerRadius="24dp"
+                app:cardBackgroundColor="#EEF2FF"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp">
+                <ImageView
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_pdf"
+                    app:tint="@color/primary_blue"
+                    android:contentDescription="No document" />
+            </com.google.android.material.card.MaterialCardView>
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
+                android:layout_marginTop="20dp"
                 android:text="No Document Selected"
-                android:textAppearance="@style/TextAppearance.App.HeadlineSmall"
+                android:textSize="18sp"
+                android:textStyle="bold"
                 android:textColor="@color/text_primary" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="8dp"
                 android:gravity="center"
-                android:text="Select a PDF document to add your signature"
-                android:textAppearance="@style/TextAppearance.App.BodyLarge"
+                android:text="Choose a PDF to add your signature"
+                android:textSize="13sp"
                 android:textColor="@color/text_secondary" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnSelectPdfEmpty"
                 android:layout_width="wrap_content"
-                android:layout_height="56dp"
-                android:layout_marginTop="32dp"
-                android:paddingHorizontal="40dp"
-                android:text="SELECT PDF"
-                android:textAppearance="@style/TextAppearance.App.LabelLarge"
+                android:layout_height="52dp"
+                android:layout_marginTop="28dp"
+                android:paddingHorizontal="32dp"
+                android:text="Select PDF"
+                android:textSize="14sp"
+                android:textStyle="bold"
                 app:backgroundTint="@color/primary_blue"
-                app:cornerRadius="28dp"
-                app:elevation="4dp" />
-
+                app:cornerRadius="12dp" />
         </LinearLayout>
 
-        <!-- PDF Pages Container (when PDF loaded) -->
+        <!-- PDF pages -->
         <ScrollView
             android:id="@+id/scrollView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:layout_marginBottom="80dp"
+            android:layout_marginBottom="88dp"
             android:visibility="gone">
 
             <androidx.recyclerview.widget.RecyclerView
@@ -96,10 +103,9 @@
                 android:paddingHorizontal="16dp"
                 android:paddingTop="16dp"
                 android:paddingBottom="16dp" />
-
         </ScrollView>
 
-        <!-- Signature Preview Indicator -->
+        <!-- Signature preview chip (top-end) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/signaturePreviewCard"
             android:layout_width="wrap_content"
@@ -107,9 +113,10 @@
             android:layout_gravity="top|end"
             android:layout_margin="16dp"
             android:visibility="gone"
-            app:cardBackgroundColor="@color/card_background"
+            app:cardBackgroundColor="@color/background_card"
             app:cardCornerRadius="12dp"
-            app:cardElevation="0dp">
+            app:cardElevation="4dp"
+            app:strokeWidth="0dp">
 
             <LinearLayout
                 android:layout_width="wrap_content"
@@ -122,41 +129,41 @@
                     android:id="@+id/signaturePreviewImage"
                     android:layout_width="80dp"
                     android:layout_height="40dp"
-                    android:scaleType="fitCenter" />
+                    android:scaleType="fitCenter"
+                    android:contentDescription="Signature preview" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
                     android:text="Tap page to place"
-                    android:textAppearance="@style/TextAppearance.App.LabelSmall"
+                    android:textSize="11sp"
                     android:textColor="@color/text_secondary" />
-
             </LinearLayout>
-
         </com.google.android.material.card.MaterialCardView>
 
     </FrameLayout>
 
-    <!-- Bottom Control Panel -->
+    <!-- Bottom control panel -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/bottomControlPanel"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        app:cardBackgroundColor="@color/background_white"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="0dp">
+        app:cardBackgroundColor="@color/background_card"
+        app:cardCornerRadius="0dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
-            android:paddingTop="20dp"
-            android:paddingBottom="24dp">
+            android:paddingTop="16dp"
+            android:paddingBottom="28dp">
 
-            <!-- Status Info -->
+            <!-- Status row -->
             <LinearLayout
                 android:id="@+id/statusInfo"
                 android:layout_width="match_parent"
@@ -178,81 +185,67 @@
                     android:layout_height="wrap_content"
                     android:layout_marginStart="8dp"
                     android:text="Signature ready to place"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
+                    android:textSize="12sp"
                     android:textColor="@color/text_secondary" />
-
             </LinearLayout>
 
-            <!-- Button Row -->
+            <!-- Buttons -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
                 android:gravity="center_vertical">
 
-                <!-- Select PDF Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSelectPdf"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_marginEnd="6dp"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
-                    android:minWidth="0dp"
-                    android:paddingHorizontal="8dp"
+                    android:layout_marginEnd="6dp"
                     android:text="Select PDF"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                    android:textStyle="bold"
-                    app:cornerRadius="8dp"
+                    app:cornerRadius="10dp"
                     app:strokeColor="@color/primary_blue"
-                    app:strokeWidth="2dp" />
+                    app:strokeWidth="1dp" />
 
-                <!-- Add Signature Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddSignature"
                     style="@style/Widget.MaterialComponents.Button.OutlinedButton"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_marginHorizontal="6dp"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
-                    android:minWidth="0dp"
-                    android:paddingHorizontal="8dp"
+                    android:layout_marginHorizontal="6dp"
                     android:enabled="false"
                     android:text="Add Sign"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                    android:textStyle="bold"
-                    app:cornerRadius="8dp"
+                    app:cornerRadius="10dp"
                     app:strokeColor="@color/primary_blue"
-                    app:strokeWidth="2dp" />
+                    app:strokeWidth="1dp" />
 
-                <!-- Save Button -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSave"
                     android:layout_width="0dp"
-                    android:layout_height="56dp"
-                    android:layout_marginStart="6dp"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
-                    android:minWidth="0dp"
-                    android:paddingHorizontal="8dp"
+                    android:layout_marginStart="6dp"
                     android:enabled="false"
                     android:text="Save"
-                    android:textColor="@android:color/white"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:textAppearance="@style/TextAppearance.App.BodySmall"
-                    android:textStyle="bold"
                     app:backgroundTint="@color/primary_blue"
-                    app:cornerRadius="8dp"
-                    app:elevation="2dp" />
-
+                    app:cornerRadius="10dp" />
             </LinearLayout>
-
         </LinearLayout>
-
     </com.google.android.material.card.MaterialCardView>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
