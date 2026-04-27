@@ -1,15 +1,9 @@
 package com.pdfreader.app.fragments;
 
 import android.Manifest;
-import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.pdf.PdfDocument;
 import android.os.Bundle;
-import android.text.InputType;
-import android.widget.EditText;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,8 +12,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.button.MaterialButton;
-
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
@@ -29,20 +23,16 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.camera.view.PreviewView.ImplementationMode;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.button.MaterialButton;
-
 import com.google.common.util.concurrent.ListenableFuture;
-import com.pdfreader.app.FileManager;
 import com.pdfreader.app.R;
+import com.pdfreader.app.ScanReviewActivity;
 import com.pdfreader.app.SignPdfActivity;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -68,7 +58,8 @@ public class ScannerFragment extends Fragment {
     private View capturedImagesInfo;
     private ImageView flashIcon;
     private ActivityResultLauncher<String> requestPermissionLauncher;
-    
+    private ActivityResultLauncher<Intent> reviewLauncher;
+
     // Store captured images
     private List<File> capturedImages = new ArrayList<>();
 
@@ -76,7 +67,6 @@ public class ScannerFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
-        // Register permission launcher
         requestPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
@@ -84,6 +74,18 @@ public class ScannerFragment extends Fragment {
                         startCamera();
                     } else {
                         Toast.makeText(requireContext(), "Camera permission is required", Toast.LENGTH_SHORT).show();
+                    }
+                });
+
+        reviewLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == ScanReviewActivity.RESULT_ADD_MORE) {
+                        // User tapped "Add Page" — stay on scanner, keep existing captures
+                    } else {
+                        // Saved or back — clear captured list
+                        capturedImages.clear();
+                        updateCapturedImagesUI();
                     }
                 });
         
@@ -150,7 +152,7 @@ public class ScannerFragment extends Fragment {
         scanQuoteTab.setOnClickListener(v -> selectTab(scanQuoteTab));
         scanPageTab.setOnClickListener(v -> selectTab(scanPageTab));
         
-        savePdfButton.setOnClickListener(v -> showSaveDialog());
+        savePdfButton.setOnClickListener(v -> openReviewScreen());
     }
 
     private void selectTab(TextView selectedTab) {
@@ -336,99 +338,17 @@ public class ScannerFragment extends Fragment {
         }
     }
     
-    private void showSaveDialog() {
+    private void openReviewScreen() {
         if (capturedImages.isEmpty()) {
-            Toast.makeText(getContext(), "No images to save", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "No images to review", Toast.LENGTH_SHORT).show();
             return;
         }
-        
-        // Create dialog to get filename
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Save PDF");
-        
-        final EditText input = new EditText(requireContext());
-        String defaultName = "Scanned_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        input.setText(defaultName);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
-        input.setSelectAllOnFocus(true);
-        builder.setView(input);
-        
-        builder.setPositiveButton("Save", (dialog, which) -> {
-            String fileName = input.getText().toString().trim();
-            if (fileName.isEmpty()) {
-                fileName = defaultName;
-            }
-            // Ensure .pdf extension
-            if (!fileName.toLowerCase().endsWith(".pdf")) {
-                fileName += ".pdf";
-            }
-            savePdfToFile(fileName);
-        });
-        
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-        builder.show();
-    }
-    
-    private void savePdfToFile(String fileName) {
-        if (capturedImages.isEmpty()) {
-            return;
-        }
+        ArrayList<String> paths = new ArrayList<>();
+        for (File f : capturedImages) paths.add(f.getAbsolutePath());
 
-        new Thread(() -> {
-            try {
-                PdfDocument document = new PdfDocument();
-
-                // Add each captured image as a page
-                for (File imageFile : capturedImages) {
-                    Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-                    if (bitmap != null) {
-                        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
-                                bitmap.getWidth(), bitmap.getHeight(),
-                                document.getPages().size() + 1).create();
-                        PdfDocument.Page page = document.startPage(pageInfo);
-                        page.getCanvas().drawBitmap(bitmap, 0, 0, null);
-                        document.finishPage(page);
-                        bitmap.recycle();
-                    }
-                }
-
-                // Write to a temp file so we can read bytes for FileManager
-                FileManager fileManager = new FileManager(requireContext());
-                File tempFile = fileManager.getPdfFile(fileName, FileManager.CATEGORY_SCANNED);
-
-                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
-                    document.writeTo(fos);
-                }
-                document.close();
-
-                // On Android 10+ also register via MediaStore for visibility
-                byte[] pdfBytes = new byte[(int) tempFile.length()];
-                try (java.io.FileInputStream fis = new java.io.FileInputStream(tempFile)) {
-                    fis.read(pdfBytes);
-                }
-                String savedPath = fileManager.savePdf(pdfBytes, fileName, FileManager.CATEGORY_SCANNED);
-                if (savedPath != null && tempFile.exists()) {
-                    tempFile.delete();
-                }
-
-                // Clean up temporary image files
-                for (File imageFile : capturedImages) {
-                    imageFile.delete();
-                }
-
-                requireActivity().runOnUiThread(() -> {
-                    capturedImages.clear();
-                    updateCapturedImagesUI();
-                    Toast.makeText(getContext(), "PDF saved to Scanned folder", Toast.LENGTH_LONG).show();
-                });
-
-            } catch (Exception e) {
-                requireActivity().runOnUiThread(() ->
-                        Toast.makeText(getContext(), "Error saving PDF: " + e.getMessage(),
-                                Toast.LENGTH_LONG).show());
-                e.printStackTrace();
-            }
-        }).start();
+        Intent intent = new Intent(requireContext(), ScanReviewActivity.class);
+        intent.putStringArrayListExtra(ScanReviewActivity.EXTRA_IMAGE_PATHS, paths);
+        reviewLauncher.launch(intent);
     }
 
 

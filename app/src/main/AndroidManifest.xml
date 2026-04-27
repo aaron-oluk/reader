@@ -104,6 +104,11 @@
             android:exported="false"
             android:theme="@style/Theme.PDFReader" />
 
+        <activity
+            android:name=".ScanReviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
     </application>
 
 </manifest>

@@ -115,4 +115,12 @@ public class SignatureView extends View {
     public boolean hasSignature() {
         return hasSignature;
     }
+
+    public void setStrokeColor(int color) {
+        paint.setColor(color);
+    }
+
+    public int getStrokeColor() {
+        return paint.getColor();
+    }
 }
