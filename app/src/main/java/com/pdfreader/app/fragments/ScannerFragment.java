@@ -2,16 +2,12 @@ package com.pdfreader.app.fragments;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.pdf.PdfDocument;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Environment;
-import android.provider.MediaStore;
 import android.text.InputType;
 import android.widget.EditText;
 import android.view.LayoutInflater;
@@ -41,12 +37,12 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.button.MaterialButton;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.pdfreader.app.FileManager;
 import com.pdfreader.app.R;
 import com.pdfreader.app.SignPdfActivity;
 
 import java.io.File;
 import java.io.FileOutputStream;
-import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -72,7 +68,6 @@ public class ScannerFragment extends Fragment {
     private View capturedImagesInfo;
     private ImageView flashIcon;
     private ActivityResultLauncher<String> requestPermissionLauncher;
-    private ActivityResultLauncher<Intent> savePdfLauncher;
     
     // Store captured images
     private List<File> capturedImages = new ArrayList<>();
@@ -92,17 +87,6 @@ public class ScannerFragment extends Fragment {
                     }
                 });
         
-        // Register save PDF launcher
-        savePdfLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == android.app.Activity.RESULT_OK && result.getData() != null) {
-                        Uri uri = result.getData().getData();
-                        if (uri != null) {
-                            savePdfToUri(uri);
-                        }
-                    }
-                });
     }
 
     @Nullable
@@ -378,64 +362,73 @@ public class ScannerFragment extends Fragment {
             if (!fileName.toLowerCase().endsWith(".pdf")) {
                 fileName += ".pdf";
             }
-            openSaveLocationPicker(fileName);
+            savePdfToFile(fileName);
         });
         
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
         builder.show();
     }
     
-    private void openSaveLocationPicker(String fileName) {
-        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-        intent.addCategory(Intent.CATEGORY_OPENABLE);
-        intent.setType("application/pdf");
-        intent.putExtra(Intent.EXTRA_TITLE, fileName);
-        savePdfLauncher.launch(intent);
-    }
-    
-    private void savePdfToUri(Uri uri) {
+    private void savePdfToFile(String fileName) {
         if (capturedImages.isEmpty()) {
             return;
         }
-        
-        try {
-            PdfDocument document = new PdfDocument();
-            
-            // Add each image as a page
-            for (File imageFile : capturedImages) {
-                Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
-                if (bitmap != null) {
-                    PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
-                            bitmap.getWidth(), bitmap.getHeight(), document.getPages().size() + 1).create();
-                    PdfDocument.Page page = document.startPage(pageInfo);
-                    page.getCanvas().drawBitmap(bitmap, 0, 0, null);
-                    document.finishPage(page);
-                    bitmap.recycle();
+
+        new Thread(() -> {
+            try {
+                PdfDocument document = new PdfDocument();
+
+                // Add each captured image as a page
+                for (File imageFile : capturedImages) {
+                    Bitmap bitmap = BitmapFactory.decodeFile(imageFile.getAbsolutePath());
+                    if (bitmap != null) {
+                        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
+                                bitmap.getWidth(), bitmap.getHeight(),
+                                document.getPages().size() + 1).create();
+                        PdfDocument.Page page = document.startPage(pageInfo);
+                        page.getCanvas().drawBitmap(bitmap, 0, 0, null);
+                        document.finishPage(page);
+                        bitmap.recycle();
+                    }
                 }
+
+                // Write to a temp file so we can read bytes for FileManager
+                FileManager fileManager = new FileManager(requireContext());
+                File tempFile = fileManager.getPdfFile(fileName, FileManager.CATEGORY_SCANNED);
+
+                try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                    document.writeTo(fos);
+                }
+                document.close();
+
+                // On Android 10+ also register via MediaStore for visibility
+                byte[] pdfBytes = new byte[(int) tempFile.length()];
+                try (java.io.FileInputStream fis = new java.io.FileInputStream(tempFile)) {
+                    fis.read(pdfBytes);
+                }
+                String savedPath = fileManager.savePdf(pdfBytes, fileName, FileManager.CATEGORY_SCANNED);
+                if (savedPath != null && tempFile.exists()) {
+                    tempFile.delete();
+                }
+
+                // Clean up temporary image files
+                for (File imageFile : capturedImages) {
+                    imageFile.delete();
+                }
+
+                requireActivity().runOnUiThread(() -> {
+                    capturedImages.clear();
+                    updateCapturedImagesUI();
+                    Toast.makeText(getContext(), "PDF saved to Scanned folder", Toast.LENGTH_LONG).show();
+                });
+
+            } catch (Exception e) {
+                requireActivity().runOnUiThread(() ->
+                        Toast.makeText(getContext(), "Error saving PDF: " + e.getMessage(),
+                                Toast.LENGTH_LONG).show());
+                e.printStackTrace();
             }
-            
-            // Write to the selected location
-            OutputStream outputStream = requireContext().getContentResolver().openOutputStream(uri);
-            if (outputStream != null) {
-                document.writeTo(outputStream);
-                outputStream.close();
-            }
-            
-            document.close();
-            
-            // Clean up temporary image files
-            for (File imageFile : capturedImages) {
-                imageFile.delete();
-            }
-            capturedImages.clear();
-            updateCapturedImagesUI();
-            
-            Toast.makeText(getContext(), "PDF saved successfully", Toast.LENGTH_LONG).show();
-            
-        } catch (Exception e) {
-            Toast.makeText(getContext(), "Error saving PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
-            e.printStackTrace();
-        }
+        }).start();
     }
 
 

@@ -169,27 +169,27 @@ public class MergePdfActivity extends AppCompatActivity {
                     cacheFile.delete();
                 }
 
-                // Save merged PDF using FileManager
+                // Save merged PDF using FileManager – routes to Merged/ category folder
                 String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
                 String fileName = "merged_" + timestamp + ".pdf";
-                
+
                 FileManager fileManager = new FileManager(this);
-                File outputFile = fileManager.getPdfFile(fileName);
+                File outputFile = fileManager.getPdfFile(fileName, FileManager.CATEGORY_MERGED);
 
                 FileOutputStream fos = new FileOutputStream(outputFile);
                 mergedDocument.writeTo(fos);
                 mergedDocument.close();
                 fos.close();
-                
+
                 // Read the saved file as bytes for MediaStore saving
                 byte[] pdfBytes = new byte[(int) outputFile.length()];
                 try (java.io.FileInputStream fis = new java.io.FileInputStream(outputFile)) {
                     fis.read(pdfBytes);
                 }
-                
+
                 // Save using MediaStore for proper system integration
-                String savedPath = fileManager.savePdf(pdfBytes, fileName);
-                
+                String savedPath = fileManager.savePdf(pdfBytes, fileName, FileManager.CATEGORY_MERGED);
+
                 // Delete temporary file if MediaStore save succeeded
                 if (savedPath != null && outputFile.exists()) {
                     outputFile.delete();

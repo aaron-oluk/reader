@@ -18,220 +18,248 @@ import java.util.Date;
 import java.util.Locale;
 
 /**
- * Manages app-specific file storage and saving operations
- * Creates folders automatically and handles file saving with proper permissions
- * 
- * NOTE: This is ONLY for saving NEW PDFs created by the app (signed, merged, image-to-PDF).
- * For reading existing PDFs, the app uses the original file location and tracks
- * reading progress/notes/bookmarks in SharedPreferences (not file system).
+ * Manages app-specific file storage and saving operations.
+ * Creates a categorised folder structure on first launch and routes
+ * each file type to the correct sub-folder.
+ *
+ * Folder layout (inside Downloads/PDFReader/ or app-specific external storage):
+ *   PDFReader/
+ *   ├── Signed/       – PDFs with signatures added
+ *   ├── Merged/       – Merged PDFs
+ *   ├── Converted/    – Image-to-PDF conversions
+ *   ├── Scanned/      – Scanned documents
+ *   └── Signatures/   – Signature image files
+ *
+ * NOTE: This is ONLY for saving NEW PDFs created by the app (signed, merged,
+ * image-to-PDF, scanned). For reading existing PDFs the app uses the original
+ * file location and tracks reading progress/notes/bookmarks in SharedPreferences.
  */
 public class FileManager {
     private static final String TAG = "FileManager";
+
     private static final String APP_FOLDER_NAME = "PDFReader";
-    private static final String PDFS_SUBFOLDER = "PDFs";
-    private static final String SIGNATURES_SUBFOLDER = "Signatures";
-    
-    private Context context;
+
+    // Public category constants – callers use these when saving files
+    public static final String CATEGORY_SIGNED     = "Signed";
+    public static final String CATEGORY_MERGED     = "Merged";
+    public static final String CATEGORY_CONVERTED  = "Converted";
+    public static final String CATEGORY_SCANNED    = "Scanned";
+    public static final String CATEGORY_SIGNATURES = "Signatures";
+
+    private final Context context;
     private File appFolder;
-    private File pdfsFolder;
+    private File signedFolder;
+    private File mergedFolder;
+    private File convertedFolder;
+    private File scannedFolder;
     private File signaturesFolder;
-    
+
     public FileManager(Context context) {
         this.context = context;
         initializeFolders();
     }
-    
-    /**
-     * Initialize all app folders on first use
-     */
+
+    // -------------------------------------------------------------------------
+    // Folder initialisation
+    // -------------------------------------------------------------------------
+
     private void initializeFolders() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+ uses scoped storage
-            // Folders are created in app-specific external storage
+            // Android 10+ uses scoped storage (app-specific external storage)
             appFolder = context.getExternalFilesDir(APP_FOLDER_NAME);
-            if (appFolder != null) {
-                pdfsFolder = new File(appFolder, PDFS_SUBFOLDER);
-                signaturesFolder = new File(appFolder, SIGNATURES_SUBFOLDER);
-            }
         } else {
-            // Android 9 and below - use public Downloads folder
-            File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            // Android 9 and below – use public Downloads folder
+            File downloadsDir = Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_DOWNLOADS);
             appFolder = new File(downloadsDir, APP_FOLDER_NAME);
-            pdfsFolder = new File(appFolder, PDFS_SUBFOLDER);
-            signaturesFolder = new File(appFolder, SIGNATURES_SUBFOLDER);
         }
-        
-        // Create folders if they don't exist
+
+        if (appFolder != null) {
+            signedFolder     = new File(appFolder, CATEGORY_SIGNED);
+            mergedFolder     = new File(appFolder, CATEGORY_MERGED);
+            convertedFolder  = new File(appFolder, CATEGORY_CONVERTED);
+            scannedFolder    = new File(appFolder, CATEGORY_SCANNED);
+            signaturesFolder = new File(appFolder, CATEGORY_SIGNATURES);
+        }
+
         createFoldersIfNeeded();
     }
-    
-    /**
-     * Create all necessary folders
-     */
+
     private void createFoldersIfNeeded() {
         try {
-            if (appFolder != null && !appFolder.exists()) {
-                boolean created = appFolder.mkdirs();
-                Log.d(TAG, "App folder created: " + appFolder.getAbsolutePath() + " - " + created);
-            }
-            
-            if (pdfsFolder != null && !pdfsFolder.exists()) {
-                boolean created = pdfsFolder.mkdirs();
-                Log.d(TAG, "PDFs folder created: " + pdfsFolder.getAbsolutePath() + " - " + created);
-            }
-            
-            if (signaturesFolder != null && !signaturesFolder.exists()) {
-                boolean created = signaturesFolder.mkdirs();
-                Log.d(TAG, "Signatures folder created: " + signaturesFolder.getAbsolutePath() + " - " + created);
-            }
+            createDir(appFolder,       "App");
+            createDir(signedFolder,    CATEGORY_SIGNED);
+            createDir(mergedFolder,    CATEGORY_MERGED);
+            createDir(convertedFolder, CATEGORY_CONVERTED);
+            createDir(scannedFolder,   CATEGORY_SCANNED);
+            createDir(signaturesFolder, CATEGORY_SIGNATURES);
         } catch (Exception e) {
             Log.e(TAG, "Error creating folders", e);
         }
     }
-    
-    /**
-     * Get the app's main folder path
-     */
+
+    private void createDir(File dir, String label) {
+        if (dir != null && !dir.exists()) {
+            boolean created = dir.mkdirs();
+            Log.d(TAG, label + " folder created: " + dir.getAbsolutePath() + " – " + created);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
+
+    /** Ensure all category folders exist (call on app startup). */
+    public void ensureFoldersExist() {
+        createFoldersIfNeeded();
+    }
+
+    /** @return absolute path of the app root folder */
     public String getAppFolderPath() {
         return appFolder != null ? appFolder.getAbsolutePath() : null;
     }
-    
-    /**
-     * Get the PDFs folder path
-     */
-    public String getPdfsFolderPath() {
-        return pdfsFolder != null ? pdfsFolder.getAbsolutePath() : null;
+
+    /** @return absolute path of the requested category folder */
+    public String getCategoryFolderPath(String category) {
+        File folder = getCategoryFolder(category);
+        return folder != null ? folder.getAbsolutePath() : null;
     }
-    
+
     /**
-     * Get the signatures folder path
+     * Save a PDF byte array to the correct category folder.
+     * Uses MediaStore on Android 10+, direct file write on Android 9-.
+     *
+     * @param pdfData  raw PDF bytes
+     * @param fileName desired file name (will have .pdf appended if missing)
+     * @param category one of the CATEGORY_* constants
+     * @return path or content URI string of the saved file, or null on failure
      */
-    public String getSignaturesFolderPath() {
-        return signaturesFolder != null ? signaturesFolder.getAbsolutePath() : null;
-    }
-    
-    /**
-     * Save a PDF file using MediaStore (Android 10+) or direct file (Android 9-)
-     * Returns the saved file path or null if failed
-     */
-    public String savePdf(byte[] pdfData, String fileName) {
+    public String savePdf(byte[] pdfData, String fileName, String category) {
         if (pdfData == null || pdfData.length == 0) {
             Log.e(TAG, "Cannot save empty PDF data");
             return null;
         }
-        
-        if (fileName == null || fileName.trim().isEmpty()) {
-            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-            fileName = "document_" + timestamp + ".pdf";
-        }
-        
-        // Ensure .pdf extension
-        if (!fileName.toLowerCase().endsWith(".pdf")) {
-            fileName += ".pdf";
-        }
-        
+
+        fileName = sanitizeFileName(fileName);
+
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                // Use MediaStore for Android 10+
-                return savePdfWithMediaStore(pdfData, fileName);
+                return savePdfWithMediaStore(pdfData, fileName, category);
             } else {
-                // Use direct file for Android 9 and below
-                return savePdfDirect(pdfData, fileName);
+                return savePdfDirect(pdfData, fileName, category);
             }
         } catch (Exception e) {
             Log.e(TAG, "Error saving PDF", e);
             return null;
         }
     }
-    
+
     /**
-     * Save PDF using MediaStore (Android 10+)
+     * Get a File object inside the correct category folder (for activities that
+     * write the PDF themselves before passing bytes to savePdf).
+     *
+     * @param fileName desired file name
+     * @param category one of the CATEGORY_* constants
      */
-    private String savePdfWithMediaStore(byte[] pdfData, String fileName) throws IOException {
-        ContentResolver resolver = context.getContentResolver();
-        ContentValues contentValues = new ContentValues();
-        contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-        contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-        contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/" + APP_FOLDER_NAME + "/" + PDFS_SUBFOLDER);
-        
-        Uri uri = resolver.insert(MediaStore.Files.getContentUri("external"), contentValues);
-        if (uri == null) {
-            Log.e(TAG, "Failed to create MediaStore entry");
+    public File getPdfFile(String fileName, String category) {
+        fileName = sanitizeFileName(fileName);
+
+        File folder = getCategoryFolder(category);
+        if (folder == null || (!folder.exists() && !folder.mkdirs())) {
+            Log.e(TAG, "Cannot access folder for category: " + category);
             return null;
         }
-        
-        try (OutputStream outputStream = resolver.openOutputStream(uri)) {
-            if (outputStream != null) {
-                outputStream.write(pdfData);
-                outputStream.flush();
-                Log.d(TAG, "PDF saved via MediaStore: " + uri.toString());
+
+        return uniqueFile(folder, fileName);
+    }
+
+    // -------------------------------------------------------------------------
+    // Private helpers
+    // -------------------------------------------------------------------------
+
+    private File getCategoryFolder(String category) {
+        if (category == null) return signedFolder; // safe default
+        switch (category) {
+            case CATEGORY_SIGNED:     return signedFolder;
+            case CATEGORY_MERGED:     return mergedFolder;
+            case CATEGORY_CONVERTED:  return convertedFolder;
+            case CATEGORY_SCANNED:    return scannedFolder;
+            case CATEGORY_SIGNATURES: return signaturesFolder;
+            default:                  return signedFolder;
+        }
+    }
+
+    /** Returns a subpath string like "PDFReader/Signed" for MediaStore. */
+    private String getMediaStoreRelativePath(String category) {
+        return Environment.DIRECTORY_DOWNLOADS + "/" + APP_FOLDER_NAME + "/" + category;
+    }
+
+    private String savePdfWithMediaStore(byte[] pdfData, String fileName, String category)
+            throws IOException {
+        ContentResolver resolver = context.getContentResolver();
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+        values.put(MediaStore.MediaColumns.RELATIVE_PATH,
+                getMediaStoreRelativePath(category));
+
+        Uri uri = resolver.insert(MediaStore.Files.getContentUri("external"), values);
+        if (uri == null) {
+            Log.e(TAG, "Failed to create MediaStore entry for category: " + category);
+            return null;
+        }
+
+        try (OutputStream out = resolver.openOutputStream(uri)) {
+            if (out != null) {
+                out.write(pdfData);
+                out.flush();
+                Log.d(TAG, "PDF saved via MediaStore [" + category + "]: " + uri);
                 return uri.toString();
             }
         }
-        
         return null;
     }
-    
-    /**
-     * Save PDF directly to file (Android 9 and below)
-     */
-    private String savePdfDirect(byte[] pdfData, String fileName) throws IOException {
-        if (pdfsFolder == null || !pdfsFolder.exists()) {
-            createFoldersIfNeeded();
+
+    private String savePdfDirect(byte[] pdfData, String fileName, String category)
+            throws IOException {
+        File folder = getCategoryFolder(category);
+        if (folder == null || (!folder.exists() && !folder.mkdirs())) {
+            Log.e(TAG, "Cannot create folder for category: " + category);
+            return null;
         }
-        
-        // Handle duplicate file names
-        File pdfFile = new File(pdfsFolder, fileName);
-        int counter = 1;
-        String baseName = fileName.substring(0, fileName.length() - 4); // Remove .pdf
-        while (pdfFile.exists()) {
-            fileName = baseName + "_" + counter + ".pdf";
-            pdfFile = new File(pdfsFolder, fileName);
-            counter++;
-        }
-        
+
+        File pdfFile = uniqueFile(folder, fileName);
         try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
             fos.write(pdfData);
             fos.flush();
-            Log.d(TAG, "PDF saved directly: " + pdfFile.getAbsolutePath());
+            Log.d(TAG, "PDF saved directly [" + category + "]: " + pdfFile.getAbsolutePath());
             return pdfFile.getAbsolutePath();
         }
     }
-    
-    /**
-     * Get a file object for saving PDFs (for compatibility with existing code)
-     */
-    public File getPdfFile(String fileName) {
+
+    /** Ensures the file name ends with .pdf and is not blank. */
+    private String sanitizeFileName(String fileName) {
         if (fileName == null || fileName.trim().isEmpty()) {
-            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-            fileName = "document_" + timestamp + ".pdf";
+            String ts = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            fileName = "document_" + ts + ".pdf";
         }
-        
         if (!fileName.toLowerCase().endsWith(".pdf")) {
             fileName += ".pdf";
         }
-        
-        if (pdfsFolder == null || !pdfsFolder.exists()) {
-            createFoldersIfNeeded();
-        }
-        
-        // Handle duplicate file names
-        File pdfFile = new File(pdfsFolder, fileName);
+        return fileName;
+    }
+
+    /** Returns a File inside {@code folder} that doesn't already exist. */
+    private File uniqueFile(File folder, String fileName) {
+        File file = new File(folder, fileName);
+        if (!file.exists()) return file;
+
+        String base = fileName.substring(0, fileName.length() - 4); // strip .pdf
         int counter = 1;
-        String baseName = fileName.substring(0, fileName.length() - 4);
-        while (pdfFile.exists()) {
-            fileName = baseName + "_" + counter + ".pdf";
-            pdfFile = new File(pdfsFolder, fileName);
+        while (file.exists()) {
+            file = new File(folder, base + "_" + counter + ".pdf");
             counter++;
         }
-        
-        return pdfFile;
-    }
-    
-    /**
-     * Ensure all folders are created (call this on app startup)
-     */
-    public void ensureFoldersExist() {
-        createFoldersIfNeeded();
+        return file;
     }
 }

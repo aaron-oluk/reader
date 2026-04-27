@@ -29,6 +29,7 @@ A comprehensive PDF reader and document management Android application with adva
 ## Documentation
 
 For complete documentation including:
+
 - Feature details and implementation
 - File management strategy
 - Memory optimization techniques

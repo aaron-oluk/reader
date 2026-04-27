@@ -441,27 +441,27 @@ public class SignPdfActivity extends AppCompatActivity {
                     }
                 }
 
-                // Save PDF using FileManager
+                // Save PDF using FileManager – routes to Signed/ category folder
                 String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
                 String fileName = "signed_" + timestamp + ".pdf";
-                
+
                 FileManager fileManager = new FileManager(this);
-                File outputFile = fileManager.getPdfFile(fileName);
+                File outputFile = fileManager.getPdfFile(fileName, FileManager.CATEGORY_SIGNED);
 
                 FileOutputStream fos = new FileOutputStream(outputFile);
                 document.writeTo(fos);
                 document.close();
                 fos.close();
-                
+
                 // Read the saved file as bytes for MediaStore saving
                 byte[] pdfBytes = new byte[(int) outputFile.length()];
                 try (java.io.FileInputStream fis = new java.io.FileInputStream(outputFile)) {
                     fis.read(pdfBytes);
                 }
-                
+
                 // Save using MediaStore for proper system integration
-                String savedPath = fileManager.savePdf(pdfBytes, fileName);
-                
+                String savedPath = fileManager.savePdf(pdfBytes, fileName, FileManager.CATEGORY_SIGNED);
+
                 // Delete temporary file if MediaStore save succeeded
                 if (savedPath != null && outputFile.exists()) {
                     outputFile.delete();
