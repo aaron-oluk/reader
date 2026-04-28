@@ -3,6 +3,8 @@ package com.pdfreader.app;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.pdf.PdfDocument;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
@@ -342,8 +344,10 @@ public class SignPdfActivity extends AppCompatActivity {
         builder.setView(dialogView);
         AlertDialog dialog = builder.create();
 
+        setupDialogColorPicker(dialogView, signatureView);
+
         btnClear.setOnClickListener(v -> signatureView.clear());
-        
+
         btnSaveSignature.setOnClickListener(v -> {
             if (signatureView.hasSignature()) {
                 showSaveSignatureNameDialog(signatureView.getSignatureBitmap(), dialog);
@@ -351,12 +355,11 @@ public class SignPdfActivity extends AppCompatActivity {
                 Toast.makeText(this, "Please draw your signature first", Toast.LENGTH_SHORT).show();
             }
         });
-        
+
         btnDone.setOnClickListener(v -> {
             if (signatureView.hasSignature()) {
                 signatureBitmap = signatureView.getSignatureBitmap();
                 updateSignaturePreview();
-                Toast.makeText(this, "Signature ready. Tap a page to place it.", Toast.LENGTH_SHORT).show();
                 dialog.dismiss();
             } else {
                 Toast.makeText(this, "Please draw your signature", Toast.LENGTH_SHORT).show();
@@ -364,6 +367,34 @@ public class SignPdfActivity extends AppCompatActivity {
         });
 
         dialog.show();
+    }
+
+    private void setupDialogColorPicker(View root, SignatureView signatureView) {
+        int[] colors = {0xFF1C1C1E, 0xFF1E1B4B, 0xFF2563EB, 0xFFDC2626};
+        int[] ids = {R.id.color_black, R.id.color_navy, R.id.color_blue, R.id.color_red};
+        android.widget.FrameLayout[] dots = new android.widget.FrameLayout[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            dots[i] = root.findViewById(ids[i]);
+        }
+        for (int i = 0; i < dots.length; i++) {
+            final int color = colors[i];
+            final android.widget.FrameLayout dot = dots[i];
+            final android.widget.FrameLayout[] allDots = dots;
+            dot.setOnClickListener(v -> {
+                signatureView.setStrokeColor(color);
+                for (android.widget.FrameLayout d : allDots) {
+                    setDialogDotSelected(d, d == dot);
+                }
+            });
+        }
+    }
+
+    private void setDialogDotSelected(android.widget.FrameLayout dot, boolean selected) {
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setColor(Color.TRANSPARENT);
+        ring.setStroke(4, selected ? 0xFF6366F1 : Color.TRANSPARENT);
+        dot.setBackground(ring);
     }
     
     private void showSaveSignatureNameDialog(Bitmap signatureBitmap, androidx.appcompat.app.AlertDialog parentDialog) {
@@ -398,8 +429,11 @@ public class SignPdfActivity extends AppCompatActivity {
         pagesWithSignature.set(pageIndex, true);
         signPdfPageAdapter.setSignature(signatureBitmap, pageIndex, tapX, tapY);
         btnSave.setEnabled(true);
+        btnSave.setText("Save PDF");
 
-        Toast.makeText(this, "Signature added to page " + (pageIndex + 1), Toast.LENGTH_SHORT).show();
+        if (statusText != null) {
+            statusText.setText("Signature placed on page " + (pageIndex + 1) + " — tap Save PDF to finish");
+        }
     }
 
     private void savePdf() {

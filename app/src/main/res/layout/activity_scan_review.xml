@@ -44,7 +44,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Review Scans"
+                    android:text="Document Preview"
                     android:textSize="22sp"
                     android:textStyle="bold"
                     android:textColor="#FFFFFF" />
@@ -53,13 +53,13 @@
                     android:id="@+id/page_count_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="1 page"
+                    android:text="Generating preview…"
                     android:textSize="13sp"
                     android:textColor="#CCFFFFFF"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
 
-            <!-- Share button (visible after save) -->
+            <!-- Share button -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btn_share"
                 android:layout_width="40dp"
@@ -82,16 +82,26 @@
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Pages grid -->
+    <!-- Loading indicator -->
+    <ProgressBar
+        android:id="@+id/loading_indicator"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="60dp"
+        android:indeterminateTint="@color/primary_blue"
+        android:visibility="visible" />
+
+    <!-- PDF pages -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/pages_recycler"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:paddingHorizontal="10dp"
         android:paddingTop="16dp"
         android:paddingBottom="8dp"
-        android:clipToPadding="false" />
+        android:clipToPadding="false"
+        android:visibility="gone" />
 
     <!-- Bottom controls -->
     <com.google.android.material.card.MaterialCardView
@@ -110,7 +120,6 @@
             android:paddingTop="16dp"
             android:paddingBottom="28dp">
 
-            <!-- Add more pages -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_add_page"
                 style="@style/Widget.MaterialComponents.Button.OutlinedButton"
@@ -127,13 +136,12 @@
                 app:strokeColor="@color/primary_blue"
                 app:strokeWidth="1dp" />
 
-            <!-- Save PDF -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save_pdf"
                 android:layout_width="0dp"
                 android:layout_height="52dp"
                 android:layout_weight="1.4"
-                android:text="Save PDF"
+                android:text="Save &amp; Share"
                 android:textSize="14sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"

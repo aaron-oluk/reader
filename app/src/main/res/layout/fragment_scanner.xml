@@ -208,35 +208,55 @@
                         android:background="@android:color/transparent" />
                 </LinearLayout>
 
-                <!-- Captured Images Counter -->
+                <!-- Filmstrip of captured pages -->
                 <LinearLayout
                     android:id="@+id/captured_images_info"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center"
-                    android:paddingBottom="16dp"
+                    android:orientation="vertical"
+                    android:paddingBottom="12dp"
                     android:visibility="gone">
 
-                    <TextView
-                        android:id="@+id/captured_count_text"
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="0 images captured"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textColor="@color/text_primary"
-                        android:layout_marginEnd="16dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:paddingBottom="8dp">
 
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/save_pdf_button"
-                        android:layout_width="wrap_content"
-                        android:layout_height="40dp"
-                        android:text="Save PDF"
-                        android:textAppearance="@style/TextAppearance.App.BodyMedium"
-                        android:textAllCaps="false"
-                        android:enabled="false"
-                        app:backgroundTint="@color/primary_blue"
-                        app:cornerRadius="20dp" />
+                        <TextView
+                            android:id="@+id/captured_count_text"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="0 pages"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/save_pdf_button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="36dp"
+                            android:text="Review &amp; Save"
+                            android:textSize="13sp"
+                            android:textStyle="bold"
+                            android:textAllCaps="false"
+                            app:backgroundTint="@color/primary_blue"
+                            app:cornerRadius="10dp"
+                            app:icon="@drawable/ic_arrow_forward"
+                            app:iconTint="#FFFFFF"
+                            app:iconPadding="4dp"
+                            app:iconGravity="end" />
+                    </LinearLayout>
+
+                    <!-- Horizontal filmstrip -->
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/filmstrip_recycler"
+                        android:layout_width="match_parent"
+                        android:layout_height="84dp"
+                        android:clipToPadding="false"
+                        android:paddingStart="4dp" />
                 </LinearLayout>
 
                 <!-- Capture Controls Row -->

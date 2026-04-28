@@ -14,6 +14,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.camera.core.CameraSelector;
@@ -29,6 +30,7 @@ import androidx.fragment.app.Fragment;
 import com.google.android.material.button.MaterialButton;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.pdfreader.app.R;
+import com.pdfreader.app.ScanFilmstripAdapter;
 import com.pdfreader.app.ScanReviewActivity;
 import com.pdfreader.app.SignPdfActivity;
 
@@ -57,11 +59,14 @@ public class ScannerFragment extends Fragment {
     private TextView capturedCountText;
     private View capturedImagesInfo;
     private ImageView flashIcon;
+    private RecyclerView filmstripRecycler;
+    private ScanFilmstripAdapter filmstripAdapter;
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> reviewLauncher;
 
     // Store captured images
     private List<File> capturedImages = new ArrayList<>();
+    private List<String> capturedPaths = new ArrayList<>();
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -82,11 +87,13 @@ public class ScannerFragment extends Fragment {
                 result -> {
                     if (result.getResultCode() == ScanReviewActivity.RESULT_ADD_MORE) {
                         // User tapped "Add Page" — stay on scanner, keep existing captures
-                    } else {
-                        // Saved or back — clear captured list
+                    } else if (result.getResultCode() == android.app.Activity.RESULT_OK) {
+                        // Successfully saved — clear everything
                         capturedImages.clear();
+                        capturedPaths.clear();
                         updateCapturedImagesUI();
                     }
+                    // RESULT_CANCELED = user went back, keep captures
                 });
         
     }
@@ -121,16 +128,28 @@ public class ScannerFragment extends Fragment {
         capturedCountText = view.findViewById(R.id.captured_count_text);
         capturedImagesInfo = view.findViewById(R.id.captured_images_info);
         flashIcon = view.findViewById(R.id.flash_icon);
+        filmstripRecycler = view.findViewById(R.id.filmstrip_recycler);
 
         // Ensure views are not null
         if (cameraPreview == null || flashToggle == null || closeScanner == null) {
             throw new IllegalStateException("Required views not found in layout");
         }
 
-        // Configure PreviewView to use TextureView for better compatibility
-        if (cameraPreview != null) {
-            cameraPreview.setImplementationMode(ImplementationMode.COMPATIBLE);
-        }
+        cameraPreview.setImplementationMode(ImplementationMode.COMPATIBLE);
+
+        // Filmstrip setup
+        filmstripAdapter = new ScanFilmstripAdapter(capturedPaths);
+        filmstripAdapter.setOnDeleteListener(position -> {
+            capturedImages.remove(position);
+            capturedPaths.remove(position);
+            filmstripAdapter.notifyItemRemoved(position);
+            filmstripAdapter.notifyItemRangeChanged(position, capturedPaths.size());
+            updateCapturedImagesUI();
+        });
+        filmstripRecycler.setLayoutManager(
+            new androidx.recyclerview.widget.LinearLayoutManager(
+                requireContext(), androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false));
+        filmstripRecycler.setAdapter(filmstripAdapter);
     }
 
     private void setupClickListeners() {
@@ -309,11 +328,12 @@ public class ScannerFragment extends Fragment {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        // Store the image file instead of converting immediately
                         capturedImages.add(photoFile);
+                        capturedPaths.add(photoFile.getAbsolutePath());
+                        int idx = capturedPaths.size() - 1;
+                        filmstripAdapter.notifyItemInserted(idx);
+                        filmstripRecycler.scrollToPosition(idx);
                         updateCapturedImagesUI();
-                        Toast.makeText(getContext(), "Image captured (" + capturedImages.size() + ")", 
-                                Toast.LENGTH_SHORT).show();
                     }
 
                     @Override
@@ -325,29 +345,25 @@ public class ScannerFragment extends Fragment {
     }
     
     private void updateCapturedImagesUI() {
-        if (capturedCountText != null && savePdfButton != null && capturedImagesInfo != null) {
-            int count = capturedImages.size();
-            if (count > 0) {
-                capturedCountText.setText(count + (count == 1 ? " image captured" : " images captured"));
-                capturedImagesInfo.setVisibility(View.VISIBLE);
-                savePdfButton.setEnabled(true);
-            } else {
-                capturedImagesInfo.setVisibility(View.GONE);
-                savePdfButton.setEnabled(false);
-            }
+        if (capturedCountText == null || savePdfButton == null || capturedImagesInfo == null) return;
+        int count = capturedImages.size();
+        if (count > 0) {
+            capturedCountText.setText(count + (count == 1 ? " page captured" : " pages captured"));
+            capturedImagesInfo.setVisibility(View.VISIBLE);
+            savePdfButton.setEnabled(true);
+        } else {
+            capturedImagesInfo.setVisibility(View.GONE);
+            savePdfButton.setEnabled(false);
         }
     }
     
     private void openReviewScreen() {
-        if (capturedImages.isEmpty()) {
-            Toast.makeText(getContext(), "No images to review", Toast.LENGTH_SHORT).show();
+        if (capturedPaths.isEmpty()) {
+            Toast.makeText(getContext(), "No pages to review", Toast.LENGTH_SHORT).show();
             return;
         }
-        ArrayList<String> paths = new ArrayList<>();
-        for (File f : capturedImages) paths.add(f.getAbsolutePath());
-
         Intent intent = new Intent(requireContext(), ScanReviewActivity.class);
-        intent.putStringArrayListExtra(ScanReviewActivity.EXTRA_IMAGE_PATHS, paths);
+        intent.putStringArrayListExtra(ScanReviewActivity.EXTRA_IMAGE_PATHS, new ArrayList<>(capturedPaths));
         reviewLauncher.launch(intent);
     }
 
@@ -363,12 +379,10 @@ public class ScannerFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
-        // Clean up temporary image files if fragment is destroyed
         for (File imageFile : capturedImages) {
-            if (imageFile.exists()) {
-                imageFile.delete();
-            }
+            if (imageFile.exists()) imageFile.delete();
         }
         capturedImages.clear();
+        capturedPaths.clear();
     }
 }
