@@ -29,14 +29,13 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.button.MaterialButton;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -52,9 +51,9 @@ import java.util.Locale;
 public class SignPdfActivity extends AppCompatActivity {
 
     private RecyclerView pagesRecyclerView;
-    private Button btnSelectPdf;
-    private Button btnAddSignature;
-    private Button btnSave;
+    private View btnSelectPdf;
+    private View btnAddSignature;
+    private MaterialButton btnSave;
     private View emptyStateContainer;
     private ScrollView scrollView;
 
@@ -73,7 +72,7 @@ public class SignPdfActivity extends AppCompatActivity {
     private ExecutorService executorService;
 
     // UI elements for preview
-    private MaterialCardView signaturePreviewCard;
+    private View signaturePreviewCard;
     private ImageView signaturePreviewImage;
     private LinearLayout statusInfo;
     private TextView statusText;
@@ -118,12 +117,7 @@ public class SignPdfActivity extends AppCompatActivity {
                     }
                 });
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(R.string.sign_document);
-        }
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         pagesRecyclerView = findViewById(R.id.pagesRecycler);
         btnSelectPdf = findViewById(R.id.btnSelectPdf);
@@ -153,6 +147,7 @@ public class SignPdfActivity extends AppCompatActivity {
         btnSave.setOnClickListener(v -> savePdf());
 
         btnAddSignature.setEnabled(false);
+        btnAddSignature.setAlpha(0.4f);
         btnSave.setEnabled(false);
     }
 
@@ -222,6 +217,7 @@ public class SignPdfActivity extends AppCompatActivity {
                     });
 
                     btnAddSignature.setEnabled(true);
+                    btnAddSignature.setAlpha(1.0f);
                     Toast.makeText(this, "PDF loaded. Add your signature.", Toast.LENGTH_SHORT).show();
                 });
 
@@ -567,10 +563,6 @@ public class SignPdfActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
         return super.onOptionsItemSelected(item);
     }
 

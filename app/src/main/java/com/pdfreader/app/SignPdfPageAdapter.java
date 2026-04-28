@@ -265,8 +265,10 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
 
                 signatureOverlay.post(() -> {
                     if (sigPos.width < 0 || sigPos.height < 0) {
-                        // First placement: compute size and centre on the tap position
-                        float w = signatureOverlay.getWidth() * 0.3f;
+                        // First placement: compute size and centre on the tap position.
+                        // Use itemView width as fallback since signatureOverlay may not be laid out yet.
+                        int refW = signatureOverlay.getWidth() > 0 ? signatureOverlay.getWidth() : itemView.getWidth();
+                        float w = refW * 0.3f;
                         float h = w * ((float) sigPos.bitmap.getHeight() / sigPos.bitmap.getWidth());
 
                         float x = sigPos.x - w / 2f;

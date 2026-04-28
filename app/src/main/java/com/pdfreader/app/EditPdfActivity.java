@@ -22,6 +22,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
@@ -30,6 +31,8 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -67,6 +70,7 @@ public class EditPdfActivity extends AppCompatActivity {
     private MaterialButton btnSave;
 
     // Bottom tool palette
+    private View toolPalette;
     private LinearLayout toolOpenBtn, toolTextBtn, toolSignBtn;
     private MaterialCardView toolTextIconBg, toolSignIconBg;
     private ImageView toolTextIcon, toolSignIcon;
@@ -92,6 +96,8 @@ public class EditPdfActivity extends AppCompatActivity {
     EditPageAdapter pageAdapter;
 
     private SignatureManager signatureManager;
+    private ActivityResultLauncher<Intent> cameraSignatureLauncher;
+    private Bitmap pendingSigBitmap = null;
 
     final ExecutorService executor = Executors.newFixedThreadPool(2);
     final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -99,6 +105,25 @@ public class EditPdfActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        signatureManager = new SignatureManager(this);
+
+        cameraSignatureLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                        String savedPath = result.getData().getStringExtra(
+                                ReviewSignatureActivity.EXTRA_SAVED_SIGNATURE_PATH);
+                        if (savedPath != null) {
+                            pendingSigBitmap = signatureManager.loadSignature(savedPath);
+                            if (pendingSigBitmap != null) {
+                                Toast.makeText(this,
+                                        "Signature ready — tap a page to place it",
+                                        Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    }
+                });
+
         setContentView(R.layout.activity_edit_pdf);
 
         pagesRecycler    = findViewById(R.id.pages_recycler);
@@ -107,6 +132,7 @@ public class EditPdfActivity extends AppCompatActivity {
         pageCountText    = findViewById(R.id.page_count_text);
         btnSave          = findViewById(R.id.btn_save);
 
+        toolPalette      = findViewById(R.id.tool_palette);
         toolOpenBtn      = findViewById(R.id.tool_open_btn);
         toolTextBtn      = findViewById(R.id.tool_text_btn);
         toolSignBtn      = findViewById(R.id.tool_sign_btn);
@@ -118,8 +144,6 @@ public class EditPdfActivity extends AppCompatActivity {
         modeHintBar      = findViewById(R.id.mode_hint_bar);
         modeHintIcon     = findViewById(R.id.mode_hint_icon);
         modeHintText     = findViewById(R.id.mode_hint_text);
-
-        signatureManager = new SignatureManager(this);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_exit_mode).setOnClickListener(v -> exitAllModes());
@@ -234,10 +258,12 @@ public class EditPdfActivity extends AppCompatActivity {
         updateToolStates();
         if (on) {
             modeHintIcon.setImageResource(R.drawable.ic_draw);
-            modeHintText.setText("Tap anywhere on a page to type");
+            modeHintText.setText("Tap anywhere on a page to type  •  Done to finish");
             modeHintBar.setVisibility(View.VISIBLE);
+            toolPalette.setVisibility(View.GONE);
         } else if (!isSignMode) {
             modeHintBar.setVisibility(View.GONE);
+            toolPalette.setVisibility(View.VISIBLE);
         }
     }
 
@@ -247,10 +273,12 @@ public class EditPdfActivity extends AppCompatActivity {
         updateToolStates();
         if (on) {
             modeHintIcon.setImageResource(R.drawable.ic_signature);
-            modeHintText.setText("Tap anywhere on a page to place your signature");
+            modeHintText.setText("Tap anywhere on a page to place signature  •  Done to finish");
             modeHintBar.setVisibility(View.VISIBLE);
+            toolPalette.setVisibility(View.GONE);
         } else if (!isTextMode) {
             modeHintBar.setVisibility(View.GONE);
+            toolPalette.setVisibility(View.VISIBLE);
         }
     }
 
@@ -259,6 +287,7 @@ public class EditPdfActivity extends AppCompatActivity {
         isSignMode = false;
         updateToolStates();
         modeHintBar.setVisibility(View.GONE);
+        toolPalette.setVisibility(View.VISIBLE);
     }
 
     private void updateToolStates() {
@@ -339,65 +368,143 @@ public class EditPdfActivity extends AppCompatActivity {
 
     // ── Signature placement ───────────────────────────────────────────────────
 
-    void onSignPageTapped(int pageIndex, FrameLayout overlay) {
-        List<String> paths = signatureManager.getSavedSignatures();
-        if (paths.isEmpty()) {
-            Toast.makeText(this,
-                    "No saved signatures. Create one via Sign PDF first.",
-                    Toast.LENGTH_LONG).show();
+    void onSignPageTapped(int pageIndex, DraggableSignatureView sigOverlay, float tapX, float tapY) {
+        if (pendingSigBitmap != null) {
+            placeSignatureOnView(pageIndex, sigOverlay, pendingSigBitmap, tapX, tapY);
+            pendingSigBitmap = null;
             return;
         }
-        if (paths.size() == 1) {
-            Bitmap bmp = signatureManager.loadSignature(paths.get(0));
-            if (bmp != null) placeSignatureOnOverlay(pageIndex, overlay, bmp);
-            return;
-        }
-        String[] labels = new String[paths.size()];
-        for (int i = 0; i < paths.size(); i++) labels[i] = "Signature " + (i + 1);
-        new AlertDialog.Builder(this)
-                .setTitle("Choose Signature")
-                .setItems(labels, (d, which) -> {
-                    Bitmap bmp = signatureManager.loadSignature(paths.get(which));
-                    if (bmp != null) placeSignatureOnOverlay(pageIndex, overlay, bmp);
-                })
-                .show();
+        showSignatureSelectorDialog(pageIndex, sigOverlay, tapX, tapY);
     }
 
-    private void placeSignatureOnOverlay(int pageIndex, FrameLayout overlay, Bitmap bitmap) {
-        DraggableSignatureView dsv = new DraggableSignatureView(this);
-        dsv.setSignature(bitmap);
+    private void showSignatureSelectorDialog(int pageIndex, DraggableSignatureView sigOverlay,
+                                             float tapX, float tapY) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select or Create Signature");
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature_selector, null);
 
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT);
-        dsv.setLayoutParams(lp);
+        RecyclerView recyclerView    = dialogView.findViewById(R.id.signatures_recycler);
+        View cardDraw                = dialogView.findViewById(R.id.card_draw_signature);
+        View cardCamera              = dialogView.findViewById(R.id.card_camera_signature);
+        View emptyStateContainer     = dialogView.findViewById(R.id.empty_state_container);
 
-        dsv.setOnSignatureAcceptedListener(() -> overlay.post(() -> {
-            float overlayW = overlay.getWidth();
-            float overlayH = overlay.getHeight();
-            if (overlayW <= 0 || overlayH <= 0) return;
+        builder.setView(dialogView);
+        AlertDialog dialog = builder.create();
 
-            float xF = dsv.getSignatureX()      / overlayW;
-            float yF = dsv.getSignatureY()      / overlayH;
-            float wF = dsv.getSignatureWidth()  / overlayW;
-            float hF = dsv.getSignatureHeight() / overlayH;
+        List<String> saved = signatureManager.getSavedSignatures();
+        recyclerView.setVisibility(saved.isEmpty() ? View.GONE : View.VISIBLE);
+        emptyStateContainer.setVisibility(saved.isEmpty() ? View.VISIBLE : View.GONE);
+
+        SignatureAdapter adapter = new SignatureAdapter(saved, signatureManager);
+        recyclerView.setLayoutManager(new LinearLayoutManager(this));
+        recyclerView.setAdapter(adapter);
+
+        adapter.setOnSignatureClickListener(filePath -> {
+            Bitmap bmp = signatureManager.loadSignature(filePath);
+            if (bmp != null) {
+                placeSignatureOnView(pageIndex, sigOverlay, bmp, tapX, tapY);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "Failed to load signature", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        adapter.setOnSignatureDeleteListener(filePath -> new AlertDialog.Builder(this)
+                .setTitle("Delete Signature")
+                .setMessage("Are you sure you want to delete this signature?")
+                .setPositiveButton("Delete", (d, w) -> {
+                    if (signatureManager.deleteSignature(filePath)) {
+                        List<String> updated = signatureManager.getSavedSignatures();
+                        adapter.updateSignatures(updated);
+                        if (updated.isEmpty()) {
+                            recyclerView.setVisibility(View.GONE);
+                            emptyStateContainer.setVisibility(View.VISIBLE);
+                        }
+                        Toast.makeText(this, "Signature deleted", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show());
+
+        cardDraw.setOnClickListener(v -> {
+            dialog.dismiss();
+            showDrawSignatureDialog(pageIndex, sigOverlay, tapX, tapY);
+        });
+
+        cardCamera.setOnClickListener(v -> {
+            dialog.dismiss();
+            cameraSignatureLauncher.launch(new Intent(this, CaptureSignatureActivity.class));
+        });
+
+        dialog.show();
+    }
+
+    private void showDrawSignatureDialog(int pageIndex, DraggableSignatureView sigOverlay,
+                                         float tapX, float tapY) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature, null);
+        SignatureView signatureView = dialogView.findViewById(R.id.signatureView);
+        Button btnClear = dialogView.findViewById(R.id.btnClear);
+        Button btnDone  = dialogView.findViewById(R.id.btnDone);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .create();
+
+        btnClear.setOnClickListener(v -> signatureView.clear());
+        btnDone.setOnClickListener(v -> {
+            if (signatureView.hasSignature()) {
+                placeSignatureOnView(pageIndex, sigOverlay, signatureView.getSignatureBitmap(), tapX, tapY);
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "Please draw your signature first", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void placeSignatureOnView(int pageIndex, DraggableSignatureView sigOverlay,
+                                      Bitmap bitmap, float tapX, float tapY) {
+        sigOverlay.setVisibility(View.VISIBLE);
+        sigOverlay.post(() -> {
+            int refW = sigOverlay.getWidth() > 0 ? sigOverlay.getWidth() : sigOverlay.getRootView().getWidth();
+            int refH = sigOverlay.getHeight() > 0 ? sigOverlay.getHeight() : refW;
+            float w = refW * 0.35f;
+            float h = w * ((float) bitmap.getHeight() / Math.max(1, bitmap.getWidth()));
+
+            float x = (tapX > 0) ? tapX - w / 2f : (refW - w) / 2f;
+            float y = (tapY > 0) ? tapY - h / 2f : (refH - h) / 2f;
+            x = Math.max(0, Math.min(x, refW - w));
+            y = Math.max(0, Math.min(y, refH - h));
+
+            sigOverlay.setSignature(bitmap, x, y, w, h);
+        });
+
+        sigOverlay.setOnSignatureAcceptedListener(() -> {
+            float oW = sigOverlay.getWidth();
+            float oH = sigOverlay.getHeight();
+            if (oW <= 0 || oH <= 0) return;
+
+            float xF = sigOverlay.getSignatureX()      / oW;
+            float yF = sigOverlay.getSignatureY()      / oH;
+            float wF = sigOverlay.getSignatureWidth()  / oW;
+            float hF = sigOverlay.getSignatureHeight() / oH;
 
             List<SignatureOverlay> list = signatureOverlays.get(pageIndex);
-            if (list == null) {
-                list = new ArrayList<>();
-                signatureOverlays.put(pageIndex, list);
-            }
+            if (list == null) { list = new ArrayList<>(); signatureOverlays.put(pageIndex, list); }
             list.add(new SignatureOverlay(pageIndex, xF, yF, wF, hF, bitmap));
 
-            overlay.removeView(dsv);
+            sigOverlay.clearSignature();
+            sigOverlay.setVisibility(View.GONE);
             hasAnnotations = true;
             btnSave.setEnabled(true);
             if (pageAdapter != null) pageAdapter.refreshPage(pageIndex);
-        }));
+        });
 
-        dsv.setOnSignatureDeletedListener(() -> overlay.removeView(dsv));
-
-        overlay.addView(dsv);
+        sigOverlay.setOnSignatureDeletedListener(() -> {
+            sigOverlay.clearSignature();
+            sigOverlay.setVisibility(View.GONE);
+        });
     }
 
     // ── Save ──────────────────────────────────────────────────────────────────
@@ -573,14 +680,21 @@ public class EditPdfActivity extends AppCompatActivity {
             ProgressBar progress;
             TextView pageNum;
             FrameLayout textOverlay;
+            DraggableSignatureView signatureOverlay;
             int boundPos = -1;
 
             VH(@NonNull View v) {
                 super(v);
-                pageImage   = v.findViewById(R.id.page_image);
-                progress    = v.findViewById(R.id.page_progress);
-                pageNum     = v.findViewById(R.id.page_number);
-                textOverlay = v.findViewById(R.id.text_overlay);
+                pageImage        = v.findViewById(R.id.page_image);
+                progress         = v.findViewById(R.id.page_progress);
+                pageNum          = v.findViewById(R.id.page_number);
+                textOverlay      = v.findViewById(R.id.text_overlay);
+                signatureOverlay = v.findViewById(R.id.signature_overlay);
+
+                signatureOverlay.setOnSignatureDeletedListener(() -> {
+                    signatureOverlay.clearSignature();
+                    signatureOverlay.setVisibility(View.GONE);
+                });
 
                 final float[] tap = {0f, 0f};
                 textOverlay.setOnTouchListener((vv, ev) -> {
@@ -594,8 +708,8 @@ public class EditPdfActivity extends AppCompatActivity {
                     if (boundPos < 0) return;
                     if (isTextMode) {
                         onPageTapped(boundPos, textOverlay, tap[0], tap[1]);
-                    } else if (isSignMode) {
-                        onSignPageTapped(boundPos, textOverlay);
+                    } else if (isSignMode && !signatureOverlay.hasSignature()) {
+                        onSignPageTapped(boundPos, signatureOverlay, tap[0], tap[1]);
                     }
                 });
             }
@@ -605,6 +719,10 @@ public class EditPdfActivity extends AppCompatActivity {
                 pageNum.setText(String.valueOf(position + 1));
                 progress.setVisibility(View.VISIBLE);
                 pageImage.setImageBitmap(null);
+
+                // Reset the signature overlay for recycled VHs
+                signatureOverlay.clearSignature();
+                signatureOverlay.setVisibility(View.GONE);
 
                 executor.execute(() -> {
                     Bitmap bmp = renderPage(position);
