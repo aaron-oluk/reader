@@ -132,6 +132,19 @@ public class PdfReaderActivity extends AppCompatActivity {
             Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show();
         });
 
+        // Edit PDF button
+        ImageButton btnEditPdf = findViewById(R.id.btn_edit_pdf);
+        btnEditPdf.setOnClickListener(v -> {
+            if (pdfPath != null && !pdfPath.startsWith("content://")) {
+                Intent intent = new Intent(this, EditPdfActivity.class);
+                intent.putExtra(EditPdfActivity.EXTRA_PDF_PATH, pdfPath);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(this, EditPdfActivity.class);
+                startActivity(intent);
+            }
+        });
+
         // Scroll listener for page tracking
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override

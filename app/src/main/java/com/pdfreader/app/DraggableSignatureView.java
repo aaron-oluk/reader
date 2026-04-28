@@ -27,6 +27,9 @@ public class DraggableSignatureView extends View {
     private Paint handlePaint;
     private Paint deletePaint;
     private Paint deleteCrossPaint;
+    private Paint acceptPaint;
+    private Paint acceptCheckPaint;
+    private boolean isAccepted = false;
 
     private boolean isDragging = false;
     private boolean isResizing = false;
@@ -50,6 +53,12 @@ public class DraggableSignatureView extends View {
     public interface OnSignatureDeletedListener {
         void onSignatureDeleted();
     }
+
+    public interface OnSignatureAcceptedListener {
+        void onSignatureAccepted();
+    }
+
+    private OnSignatureAcceptedListener acceptListener;
 
     public DraggableSignatureView(Context context) {
         super(context);
@@ -92,6 +101,32 @@ public class DraggableSignatureView extends View {
         deleteCrossPaint.setStrokeWidth(3.5f);
         deleteCrossPaint.setStrokeCap(Paint.Cap.ROUND);
         deleteCrossPaint.setAntiAlias(true);
+
+        acceptPaint = new Paint();
+        acceptPaint.setColor(Color.parseColor("#22C55E"));
+        acceptPaint.setStyle(Paint.Style.FILL);
+        acceptPaint.setAntiAlias(true);
+
+        acceptCheckPaint = new Paint();
+        acceptCheckPaint.setColor(Color.WHITE);
+        acceptCheckPaint.setStyle(Paint.Style.STROKE);
+        acceptCheckPaint.setStrokeWidth(3.5f);
+        acceptCheckPaint.setStrokeCap(Paint.Cap.ROUND);
+        acceptCheckPaint.setStrokeJoin(Paint.Join.ROUND);
+        acceptCheckPaint.setAntiAlias(true);
+    }
+
+    public void setOnSignatureAcceptedListener(OnSignatureAcceptedListener listener) {
+        this.acceptListener = listener;
+    }
+
+    public boolean isAccepted() {
+        return isAccepted;
+    }
+
+    public void resetAccepted() {
+        isAccepted = false;
+        invalidate();
     }
 
     public void setSignature(Bitmap bitmap, float initialX, float initialY, float width, float height) {
@@ -145,15 +180,30 @@ public class DraggableSignatureView extends View {
         if (signatureBitmap == null || signatureBitmap.isRecycled()) return;
 
         canvas.drawBitmap(signatureBitmap, null, signatureRect, null);
-        canvas.drawRect(signatureRect, borderPaint);
 
-        // Resize handles: TL, BL, BR
-        drawResizeHandle(canvas, signatureRect.left, signatureRect.top);
-        drawResizeHandle(canvas, signatureRect.left, signatureRect.bottom);
-        drawResizeHandle(canvas, signatureRect.right, signatureRect.bottom);
+        if (isAccepted) {
+            // Accepted: draw subtle green border only
+            Paint solidBorder = new Paint(borderPaint);
+            solidBorder.setPathEffect(null);
+            solidBorder.setColor(Color.parseColor("#22C55E"));
+            canvas.drawRect(signatureRect, solidBorder);
+        } else {
+            // Editing mode: dashed blue border + handles
+            canvas.drawRect(signatureRect, borderPaint);
 
-        // Delete handle: TR (red ✕)
-        drawDeleteHandle(canvas, signatureRect.right, signatureRect.top);
+            // Resize handles: TL, BL, BR
+            drawResizeHandle(canvas, signatureRect.left, signatureRect.top);
+            drawResizeHandle(canvas, signatureRect.left, signatureRect.bottom);
+            drawResizeHandle(canvas, signatureRect.right, signatureRect.bottom);
+
+            // Delete handle: TR (red ✕)
+            drawDeleteHandle(canvas, signatureRect.right, signatureRect.top);
+
+            // Accept handle: bottom-center (green ✓)
+            float acceptX = signatureRect.left + signatureRect.width() / 2f;
+            float acceptY = signatureRect.bottom;
+            drawAcceptHandle(canvas, acceptX, acceptY);
+        }
     }
 
     private void drawResizeHandle(Canvas canvas, float x, float y) {
@@ -167,6 +217,14 @@ public class DraggableSignatureView extends View {
         canvas.drawLine(x + arm, y - arm, x - arm, y + arm, deleteCrossPaint);
     }
 
+    private void drawAcceptHandle(Canvas canvas, float x, float y) {
+        canvas.drawCircle(x, y, HANDLE_RADIUS, acceptPaint);
+        float arm = HANDLE_RADIUS * 0.42f;
+        // Checkmark: short left stroke down, then long right stroke up
+        canvas.drawLine(x - arm, y, x - arm * 0.2f, y + arm, acceptCheckPaint);
+        canvas.drawLine(x - arm * 0.2f, y + arm, x + arm, y - arm * 0.6f, acceptCheckPaint);
+    }
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
         if (signatureBitmap == null) return false;
@@ -176,10 +234,26 @@ public class DraggableSignatureView extends View {
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+                if (isAccepted) {
+                    // Tap on an accepted signature unlocks it for repositioning
+                    if (signatureRect.contains(x, y)) {
+                        isAccepted = false;
+                        invalidate();
+                        return true;
+                    }
+                    return false;
+                }
                 activeHandle = getActiveHandle(x, y);
                 if (activeHandle == 1) {
                     // Delete handle tapped
                     if (deleteListener != null) deleteListener.onSignatureDeleted();
+                    activeHandle = -1;
+                    return true;
+                } else if (activeHandle == 4) {
+                    // Accept handle tapped
+                    isAccepted = true;
+                    invalidate();
+                    if (acceptListener != null) acceptListener.onSignatureAccepted();
                     activeHandle = -1;
                     return true;
                 } else if (activeHandle != -1) {
@@ -241,6 +315,9 @@ public class DraggableSignatureView extends View {
         if (isNearPoint(x, y, signatureRect.right, signatureRect.top)) return 1;  // TR delete
         if (isNearPoint(x, y, signatureRect.left, signatureRect.bottom)) return 2; // BL resize
         if (isNearPoint(x, y, signatureRect.right, signatureRect.bottom)) return 3; // BR resize
+        float acceptX = signatureRect.left + signatureRect.width() / 2f;
+        float acceptY = signatureRect.bottom;
+        if (isNearPoint(x, y, acceptX, acceptY)) return 4; // BC accept
         return -1;
     }
 

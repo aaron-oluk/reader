@@ -139,6 +139,90 @@
                     android:text="Tap page to place"
                     android:textSize="11sp"
                     android:textColor="@color/text_secondary" />
+
+                <!-- Ink color picker for placed signature -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="Ink color"
+                    android:textSize="10sp"
+                    android:textColor="@color/text_secondary" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="6dp">
+
+                    <FrameLayout
+                        android:id="@+id/sig_color_black"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/color_dot_selected"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/circle_fill"
+                            android:contentDescription="Black"
+                            app:tint="#1C1C1E" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/sig_color_navy"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/color_dot_idle"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/circle_fill"
+                            android:contentDescription="Navy"
+                            app:tint="#1E1B4B" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/sig_color_blue"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:layout_marginEnd="6dp"
+                        android:background="@drawable/color_dot_idle"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/circle_fill"
+                            android:contentDescription="Blue"
+                            app:tint="#2563EB" />
+                    </FrameLayout>
+
+                    <FrameLayout
+                        android:id="@+id/sig_color_red"
+                        android:layout_width="26dp"
+                        android:layout_height="26dp"
+                        android:background="@drawable/color_dot_idle"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView
+                            android:layout_width="16dp"
+                            android:layout_height="16dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/circle_fill"
+                            android:contentDescription="Red"
+                            app:tint="#DC2626" />
+                    </FrameLayout>
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

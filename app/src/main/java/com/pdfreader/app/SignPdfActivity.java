@@ -4,6 +4,9 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.pdf.PdfDocument;
 import android.graphics.pdf.PdfRenderer;
@@ -61,6 +64,8 @@ public class SignPdfActivity extends AppCompatActivity {
     private List<Boolean> pagesWithSignature;
     private SignPdfPageAdapter signPdfPageAdapter;
     private Bitmap signatureBitmap;
+    private Bitmap originalSignatureBitmap;
+    private int currentSignatureColor = Color.BLACK;
     private int selectedPageIndex = -1;
     private ActivityResultLauncher<Intent> pdfPickerLauncher;
     private ActivityResultLauncher<Intent> cameraSignatureLauncher;
@@ -318,19 +323,49 @@ public class SignPdfActivity extends AppCompatActivity {
 
     private void updateSignaturePreview() {
         if (signatureBitmap != null && signaturePreviewCard != null) {
+            originalSignatureBitmap = signatureBitmap;
             signaturePreviewCard.setVisibility(View.VISIBLE);
             signaturePreviewImage.setImageBitmap(signatureBitmap);
 
-            if (statusInfo != null) {
-                statusInfo.setVisibility(View.VISIBLE);
-            }
-            if (statusText != null) {
-                statusText.setText("Tap on any page to place signature");
-            }
-            
-            // Show instruction toast
+            if (statusInfo != null) statusInfo.setVisibility(View.VISIBLE);
+            if (statusText != null) statusText.setText("Tap on any page to place signature");
+
+            setupSignatureColorPicker();
             Toast.makeText(this, "Tap on a PDF page to place your signature", Toast.LENGTH_LONG).show();
         }
+    }
+
+    private void setupSignatureColorPicker() {
+        int[] colors = {Color.BLACK, 0xFF1E1B4B, 0xFF2563EB, 0xFFDC2626};
+        int[] ids = {R.id.sig_color_black, R.id.sig_color_navy, R.id.sig_color_blue, R.id.sig_color_red};
+        android.widget.FrameLayout[] dots = new android.widget.FrameLayout[ids.length];
+        for (int i = 0; i < ids.length; i++) {
+            dots[i] = findViewById(ids[i]);
+        }
+        for (int i = 0; i < dots.length; i++) {
+            final int color = colors[i];
+            final android.widget.FrameLayout dot = dots[i];
+            final android.widget.FrameLayout[] allDots = dots;
+            if (dot == null) continue;
+            dot.setOnClickListener(v -> {
+                currentSignatureColor = color;
+                signatureBitmap = tintSignature(originalSignatureBitmap, color);
+                signaturePreviewImage.setImageBitmap(signatureBitmap);
+                for (android.widget.FrameLayout d : allDots) {
+                    if (d != null) setDialogDotSelected(d, d == dot);
+                }
+            });
+        }
+    }
+
+    private Bitmap tintSignature(Bitmap original, int color) {
+        if (original == null) return null;
+        Bitmap tinted = Bitmap.createBitmap(original.getWidth(), original.getHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(tinted);
+        Paint paint = new Paint();
+        paint.setColorFilter(new PorterDuffColorFilter(color, PorterDuff.Mode.SRC_IN));
+        canvas.drawBitmap(original, 0, 0, paint);
+        return tinted;
     }
 
     private void showCreateSignatureDialog() {

@@ -122,6 +122,16 @@
                 app:tint="@color/text_primary"
                 android:contentDescription="Search" />
 
+            <!-- Edit PDF Button -->
+            <ImageButton
+                android:id="@+id/btn_edit_pdf"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:src="@drawable/ic_draw"
+                app:tint="@color/text_primary"
+                android:contentDescription="Edit PDF" />
+
             <!-- Share Button -->
             <ImageButton
                 android:id="@+id/btn_share"

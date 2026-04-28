@@ -239,6 +239,33 @@ public class HomeFragment extends Fragment {
             });
         }
 
+        // Sign PDF quick action
+        View actionSignPdf = view.findViewById(R.id.action_sign_pdf);
+        if (actionSignPdf != null) {
+            actionSignPdf.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), com.pdfreader.app.SignPdfActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // Edit PDF quick action
+        View actionEditPdf = view.findViewById(R.id.action_edit_pdf);
+        if (actionEditPdf != null) {
+            actionEditPdf.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), com.pdfreader.app.EditPdfActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // Merge Files quick action
+        View actionMerge = view.findViewById(R.id.action_merge);
+        if (actionMerge != null) {
+            actionMerge.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), com.pdfreader.app.MergePdfActivity.class);
+                startActivity(intent);
+            });
+        }
+
         // Continue reading button
         View continueReadingButton = view.findViewById(R.id.continue_reading_button);
         if (continueReadingButton != null) {

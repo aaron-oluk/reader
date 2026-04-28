@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <EditText
+        android:id="@+id/input_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Type your text here…"
+        android:inputType="textMultiLine"
+        android:minLines="2"
+        android:maxLines="4"
+        android:background="@android:drawable/edit_text"
+        android:padding="8dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Text size"
+        android:textSize="12sp"
+        android:textColor="#8E8E93"
+        android:layout_marginBottom="4dp" />
+
+    <SeekBar
+        android:id="@+id/seekbar_text_size"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:max="40"
+        android:progress="18"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Color"
+        android:textSize="12sp"
+        android:textColor="#8E8E93"
+        android:layout_marginBottom="8dp" />
+
+    <RadioGroup
+        android:id="@+id/radio_color_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <RadioButton
+            android:id="@+id/radio_color_black"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Black"
+            android:textColor="#1C1C1E"
+            android:checked="true"
+            android:layout_marginEnd="12dp" />
+
+        <RadioButton
+            android:id="@+id/radio_color_blue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Blue"
+            android:textColor="#2563EB"
+            android:layout_marginEnd="12dp" />
+
+        <RadioButton
+            android:id="@+id/radio_color_red"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Red"
+            android:textColor="#DC2626"
+            android:layout_marginEnd="12dp" />
+
+        <RadioButton
+            android:id="@+id/radio_color_navy"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Navy"
+            android:textColor="#1E1B4B" />
+
+    </RadioGroup>
+
+</LinearLayout>
