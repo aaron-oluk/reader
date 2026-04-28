@@ -10,7 +10,6 @@ import com.pdfreader.app.fragments.HomeFragment;
 import com.pdfreader.app.fragments.InsightsFragment;
 import com.pdfreader.app.fragments.LibraryFragment;
 import com.pdfreader.app.fragments.ProfileFragment;
-import com.pdfreader.app.fragments.ScannerFragment;
 
 public class MainActivityNew extends AppCompatActivity {
 
@@ -44,8 +43,6 @@ public class MainActivityNew extends AppCompatActivity {
                 fragment = new HomeFragment();
             } else if (itemId == R.id.navigation_library) {
                 fragment = new LibraryFragment();
-            } else if (itemId == R.id.navigation_scan) {
-                fragment = new ScannerFragment();
             } else if (itemId == R.id.navigation_stats) {
                 fragment = new InsightsFragment();
             } else if (itemId == R.id.navigation_profile) {

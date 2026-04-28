@@ -208,14 +208,25 @@ public class HomeFragment extends Fragment {
             actionOpenPdf.setOnClickListener(v -> openFilePicker());
         }
 
-        // Scan quick action
+        // Scan Doc quick action
         View actionScan = view.findViewById(R.id.action_scan);
         if (actionScan != null) {
             actionScan.setOnClickListener(v -> {
-                // Navigate to scanner tab
-                if (getActivity() instanceof MainActivityNew) {
-                    ((MainActivityNew) getActivity()).navigateToTab(R.id.navigation_scan);
-                }
+                Intent intent = new Intent(getActivity(), com.pdfreader.app.ScanDocumentActivity.class);
+                intent.putExtra(com.pdfreader.app.ScanDocumentActivity.EXTRA_MODE,
+                        com.pdfreader.app.fragments.ScannerFragment.MODE_PAGE);
+                startActivity(intent);
+            });
+        }
+
+        // Scan Quote quick action
+        View actionScanQuote = view.findViewById(R.id.action_scan_quote);
+        if (actionScanQuote != null) {
+            actionScanQuote.setOnClickListener(v -> {
+                Intent intent = new Intent(getActivity(), com.pdfreader.app.ScanDocumentActivity.class);
+                intent.putExtra(com.pdfreader.app.ScanDocumentActivity.EXTRA_MODE,
+                        com.pdfreader.app.fragments.ScannerFragment.MODE_QUOTE);
+                startActivity(intent);
             });
         }
 

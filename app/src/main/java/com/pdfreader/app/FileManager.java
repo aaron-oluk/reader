@@ -64,24 +64,18 @@ public class FileManager {
     // -------------------------------------------------------------------------
 
     private void initializeFolders() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // Android 10+ uses scoped storage (app-specific external storage)
-            appFolder = context.getExternalFilesDir(APP_FOLDER_NAME);
-        } else {
-            // Android 9 and below – use public Downloads folder
-            File downloadsDir = Environment.getExternalStoragePublicDirectory(
-                    Environment.DIRECTORY_DOWNLOADS);
-            appFolder = new File(downloadsDir, APP_FOLDER_NAME);
-        }
+        // Always target /storage/emulated/0/PDFReader/ — visible in any file manager
+        appFolder = new File(Environment.getExternalStorageDirectory(), APP_FOLDER_NAME);
 
-        if (appFolder != null) {
-            signedFolder     = new File(appFolder, CATEGORY_SIGNED);
-            mergedFolder     = new File(appFolder, CATEGORY_MERGED);
-            convertedFolder  = new File(appFolder, CATEGORY_CONVERTED);
-            scannedFolder    = new File(appFolder, CATEGORY_SCANNED);
-            signaturesFolder = new File(appFolder, CATEGORY_SIGNATURES);
-        }
+        signedFolder     = new File(appFolder, CATEGORY_SIGNED);
+        mergedFolder     = new File(appFolder, CATEGORY_MERGED);
+        convertedFolder  = new File(appFolder, CATEGORY_CONVERTED);
+        scannedFolder    = new File(appFolder, CATEGORY_SCANNED);
+        signaturesFolder = new File(appFolder, CATEGORY_SIGNATURES);
 
+        // createFoldersIfNeeded works on Android 9- (WRITE_EXTERNAL_STORAGE).
+        // On Android 10+ the folders are created automatically by MediaStore when
+        // the first file is inserted, so mkdirs() silently no-ops here.
         createFoldersIfNeeded();
     }
 
@@ -164,12 +158,20 @@ public class FileManager {
     public File getPdfFile(String fileName, String category) {
         fileName = sanitizeFileName(fileName);
 
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // On Android 10+ public external root requires MANAGE_EXTERNAL_STORAGE.
+            // Fall back to app-specific external storage so writes always succeed.
+            File fallback = context.getExternalFilesDir(category);
+            if (fallback == null) fallback = new File(context.getCacheDir(), category);
+            fallback.mkdirs();
+            return uniqueFile(fallback, fileName);
+        }
+
         File folder = getCategoryFolder(category);
         if (folder == null || (!folder.exists() && !folder.mkdirs())) {
             Log.e(TAG, "Cannot access folder for category: " + category);
             return null;
         }
-
         return uniqueFile(folder, fileName);
     }
 
@@ -189,9 +191,10 @@ public class FileManager {
         }
     }
 
-    /** Returns a subpath string like "PDFReader/Signed" for MediaStore. */
+    /** Returns a subpath like "PDFReader/Signed" so MediaStore places files at
+     *  /storage/emulated/0/PDFReader/Signed/ — visible at the root of internal storage. */
     private String getMediaStoreRelativePath(String category) {
-        return Environment.DIRECTORY_DOWNLOADS + "/" + APP_FOLDER_NAME + "/" + category;
+        return APP_FOLDER_NAME + "/" + category;
     }
 
     private String savePdfWithMediaStore(byte[] pdfData, String fileName, String category)

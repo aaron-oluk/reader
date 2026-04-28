@@ -44,6 +44,18 @@ import java.util.concurrent.ExecutionException;
 
 public class ScannerFragment extends Fragment {
 
+    public static final String MODE_PAGE = "page";
+    public static final String MODE_QUOTE = "quote";
+    private static final String ARG_MODE = "scan_mode";
+
+    public static ScannerFragment newInstance(String mode) {
+        ScannerFragment f = new ScannerFragment();
+        android.os.Bundle args = new android.os.Bundle();
+        args.putString(ARG_MODE, mode);
+        f.setArguments(args);
+        return f;
+    }
+
     private PreviewView cameraPreview;
     private ImageCapture imageCapture;
     private ProcessCameraProvider cameraProvider;
@@ -52,6 +64,8 @@ public class ScannerFragment extends Fragment {
     private TextView scanQuoteTab;
     private TextView scanPageTab;
     private TextView signTab;
+    private TextView scannerTitle;
+    private View modeTabsContainer;
     private FrameLayout captureButton;
     private View flashToggle;
     private View closeScanner;
@@ -105,7 +119,16 @@ public class ScannerFragment extends Fragment {
 
         initViews(view);
         setupClickListeners();
-        updateCapturedImagesUI(); // Initialize UI state
+        updateCapturedImagesUI();
+
+        // Each scan screen is independent — hide tabs, show only the correct mode
+        String mode = getArguments() != null ? getArguments().getString(ARG_MODE, MODE_PAGE) : MODE_PAGE;
+        if (modeTabsContainer != null) {
+            modeTabsContainer.setVisibility(View.GONE);
+        }
+        if (scannerTitle != null) {
+            scannerTitle.setText(MODE_QUOTE.equals(mode) ? "Scan Quote" : "Scan Document");
+        }
 
         if (checkCameraPermission()) {
             startCamera();
@@ -121,6 +144,8 @@ public class ScannerFragment extends Fragment {
         scanQuoteTab = view.findViewById(R.id.scan_quote_tab);
         scanPageTab = view.findViewById(R.id.scan_page_tab);
         signTab = view.findViewById(R.id.sign_tab);
+        scannerTitle = view.findViewById(R.id.scanner_title);
+        modeTabsContainer = view.findViewById(R.id.mode_tabs_container);
         captureButton = view.findViewById(R.id.capture_button);
         flashToggle = view.findViewById(R.id.flash_toggle);
         closeScanner = view.findViewById(R.id.close_scanner);
