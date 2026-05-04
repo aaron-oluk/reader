@@ -30,6 +30,7 @@ import com.google.android.material.button.MaterialButton;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -186,17 +187,34 @@ public class MergePdfActivity extends AppCompatActivity {
 
                 FileManager fm = new FileManager(this);
                 String saved = fm.savePdf(bytes, fileName, FileManager.CATEGORY_MERGED);
-                if (saved == null) {
-                    File fallback = new File(getFilesDir(), fileName);
-                    try (FileOutputStream fos = new FileOutputStream(fallback)) { fos.write(bytes); }
-                    saved = fallback.getAbsolutePath();
-                }
+                if (saved == null) throw new IOException("Failed to save merged PDF");
 
+                final String finalSaved = saved;
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     btnMerge.setEnabled(true);
                     statusText.setText("Merged successfully — " + selectedFiles.size() + " files");
-                    Toast.makeText(this, "Saved as " + fileName, Toast.LENGTH_LONG).show();
+
+                    // Offer to share the result immediately
+                    new androidx.appcompat.app.AlertDialog.Builder(this)
+                            .setTitle("Merge Complete")
+                            .setMessage("Saved to your device. Share it now?")
+                            .setPositiveButton("Share", (d, w) -> {
+                                try {
+                                    File f = new File(finalSaved);
+                                    android.net.Uri uri = androidx.core.content.FileProvider.getUriForFile(
+                                            this, getPackageName() + ".provider", f);
+                                    Intent share = new Intent(Intent.ACTION_SEND);
+                                    share.setType("application/pdf");
+                                    share.putExtra(Intent.EXTRA_STREAM, uri);
+                                    share.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                                    startActivity(Intent.createChooser(share, "Share merged PDF"));
+                                } catch (Exception ex) {
+                                    Toast.makeText(this, "Share failed", Toast.LENGTH_SHORT).show();
+                                }
+                            })
+                            .setNegativeButton("Done", null)
+                            .show();
                 });
 
             } catch (Exception e) {

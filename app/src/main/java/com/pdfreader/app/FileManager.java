@@ -64,18 +64,17 @@ public class FileManager {
     // -------------------------------------------------------------------------
 
     private void initializeFolders() {
-        // Always target /storage/emulated/0/PDFReader/ — visible in any file manager
-        appFolder = new File(Environment.getExternalStorageDirectory(), APP_FOLDER_NAME);
-
-        signedFolder     = new File(appFolder, CATEGORY_SIGNED);
-        mergedFolder     = new File(appFolder, CATEGORY_MERGED);
-        convertedFolder  = new File(appFolder, CATEGORY_CONVERTED);
-        scannedFolder    = new File(appFolder, CATEGORY_SCANNED);
-        signaturesFolder = new File(appFolder, CATEGORY_SIGNATURES);
-
-        // createFoldersIfNeeded works on Android 9- (WRITE_EXTERNAL_STORAGE).
-        // On Android 10+ the folders are created automatically by MediaStore when
-        // the first file is inserted, so mkdirs() silently no-ops here.
+        // getExternalFilesDir() always works — no runtime permissions required on any
+        // API level. It places files under Android/data/<package>/files/<category>/
+        // which is visible in any file manager and survives reinstalls on Android 10+.
+        appFolder        = context.getExternalFilesDir(null);
+        signedFolder     = context.getExternalFilesDir(CATEGORY_SIGNED);
+        mergedFolder     = context.getExternalFilesDir(CATEGORY_MERGED);
+        convertedFolder  = context.getExternalFilesDir(CATEGORY_CONVERTED);
+        scannedFolder    = context.getExternalFilesDir(CATEGORY_SCANNED);
+        signaturesFolder = context.getExternalFilesDir(CATEGORY_SIGNATURES);
+        // getExternalFilesDir() creates the directory automatically; these mkdirs
+        // calls are just a safety net in case external storage is temporarily unmounted.
         createFoldersIfNeeded();
     }
 
@@ -95,7 +94,7 @@ public class FileManager {
     private void createDir(File dir, String label) {
         if (dir != null && !dir.exists()) {
             boolean created = dir.mkdirs();
-            Log.d(TAG, label + " folder created: " + dir.getAbsolutePath() + " – " + created);
+            Log.d(TAG, label + " folder created: " + (dir.getAbsolutePath()) + " – " + created);
         }
     }
 
@@ -121,12 +120,12 @@ public class FileManager {
 
     /**
      * Save a PDF byte array to the correct category folder.
-     * Uses MediaStore on Android 10+, direct file write on Android 9-.
+     * On Android 10+ files also appear in the Downloads app under PDFReader/<category>.
      *
      * @param pdfData  raw PDF bytes
      * @param fileName desired file name (will have .pdf appended if missing)
      * @param category one of the CATEGORY_* constants
-     * @return path or content URI string of the saved file, or null on failure
+     * @return absolute file path of the saved file, or null on failure
      */
     public String savePdf(byte[] pdfData, String fileName, String category) {
         if (pdfData == null || pdfData.length == 0) {
@@ -137,11 +136,13 @@ public class FileManager {
         fileName = sanitizeFileName(fileName);
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                return savePdfWithMediaStore(pdfData, fileName, category);
-            } else {
-                return savePdfDirect(pdfData, fileName, category);
+            // Primary: write to app-specific external storage (always writable, no permissions needed).
+            String result = savePdfDirect(pdfData, fileName, category);
+            if (result != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                // Additionally publish to MediaStore so the file also appears in Downloads.
+                publishToMediaStore(pdfData, fileName, category);
             }
+            return result;
         } catch (Exception e) {
             Log.e(TAG, "Error saving PDF", e);
             return null;
@@ -149,29 +150,15 @@ public class FileManager {
     }
 
     /**
-     * Get a File object inside the correct category folder (for activities that
-     * write the PDF themselves before passing bytes to savePdf).
-     *
-     * @param fileName desired file name
-     * @param category one of the CATEGORY_* constants
+     * Get a File object inside the correct category folder.
      */
     public File getPdfFile(String fileName, String category) {
         fileName = sanitizeFileName(fileName);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            // On Android 10+ public external root requires MANAGE_EXTERNAL_STORAGE.
-            // Fall back to app-specific external storage so writes always succeed.
-            File fallback = context.getExternalFilesDir(category);
-            if (fallback == null) fallback = new File(context.getCacheDir(), category);
-            fallback.mkdirs();
-            return uniqueFile(fallback, fileName);
-        }
-
         File folder = getCategoryFolder(category);
-        if (folder == null || (!folder.exists() && !folder.mkdirs())) {
-            Log.e(TAG, "Cannot access folder for category: " + category);
-            return null;
+        if (folder == null) {
+            folder = new File(context.getCacheDir(), category);
         }
+        folder.mkdirs();
         return uniqueFile(folder, fileName);
     }
 
@@ -191,60 +178,54 @@ public class FileManager {
         }
     }
 
-    /** Returns a subpath like "PDFReader/Signed" so MediaStore places files at
-     *  /storage/emulated/0/PDFReader/Signed/ — visible at the root of internal storage. */
-    private String getMediaStoreRelativePath(String category) {
-        return APP_FOLDER_NAME + "/" + category;
-    }
-
-    private String savePdfWithMediaStore(byte[] pdfData, String fileName, String category)
-            throws IOException {
-        ContentResolver resolver = context.getContentResolver();
-        ContentValues values = new ContentValues();
-        values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
-        values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
-        values.put(MediaStore.MediaColumns.RELATIVE_PATH, getMediaStoreRelativePath(category));
-        values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-
-        // MediaStore.Downloads does not require MANAGE_EXTERNAL_STORAGE
-        Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
-        if (uri == null) {
-            Log.e(TAG, "MediaStore insert failed for category: " + category);
-            return null;
-        }
-
-        try (OutputStream out = resolver.openOutputStream(uri)) {
-            if (out == null) {
-                resolver.delete(uri, null, null);
-                return null;
-            }
-            out.write(pdfData);
-            out.flush();
-        }
-
-        // Mark the entry as complete so it becomes visible in Downloads
-        ContentValues update = new ContentValues();
-        update.put(MediaStore.MediaColumns.IS_PENDING, 0);
-        resolver.update(uri, update, null, null);
-
-        Log.d(TAG, "PDF saved via MediaStore Downloads [" + category + "]: " + uri);
-        return uri.toString();
-    }
-
+    /** Write directly to app-specific external storage — always succeeds, no permissions. */
     private String savePdfDirect(byte[] pdfData, String fileName, String category)
             throws IOException {
         File folder = getCategoryFolder(category);
-        if (folder == null || (!folder.exists() && !folder.mkdirs())) {
-            Log.e(TAG, "Cannot create folder for category: " + category);
+        if (folder == null) {
+            Log.e(TAG, "Cannot resolve folder for category: " + category);
             return null;
         }
+        folder.mkdirs();
 
         File pdfFile = uniqueFile(folder, fileName);
         try (FileOutputStream fos = new FileOutputStream(pdfFile)) {
             fos.write(pdfData);
             fos.flush();
-            Log.d(TAG, "PDF saved directly [" + category + "]: " + pdfFile.getAbsolutePath());
+            Log.d(TAG, "PDF saved [" + category + "]: " + pdfFile.getAbsolutePath());
             return pdfFile.getAbsolutePath();
+        }
+    }
+
+    /**
+     * On Android 10+ also insert a copy into MediaStore Downloads so the file
+     * appears in the system Downloads app under PDFReader/<category>/.
+     * Failures here are non-fatal — the file is already saved via savePdfDirect.
+     */
+    private void publishToMediaStore(byte[] pdfData, String fileName, String category) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return;
+        try {
+            ContentResolver resolver = context.getContentResolver();
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, fileName);
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf");
+            // RELATIVE_PATH for MediaStore.Downloads is relative to the Downloads root directory.
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH,
+                    Environment.DIRECTORY_DOWNLOADS + "/" + APP_FOLDER_NAME + "/" + category);
+            values.put(MediaStore.MediaColumns.IS_PENDING, 1);
+
+            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri == null) { Log.w(TAG, "MediaStore insert returned null, skipping"); return; }
+
+            try (OutputStream out = resolver.openOutputStream(uri)) {
+                if (out != null) { out.write(pdfData); out.flush(); }
+            }
+            ContentValues done = new ContentValues();
+            done.put(MediaStore.MediaColumns.IS_PENDING, 0);
+            resolver.update(uri, done, null, null);
+            Log.d(TAG, "PDF also published to MediaStore Downloads [" + category + "]");
+        } catch (Exception e) {
+            Log.w(TAG, "MediaStore publish failed (non-fatal): " + e.getMessage());
         }
     }
 
