@@ -51,6 +51,7 @@ public class LibraryFragment extends Fragment {
     private EditText searchInput;
     private FloatingActionButton fabAddBook;
     private HistoryManager historyManager;
+    private ReadingProgressManager progressManager;
     private LibraryBookAdapter adapter;
     private List<PdfBook> allBooks = new ArrayList<>();
     private List<PdfBook> filteredBooks = new ArrayList<>();
@@ -76,6 +77,7 @@ public class LibraryFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_library, container, false);
 
         historyManager = new HistoryManager(requireContext());
+        progressManager = new ReadingProgressManager(requireContext());
         executorService = Executors.newFixedThreadPool(2);
         mainHandler = new Handler(Looper.getMainLooper());
         initViews(view);
@@ -272,17 +274,15 @@ public class LibraryFragment extends Fragment {
         filteredBooks.clear();
 
         for (PdfBook book : allBooks) {
+            if (tabPosition == 0) {
+                filteredBooks.add(book);
+                continue;
+            }
+            String status = progressManager.getReadingStatus(book.getFilePath());
             switch (tabPosition) {
-                case 0: // All
-                    filteredBooks.add(book);
-                    break;
-                case 1: // Reading
-                case 2: // To-Read
-                case 3: // Finished
-                    // For now, show all books in all tabs
-                    // TODO: Implement proper filtering based on reading status
-                    filteredBooks.add(book);
-                    break;
+                case 1: if ("reading".equals(status))     filteredBooks.add(book); break;
+                case 2: if ("not_started".equals(status)) filteredBooks.add(book); break;
+                case 3: if ("finished".equals(status))    filteredBooks.add(book); break;
             }
         }
 

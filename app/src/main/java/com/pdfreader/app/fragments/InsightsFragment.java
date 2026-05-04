@@ -1,12 +1,8 @@
 package com.pdfreader.app.fragments;
 
-import android.content.Context;
-import android.graphics.pdf.PdfRenderer;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,13 +18,9 @@ import com.pdfreader.app.HistoryManager;
 import com.pdfreader.app.PdfBook;
 import com.pdfreader.app.ReadingProgressManager;
 import com.pdfreader.app.R;
-import com.pdfreader.app.models.ReadingStats;
 
-import java.io.File;
-import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -90,172 +82,88 @@ public class InsightsFragment extends Fragment {
     private void loadStats() {
         executorService.execute(() -> {
             try {
-                // Get all books from history
                 List<PdfBook> allBooks = historyManager.getHistory();
-                
-                // Calculate stats
-                int totalBooks = allBooks.size();
+
                 int finishedBooks = 0;
-                int totalPagesRead = 0;
                 int monthlyPagesRead = 0;
-                
-                Calendar currentMonth = Calendar.getInstance();
-                int currentMonthNum = currentMonth.get(Calendar.MONTH);
-                int currentYear = currentMonth.get(Calendar.YEAR);
-                
+                int thisWeekPages = 0;
+                int lastWeekPages = 0;
+
+                long now = System.currentTimeMillis();
+                long startOfMonth = startOfCurrentMonth();
+                long startOfThisWeek = now - 7L * 24 * 60 * 60 * 1000;
+                long startOfLastWeek = startOfThisWeek - 7L * 24 * 60 * 60 * 1000;
+
                 for (PdfBook book : allBooks) {
                     String path = book.getFilePath();
-                    if (path == null || !path.toLowerCase().endsWith(".pdf")) {
-                        continue;
-                    }
-                    
-                    // Get progress for this book (stored as scroll position)
-                    int savedProgress = readingProgressManager.getProgress(path);
-                    
-                    // Get page count
-                    int pageCount = getPdfPageCount(requireContext(), path);
-                    
-                    if (pageCount > 0) {
-                        // Progress is stored as: firstVisiblePosition * 1000
-                        // So dividing by 1000 gives us the page number
-                        int currentPage = savedProgress / 1000;
-                        
-                        // Clamp to valid range
-                        currentPage = Math.max(0, Math.min(pageCount, currentPage));
-                        
-                        // Pages read is the current page (0-indexed, so add 1 for actual pages)
-                        int pagesRead = currentPage;
-                        totalPagesRead += pagesRead;
-                        
-                        // Estimate monthly pages (for now, count all as this month)
-                        // TODO: Track actual reading dates
-                        monthlyPagesRead += pagesRead;
-                        
-                        // Check if finished (progress indicates near completion or all pages read)
-                        // Consider finished if current page is >= 95% of total pages
-                        if (currentPage >= (pageCount * 0.95f) || currentPage >= pageCount) {
-                            finishedBooks++;
-                        }
+                    int totalPages = readingProgressManager.getPageCount(path);
+                    int currentPage = readingProgressManager.getProgress(path) / 1000;
+                    long lastRead  = historyManager.getLastRead(path);
+
+                    if (totalPages > 0) {
+                        if (currentPage >= totalPages * 0.95f) finishedBooks++;
+
+                        if (lastRead >= startOfMonth) monthlyPagesRead += currentPage;
+                        if (lastRead >= startOfThisWeek) thisWeekPages += currentPage;
+                        else if (lastRead >= startOfLastWeek) lastWeekPages += currentPage;
                     }
                 }
-                
-                // Calculate streak (simplified - count consecutive days with any reading)
-                // For now, if user has books, assume they've been reading
-                int streak = calculateStreak(allBooks);
-                
-                // Calculate reading speed (default estimate, can be improved with actual time tracking)
-                int speed = 250; // Default WPM estimate
-                
-                // Calculate goal progress
-                int yearlyGoal = 24; // Default goal
-                int goalPercent = totalBooks > 0 ? Math.min(100, (totalBooks * 100) / yearlyGoal) : 0;
-                
-                // Calculate weekly progress (last 7 days)
-                // For now, estimate based on monthly pages / 4 (rough weekly average)
-                int weeklyPages = monthlyPagesRead / 4;
-                int weeklyChange = 0; // TODO: Calculate actual weekly change when date tracking is implemented
-                String weeklyProgressStr = "Last 7 days";
-                if (weeklyChange != 0) {
-                    weeklyProgressStr += weeklyChange > 0 ? " +" + Math.abs(weeklyChange) + "%" : " " + weeklyChange + "%";
+
+                int streak    = historyManager.calculateStreak();
+                int yearlyGoal = 24;
+                int goalPercent = Math.min(100, (allBooks.size() * 100) / yearlyGoal);
+
+                String weeklyLabel;
+                if (lastWeekPages == 0) {
+                    weeklyLabel = "Last 7 days";
+                } else {
+                    int pct = (int) (((thisWeekPages - lastWeekPages) * 100f) / lastWeekPages);
+                    weeklyLabel = pct >= 0 ? "Last 7 days  +" + pct + "%" : "Last 7 days  " + pct + "%";
                 }
-                
-                // Update UI on main thread
-                final int finalMonthlyPages = monthlyPagesRead;
-                final int finalFinishedBooks = finishedBooks;
-                final int finalSpeed = speed;
-                final int finalStreak = streak;
-                final int finalTotalBooks = totalBooks;
-                final int finalGoalPercent = goalPercent;
-                final int finalYearlyGoal = yearlyGoal;
-                final String finalWeeklyProgressStr = weeklyProgressStr;
-                
+
+                final int fMonthly = monthlyPagesRead;
+                final int fFinished = finishedBooks;
+                final int fStreak = streak;
+                final int fGoal = goalPercent;
+                final int fTotal = allBooks.size();
+                final String fWeekly = weeklyLabel;
+
                 mainHandler.post(() -> {
-                    monthlyPages.setText(String.format("%,d", finalMonthlyPages));
-                    booksFinished.setText(String.valueOf(finalFinishedBooks));
-                    readingSpeed.setText(String.valueOf(finalSpeed));
-                    currentStreak.setText(String.valueOf(finalStreak));
-                    
-                    // Update weekly progress text
-                    if (weeklyProgressText != null) {
-                        weeklyProgressText.setText(finalWeeklyProgressStr);
-                    }
-                    
-                    // Update goal section
-                    goalPercentage.setText(finalGoalPercent + "%");
-                    if (goalProgress != null) {
-                        goalProgress.setProgress(finalGoalPercent);
-                    }
-                    booksReadCount.setText(String.valueOf(finalTotalBooks));
-                    booksGoalCount.setText(" / " + finalYearlyGoal);
+                    monthlyPages.setText(String.format(java.util.Locale.US, "%,d", fMonthly));
+                    booksFinished.setText(String.valueOf(fFinished));
+                    readingSpeed.setText("—");
+                    currentStreak.setText(String.valueOf(fStreak));
+                    if (weeklyProgressText != null) weeklyProgressText.setText(fWeekly);
+                    goalPercentage.setText(fGoal + "%");
+                    if (goalProgress != null) goalProgress.setProgress(fGoal);
+                    booksReadCount.setText(String.valueOf(fTotal));
+                    booksGoalCount.setText(" / " + yearlyGoal);
                 });
-                
+
             } catch (Exception e) {
                 Log.e(TAG, "Error loading stats", e);
-                // Set defaults on error
                 mainHandler.post(() -> {
                     monthlyPages.setText("0");
                     booksFinished.setText("0");
-                    readingSpeed.setText("0");
+                    readingSpeed.setText("—");
                     currentStreak.setText("0");
                     if (goalPercentage != null) goalPercentage.setText("0%");
                     if (goalProgress != null) goalProgress.setProgress(0);
                     if (booksReadCount != null) booksReadCount.setText("0");
                     if (booksGoalCount != null) booksGoalCount.setText(" / 24");
-                    if (weeklyProgressText != null) {
-                        weeklyProgressText.setText("Last 7 days");
-                    }
+                    if (weeklyProgressText != null) weeklyProgressText.setText("Last 7 days");
                 });
             }
         });
     }
-    
-    private int getPdfPageCount(Context context, String pdfPath) {
-        ParcelFileDescriptor pfd = null;
-        PdfRenderer renderer = null;
-        
-        try {
-            if (pdfPath.startsWith("content://") || pdfPath.startsWith("file://")) {
-                Uri uri = Uri.parse(pdfPath);
-                pfd = context.getContentResolver().openFileDescriptor(uri, "r");
-            } else {
-                File file = new File(pdfPath);
-                if (file.exists()) {
-                    pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
-                }
-            }
-            
-            if (pfd != null) {
-                renderer = new PdfRenderer(pfd);
-                return renderer.getPageCount();
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "Error getting page count for: " + pdfPath, e);
-        } finally {
-            if (renderer != null) {
-                renderer.close();
-            }
-            if (pfd != null) {
-                try {
-                    pfd.close();
-                } catch (Exception e) {
-                    // Ignore
-                }
-            }
-        }
-        
-        return 0;
-    }
-    
-    private int calculateStreak(List<PdfBook> books) {
-        // Simplified streak calculation
-        // If user has books in history, assume they've been reading
-        // TODO: Implement proper streak tracking based on actual reading dates
-        if (books.isEmpty()) {
-            return 0;
-        }
-        
-        // For now, return a simple estimate based on number of books
-        // A more sophisticated implementation would track reading dates
-        return Math.min(books.size(), 30); // Cap at 30 days
+
+    private long startOfCurrentMonth() {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.DAY_OF_MONTH, 1);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
+        return cal.getTimeInMillis();
     }
 }

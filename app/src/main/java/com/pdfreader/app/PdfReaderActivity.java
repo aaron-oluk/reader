@@ -57,6 +57,9 @@ public class PdfReaderActivity extends AppCompatActivity {
     private View topToolbar;
 
 
+    // Resolved file path (content:// URIs are copied to cache)
+    private String resolvedFilePath;
+
     // Page tracking
     private int pageCount = 0;
     private int currentPage = 1;
@@ -126,10 +129,16 @@ public class PdfReaderActivity extends AppCompatActivity {
         ImageButton btnShare = findViewById(R.id.btn_share);
         btnShare.setOnClickListener(v -> shareDocument());
         
-        // Search button
+        // Manage Pages button (reuses the search slot)
         ImageButton btnSearch = findViewById(R.id.btn_search);
         btnSearch.setOnClickListener(v -> {
-            Toast.makeText(this, "Search feature coming soon", Toast.LENGTH_SHORT).show();
+            if (resolvedFilePath == null) {
+                Toast.makeText(this, "Open a PDF first", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            Intent intent = new Intent(this, ManagePdfPagesActivity.class);
+            intent.putExtra(ManagePdfPagesActivity.EXTRA_PDF_PATH, resolvedFilePath);
+            startActivity(intent);
         });
 
         // Edit PDF button
@@ -205,6 +214,7 @@ public class PdfReaderActivity extends AppCompatActivity {
             } else {
                 file = new File(pdfPath);
             }
+            resolvedFilePath = file.getAbsolutePath();
 
             if (!file.exists()) {
                 Toast.makeText(this, "PDF file not found", Toast.LENGTH_SHORT).show();
@@ -213,9 +223,19 @@ public class PdfReaderActivity extends AppCompatActivity {
             }
 
             parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
-            pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+            try {
+                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+            } catch (SecurityException se) {
+                parcelFileDescriptor.close();
+                Toast.makeText(this,
+                        "This PDF is password-protected and cannot be opened.",
+                        Toast.LENGTH_LONG).show();
+                finish();
+                return;
+            }
 
             pageCount = pdfRenderer.getPageCount();
+            progressManager.savePageCount(pdfPath, pageCount);
 
             // Update UI
             toolbarSubtitle.setText(pageCount + " pages");

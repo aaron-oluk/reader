@@ -119,6 +119,11 @@
             android:exported="false"
             android:theme="@style/Theme.PDFReader.NoActionBar" />
 
+        <activity
+            android:name=".ManagePdfPagesActivity"
+            android:exported="false"
+            android:theme="@style/Theme.PDFReader" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.provider"
