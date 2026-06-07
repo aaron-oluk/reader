@@ -128,7 +128,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         cardSign.setOnClickListener(v -> {
-            startActivity(new Intent(this, SignPdfActivity.class));
+            startActivity(new Intent(this, EditPdfActivity.class));
         });
 
         cardImageToPdf.setOnClickListener(v -> {

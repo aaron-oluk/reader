@@ -219,17 +219,6 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // Scan Quote quick action
-        View actionScanQuote = view.findViewById(R.id.action_scan_quote);
-        if (actionScanQuote != null) {
-            actionScanQuote.setOnClickListener(v -> {
-                Intent intent = new Intent(getActivity(), com.pdfreader.app.ScanDocumentActivity.class);
-                intent.putExtra(com.pdfreader.app.ScanDocumentActivity.EXTRA_MODE,
-                        com.pdfreader.app.fragments.ScannerFragment.MODE_QUOTE);
-                startActivity(intent);
-            });
-        }
-
         // History quick action
         View actionHistory = view.findViewById(R.id.action_history);
         if (actionHistory != null) {
@@ -250,16 +239,7 @@ public class HomeFragment extends Fragment {
             });
         }
 
-        // Sign PDF quick action
-        View actionSignPdf = view.findViewById(R.id.action_sign_pdf);
-        if (actionSignPdf != null) {
-            actionSignPdf.setOnClickListener(v -> {
-                Intent intent = new Intent(getActivity(), com.pdfreader.app.SignPdfActivity.class);
-                startActivity(intent);
-            });
-        }
-
-        // Edit PDF quick action
+        // Edit & Sign PDF quick action
         View actionEditPdf = view.findViewById(R.id.action_edit_pdf);
         if (actionEditPdf != null) {
             actionEditPdf.setOnClickListener(v -> {

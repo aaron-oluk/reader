@@ -3,6 +3,12 @@ package com.pdfreader.app.fragments;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.media.ExifInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -32,9 +38,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.pdfreader.app.R;
 import com.pdfreader.app.ScanFilmstripAdapter;
 import com.pdfreader.app.ScanReviewActivity;
-import com.pdfreader.app.SignPdfActivity;
+import com.pdfreader.app.EditPdfActivity;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -91,6 +98,10 @@ public class ScannerFragment extends Fragment {
     private DocumentDetectorView detectorView;
     private TextView instructionText;
     private ExecutorService analysisExecutor;
+
+    // Last corners detected by DocumentAnalyzer, used to crop captured images
+    private float[] lastDocCorners = null;
+    private boolean documentDetected = false;
 
     // Store captured images
     private List<File> capturedImages = new ArrayList<>();
@@ -207,7 +218,7 @@ public class ScannerFragment extends Fragment {
         });
 
         signTab.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), SignPdfActivity.class);
+            Intent intent = new Intent(getActivity(), EditPdfActivity.class);
             startActivity(intent);
         });
 
@@ -308,6 +319,8 @@ public class ScannerFragment extends Fragment {
                     .build();
             imageAnalysis.setAnalyzer(analysisExecutor,
                     new DocumentAnalyzer((corners, detected) -> {
+                        lastDocCorners = corners;
+                        documentDetected = detected;
                         if (detectorView != null) detectorView.setCorners(corners, detected);
                         if (instructionText != null) {
                             instructionText.setText(detected
@@ -371,6 +384,10 @@ public class ScannerFragment extends Fragment {
             return;
         }
 
+        // Snapshot corners at the moment of capture (analyzer keeps updating on background thread)
+        final float[] captureCorners = (documentDetected && lastDocCorners != null)
+                ? lastDocCorners.clone() : null;
+
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
         String fileName = "SCAN_" + timestamp + ".jpg";
 
@@ -383,12 +400,21 @@ public class ScannerFragment extends Fragment {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        capturedImages.add(photoFile);
-                        capturedPaths.add(photoFile.getAbsolutePath());
-                        int idx = capturedPaths.size() - 1;
-                        filmstripAdapter.notifyItemInserted(idx);
-                        filmstripRecycler.scrollToPosition(idx);
-                        updateCapturedImagesUI();
+                        Handler mainHandler = new Handler(Looper.getMainLooper());
+                        new Thread(() -> {
+                            // Perspective-crop to the detected document quad when corners are known
+                            if (captureCorners != null) {
+                                cropToDocument(photoFile, captureCorners);
+                            }
+                            mainHandler.post(() -> {
+                                capturedImages.add(photoFile);
+                                capturedPaths.add(photoFile.getAbsolutePath());
+                                int idx = capturedPaths.size() - 1;
+                                filmstripAdapter.notifyItemInserted(idx);
+                                filmstripRecycler.scrollToPosition(idx);
+                                updateCapturedImagesUI();
+                            });
+                        }).start();
                     }
 
                     @Override
@@ -397,6 +423,79 @@ public class ScannerFragment extends Fragment {
                                 Toast.LENGTH_SHORT).show();
                     }
                 });
+    }
+
+    /**
+     * Applies a perspective warp to {@code file} so that the quadrilateral defined by
+     * {@code corners} (TL,TR,BR,BL in normalised [0,1] coords) becomes a flat rectangle.
+     * The result is written back to the same file.  On any error the file is left unchanged.
+     */
+    private void cropToDocument(File file, float[] corners) {
+        try {
+            // Respect EXIF rotation so the image is in display orientation
+            ExifInterface exif = new ExifInterface(file.getAbsolutePath());
+            int orientation = exif.getAttributeInt(
+                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+
+            Bitmap src = BitmapFactory.decodeFile(file.getAbsolutePath());
+            if (src == null) return;
+            src = applyExifRotation(src, orientation);
+
+            int imgW = src.getWidth(), imgH = src.getHeight();
+
+            // Map normalised corners → pixel coordinates
+            float tlX = corners[0] * imgW, tlY = corners[1] * imgH;
+            float trX = corners[2] * imgW, trY = corners[3] * imgH;
+            float brX = corners[4] * imgW, brY = corners[5] * imgH;
+            float blX = corners[6] * imgW, blY = corners[7] * imgH;
+
+            // Output dimensions: average of opposite edge lengths
+            float topW  = dist(tlX, tlY, trX, trY);
+            float botW  = dist(blX, blY, brX, brY);
+            float leftH = dist(tlX, tlY, blX, blY);
+            float rightH = dist(trX, trY, brX, brY);
+            int outW = (int) ((topW + botW) / 2f);
+            int outH = (int) ((leftH + rightH) / 2f);
+
+            if (outW < 10 || outH < 10) { src.recycle(); return; }
+
+            // Perspective transform: document quad → output rectangle
+            float[] srcPts = { tlX, tlY, trX, trY, brX, brY, blX, blY };
+            float[] dstPts = { 0, 0, outW, 0, outW, outH, 0, outH };
+            Matrix matrix = new Matrix();
+            matrix.setPolyToPoly(srcPts, 0, dstPts, 0, 4);
+
+            Bitmap output = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(output);
+            canvas.drawBitmap(src, matrix, new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+            src.recycle();
+
+            try (FileOutputStream fos = new FileOutputStream(file)) {
+                output.compress(Bitmap.CompressFormat.JPEG, 92, fos);
+            }
+            output.recycle();
+
+        } catch (Exception e) {
+            e.printStackTrace(); // leave original file intact
+        }
+    }
+
+    private static float dist(float x1, float y1, float x2, float y2) {
+        float dx = x2 - x1, dy = y2 - y1;
+        return (float) Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private static Bitmap applyExifRotation(Bitmap bmp, int orientation) {
+        Matrix m = new Matrix();
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:  m.setRotate(90);  break;
+            case ExifInterface.ORIENTATION_ROTATE_180: m.setRotate(180); break;
+            case ExifInterface.ORIENTATION_ROTATE_270: m.setRotate(270); break;
+            default: return bmp;
+        }
+        Bitmap rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
+        bmp.recycle();
+        return rotated;
     }
     
     private void updateCapturedImagesUI() {

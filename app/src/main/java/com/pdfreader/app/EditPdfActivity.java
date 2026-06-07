@@ -74,6 +74,7 @@ public class EditPdfActivity extends AppCompatActivity {
     private LinearLayout toolOpenBtn, toolTextBtn, toolSignBtn;
     private MaterialCardView toolTextIconBg, toolSignIconBg;
     private ImageView toolTextIcon, toolSignIcon;
+    private TextView toolTextLabel, toolSignLabel;
 
     // Mode hint bar
     private LinearLayout modeHintBar;
@@ -140,6 +141,8 @@ public class EditPdfActivity extends AppCompatActivity {
         toolSignIconBg   = findViewById(R.id.tool_sign_icon_bg);
         toolTextIcon     = findViewById(R.id.tool_text_icon);
         toolSignIcon     = findViewById(R.id.tool_sign_icon);
+        toolTextLabel    = findViewById(R.id.tool_text_label);
+        toolSignLabel    = findViewById(R.id.tool_sign_label);
 
         modeHintBar      = findViewById(R.id.mode_hint_bar);
         modeHintIcon     = findViewById(R.id.mode_hint_icon);
@@ -291,17 +294,19 @@ public class EditPdfActivity extends AppCompatActivity {
     }
 
     private void updateToolStates() {
-        applyToolState(toolTextIconBg, toolTextIcon, isTextMode);
-        applyToolState(toolSignIconBg, toolSignIcon, isSignMode);
+        applyToolState(toolTextIconBg, toolTextIcon, toolTextLabel, isTextMode);
+        applyToolState(toolSignIconBg, toolSignIcon, toolSignLabel, isSignMode);
     }
 
-    private void applyToolState(MaterialCardView bg, ImageView icon, boolean active) {
+    private void applyToolState(MaterialCardView bg, ImageView icon, TextView label, boolean active) {
         if (active) {
             bg.setCardBackgroundColor(ContextCompat.getColor(this, R.color.primary_blue));
             icon.setImageTintList(ColorStateList.valueOf(Color.WHITE));
+            if (label != null) label.setTextColor(ContextCompat.getColor(this, R.color.primary_blue));
         } else {
             bg.setCardBackgroundColor(Color.parseColor("#EEF2FF"));
             icon.setImageTintList(ColorStateList.valueOf(ContextCompat.getColor(this, R.color.primary_blue)));
+            if (label != null) label.setTextColor(ContextCompat.getColor(this, R.color.text_secondary));
         }
     }
 
@@ -513,6 +518,7 @@ public class EditPdfActivity extends AppCompatActivity {
         if (pdfRenderer == null) return;
         btnSave.setEnabled(false);
         btnSave.setText("Saving…");
+        btnSave.setIconResource(0);
 
         executor.execute(() -> {
             try {
@@ -584,10 +590,14 @@ public class EditPdfActivity extends AppCompatActivity {
                     saved = fallback.getAbsolutePath();
                 }
                 final String finalPath = saved;
+                if (finalPath != null) {
+                    new HistoryManager(this).addToHistory(fileName, finalPath);
+                }
 
                 mainHandler.post(() -> {
                     btnSave.setEnabled(true);
-                    btnSave.setText("Save");
+                    btnSave.setText("Save PDF");
+                    btnSave.setIconResource(R.drawable.ic_save);
                     new AlertDialog.Builder(this)
                             .setTitle("Saved")
                             .setMessage("PDF saved. Share it now?")
@@ -598,7 +608,8 @@ public class EditPdfActivity extends AppCompatActivity {
             } catch (Exception e) {
                 mainHandler.post(() -> {
                     btnSave.setEnabled(true);
-                    btnSave.setText("Save");
+                    btnSave.setText("Save PDF");
+                    btnSave.setIconResource(R.drawable.ic_save);
                     Toast.makeText(this, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
