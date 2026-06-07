@@ -41,8 +41,7 @@ import java.util.Locale;
 public class MergePdfActivity extends AppCompatActivity {
 
     private RecyclerView recyclerView;
-    private MaterialButton btnSelectPdfs;
-    private MaterialButton btnSelectImages;
+    private MaterialButton btnSelectFiles;
     private MaterialButton btnMerge;
     private ProgressBar progressBar;
     private TextView statusText;
@@ -51,8 +50,7 @@ public class MergePdfActivity extends AppCompatActivity {
     private final List<FileEntry> selectedFiles = new ArrayList<>();
     private FileListAdapter adapter;
 
-    private ActivityResultLauncher<Intent> pdfPickerLauncher;
-    private ActivityResultLauncher<Intent> imagePickerLauncher;
+    private ActivityResultLauncher<Intent> filePickerLauncher;
 
     static class FileEntry {
         Uri uri;
@@ -71,23 +69,15 @@ public class MergePdfActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_merge_pdf);
 
-        pdfPickerLauncher = registerForActivityResult(
+        filePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
                     if (result.getResultCode() == RESULT_OK && result.getData() != null)
-                        addFiles(result.getData(), true);
-                });
-
-        imagePickerLauncher = registerForActivityResult(
-                new ActivityResultContracts.StartActivityForResult(),
-                result -> {
-                    if (result.getResultCode() == RESULT_OK && result.getData() != null)
-                        addFiles(result.getData(), false);
+                        addFiles(result.getData());
                 });
 
         recyclerView = findViewById(R.id.recyclerView);
-        btnSelectPdfs = findViewById(R.id.btnSelectPdfs);
-        btnSelectImages = findViewById(R.id.btnSelectImages);
+        btnSelectFiles = findViewById(R.id.btnSelectFiles);
         btnMerge = findViewById(R.id.btnMerge);
         progressBar = findViewById(R.id.progressBar);
         statusText = findViewById(R.id.statusText);
@@ -99,26 +89,19 @@ public class MergePdfActivity extends AppCompatActivity {
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
-        btnSelectPdfs.setOnClickListener(v -> {
+        btnSelectFiles.setOnClickListener(v -> {
             Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.setType("application/pdf");
+            intent.setType("*/*");
+            intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"application/pdf", "image/*"});
             intent.addCategory(Intent.CATEGORY_OPENABLE);
             intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            pdfPickerLauncher.launch(intent);
-        });
-
-        btnSelectImages.setOnClickListener(v -> {
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
-            intent.setType("image/*");
-            intent.addCategory(Intent.CATEGORY_OPENABLE);
-            intent.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
-            imagePickerLauncher.launch(intent);
+            filePickerLauncher.launch(intent);
         });
 
         btnMerge.setOnClickListener(v -> mergeFiles());
     }
 
-    private void addFiles(Intent data, boolean isPdf) {
+    private void addFiles(Intent data) {
         List<Uri> uris = new ArrayList<>();
         if (data.getClipData() != null) {
             ClipData cd = data.getClipData();
@@ -129,6 +112,8 @@ public class MergePdfActivity extends AppCompatActivity {
 
         for (Uri uri : uris) {
             String name = getDisplayName(uri);
+            String mime = getContentResolver().getType(uri);
+            boolean isPdf = "application/pdf".equals(mime);
             selectedFiles.add(new FileEntry(uri, name, isPdf));
         }
 
@@ -160,6 +145,27 @@ public class MergePdfActivity extends AppCompatActivity {
             Toast.makeText(this, "Add at least 2 files", Toast.LENGTH_SHORT).show();
             return;
         }
+
+        android.widget.EditText input = new android.widget.EditText(this);
+        input.setHint("e.g. My Document");
+        input.setSingleLine(true);
+        int pad = (int) (16 * getResources().getDisplayMetrics().density);
+        input.setPadding(pad, pad, pad, pad);
+
+        new androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Name your merged PDF")
+                .setView(input)
+                .setPositiveButton("Merge", (dialog, which) -> {
+                    String entered = input.getText().toString().trim();
+                    String ts = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+                    String baseName = entered.isEmpty() ? "merged_" + ts : entered;
+                    startMerge(baseName);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void startMerge(String baseName) {
         progressBar.setVisibility(View.VISIBLE);
         btnMerge.setEnabled(false);
         statusText.setText("Merging…");
@@ -177,8 +183,7 @@ public class MergePdfActivity extends AppCompatActivity {
                     }
                 }
 
-                String ts = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-                String fileName = "merged_" + ts + ".pdf";
+                String fileName = baseName.endsWith(".pdf") ? baseName : baseName + ".pdf";
 
                 java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
                 merged.writeTo(baos);
@@ -189,11 +194,15 @@ public class MergePdfActivity extends AppCompatActivity {
                 String saved = fm.savePdf(bytes, fileName, FileManager.CATEGORY_MERGED);
                 if (saved == null) throw new IOException("Failed to save merged PDF");
 
+                // Register in the library so it appears on the home/library screen
+                new HistoryManager(this).addToHistory(baseName, saved);
+
                 final String finalSaved = saved;
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
-                    btnMerge.setEnabled(true);
-                    statusText.setText("Merged successfully — " + selectedFiles.size() + " files");
+                    selectedFiles.clear();
+                    adapter.notifyDataSetChanged();
+                    updateListVisibility();
 
                     // Offer to share the result immediately
                     new androidx.appcompat.app.AlertDialog.Builder(this)
@@ -264,7 +273,7 @@ public class MergePdfActivity extends AppCompatActivity {
 
         // Scale to A4 at ~150 dpi: 1240 x 1754
         Bitmap bmp = scaleBitmap(src, 1240, 1754);
-        src.recycle();
+        if (bmp != src) src.recycle();
 
         PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(bmp.getWidth(), bmp.getHeight(), pageNum++).create();
         PdfDocument.Page p = merged.startPage(info);
@@ -280,9 +289,7 @@ public class MergePdfActivity extends AppCompatActivity {
         int w = src.getWidth(), h = src.getHeight();
         if (w <= maxW && h <= maxH) return src;
         float scale = Math.min((float) maxW / w, (float) maxH / h);
-        Bitmap scaled = Bitmap.createScaledBitmap(src, (int)(w * scale), (int)(h * scale), true);
-        src.recycle();
-        return scaled;
+        return Bitmap.createScaledBitmap(src, (int)(w * scale), (int)(h * scale), true);
     }
 
     // ── Simple file list adapter ───────────────────────────────────────────────

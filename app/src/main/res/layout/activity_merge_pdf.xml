@@ -71,30 +71,15 @@
         android:background="@color/background_card">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSelectPdfs"
+            android:id="@+id/btnSelectFiles"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="46dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="Add PDFs"
+            android:text="Add Files"
             android:textSize="13sp"
             app:icon="@drawable/ic_pdf"
-            app:iconPadding="4dp"
-            app:cornerRadius="10dp"
-            app:strokeColor="@color/primary_blue"
-            app:strokeWidth="1dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSelectImages"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_height="46dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="Add Images"
-            android:textSize="13sp"
-            app:icon="@drawable/ic_image"
             app:iconPadding="4dp"
             app:cornerRadius="10dp"
             app:strokeColor="@color/primary_blue"
