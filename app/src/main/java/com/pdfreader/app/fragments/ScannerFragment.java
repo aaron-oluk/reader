@@ -41,6 +41,16 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import android.os.Handler;
+import android.os.Looper;
+
+import androidx.camera.core.ImageAnalysis;
+
+import com.pdfreader.app.DocumentAnalyzer;
+import com.pdfreader.app.DocumentDetectorView;
 
 public class ScannerFragment extends Fragment {
 
@@ -78,6 +88,10 @@ public class ScannerFragment extends Fragment {
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> reviewLauncher;
 
+    private DocumentDetectorView detectorView;
+    private TextView instructionText;
+    private ExecutorService analysisExecutor;
+
     // Store captured images
     private List<File> capturedImages = new ArrayList<>();
     private List<String> capturedPaths = new ArrayList<>();
@@ -86,6 +100,8 @@ public class ScannerFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        analysisExecutor = Executors.newSingleThreadExecutor();
+
         requestPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
                 isGranted -> {
@@ -154,6 +170,8 @@ public class ScannerFragment extends Fragment {
         capturedImagesInfo = view.findViewById(R.id.captured_images_info);
         flashIcon = view.findViewById(R.id.flash_icon);
         filmstripRecycler = view.findViewById(R.id.filmstrip_recycler);
+        detectorView = view.findViewById(R.id.document_detector_view);
+        instructionText = view.findViewById(R.id.instruction_text);
 
         // Ensure views are not null
         if (cameraPreview == null || flashToggle == null || closeScanner == null) {
@@ -284,16 +302,27 @@ public class ScannerFragment extends Fragment {
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
                     .build();
 
+            // Document edge detector — runs on a background thread, posts to UI
+            ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build();
+            imageAnalysis.setAnalyzer(analysisExecutor,
+                    new DocumentAnalyzer((corners, detected) -> {
+                        if (detectorView != null) detectorView.setCorners(corners, detected);
+                        if (instructionText != null) {
+                            instructionText.setText(detected
+                                    ? "Document detected — tap to capture"
+                                    : "Position document in view");
+                        }
+                    }, new Handler(Looper.getMainLooper())));
+
             // Select back camera, fallback to front if back is not available
             CameraSelector cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA;
             try {
-                // Test if back camera is available
                 if (!cameraProvider.hasCamera(cameraSelector)) {
-                    // Fallback to front camera if back camera is not available
                     cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
                 }
             } catch (Exception e) {
-                // If check fails, try front camera as fallback
                 cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
             }
 
@@ -305,7 +334,8 @@ public class ScannerFragment extends Fragment {
                     getViewLifecycleOwner(),
                     cameraSelector,
                     preview,
-                    imageCapture
+                    imageCapture,
+                    imageAnalysis
             );
             
             // Ensure PreviewView is visible
@@ -398,6 +428,10 @@ public class ScannerFragment extends Fragment {
         super.onDestroyView();
         if (cameraProvider != null) {
             cameraProvider.unbindAll();
+        }
+        if (analysisExecutor != null) {
+            analysisExecutor.shutdown();
+            analysisExecutor = null;
         }
     }
     

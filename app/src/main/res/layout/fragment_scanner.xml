@@ -85,45 +85,17 @@
             </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
-        <!-- Document Frame Guide - Clean white corners only -->
-        <FrameLayout
-            android:id="@+id/scan_frame_container"
+        <!-- Smart document detector overlay — full-area, no restrictive margins -->
+        <com.pdfreader.app.DocumentDetectorView
+            android:id="@+id/document_detector_view"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:layout_margin="32dp"
+            android:clickable="false"
+            android:focusable="false"
             app:layout_constraintTop_toBottomOf="@id/top_bar"
-            app:layout_constraintBottom_toTopOf="@id/instruction_text"
+            app:layout_constraintBottom_toTopOf="@id/bottom_controls"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent">
-
-            <!-- Corner Brackets - Top Left -->
-            <View
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="top|start"
-                android:background="@drawable/scanner_corner_white_tl" />
-
-            <!-- Corner Brackets - Top Right -->
-            <View
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="top|end"
-                android:background="@drawable/scanner_corner_white_tr" />
-
-            <!-- Corner Brackets - Bottom Left -->
-            <View
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="bottom|start"
-                android:background="@drawable/scanner_corner_white_bl" />
-
-            <!-- Corner Brackets - Bottom Right -->
-            <View
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_gravity="bottom|end"
-                android:background="@drawable/scanner_corner_white_br" />
-        </FrameLayout>
+            app:layout_constraintEnd_toEndOf="parent" />
 
         <!-- Instruction Text - Simple floating chip -->
         <TextView
