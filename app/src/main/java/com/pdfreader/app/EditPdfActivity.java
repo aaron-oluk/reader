@@ -8,6 +8,8 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
+import android.view.Gravity;
 import android.graphics.pdf.PdfDocument;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
@@ -21,6 +23,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.util.TypedValue;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
@@ -90,7 +93,7 @@ public class EditPdfActivity extends AppCompatActivity {
     private boolean hasAnnotations = false;
 
     int currentTextColor = Color.BLACK;
-    int currentTextSize = 16;
+    int currentTextSize = 12;
 
     final Map<Integer, List<TextAnnotation>> annotations = new HashMap<>();
     final Map<Integer, List<SignatureOverlay>> signatureOverlays = new HashMap<>();
@@ -99,6 +102,7 @@ public class EditPdfActivity extends AppCompatActivity {
     private SignatureManager signatureManager;
     private ActivityResultLauncher<Intent> cameraSignatureLauncher;
     private Bitmap pendingSigBitmap = null;
+    private TextView selectedAnnotationView = null;
 
     final ExecutorService executor = Executors.newFixedThreadPool(2);
     final Handler mainHandler = new Handler(Looper.getMainLooper());
@@ -313,62 +317,273 @@ public class EditPdfActivity extends AppCompatActivity {
     // ── Text annotation ───────────────────────────────────────────────────────
 
     void onPageTapped(int pageIndex, FrameLayout overlay, float tapX, float tapY) {
+        // Remove any live-edit widget but keep placed annotation views
+        for (int i = overlay.getChildCount() - 1; i >= 0; i--) {
+            if ("live_edit".equals(overlay.getChildAt(i).getTag())) overlay.removeViewAt(i);
+        }
+
+        float d   = getResources().getDisplayMetrics().density;
+        int dp8   = Math.round(8 * d);
+        int dp12  = Math.round(12 * d);
+        int dp180 = Math.round(180 * d);
+        int blue  = ContextCompat.getColor(this, R.color.primary_blue);
+        int red   = ContextCompat.getColor(this, R.color.accent_red);
+
+        // ── Container — transparent so the PDF shows through while typing ───
+        LinearLayout box = new LinearLayout(this);
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setMinimumWidth(dp180);
+        box.setTag("live_edit");
+
+        // ── EditText ─────────────────────────────────────────────────────────
         EditText et = new EditText(this);
         et.setBackground(null);
+        et.setPadding(dp12, dp8, dp12, dp8);
         et.setTextColor(currentTextColor);
         et.setTextSize(currentTextSize);
         et.setHint("Type here…");
         et.setHintTextColor(0x66888888);
         et.setSingleLine(false);
-        et.setImeOptions(EditorInfo.IME_ACTION_DONE);
         et.setMaxLines(4);
+        et.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        box.addView(et, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = (int) tapX;
-        lp.topMargin  = (int) tapY;
-        et.setLayoutParams(lp);
+        // ── Action row (no background, compact) ─────────────────────────────
+        LinearLayout row = new LinearLayout(this);
+        row.setOrientation(LinearLayout.HORIZONTAL);
 
-        overlay.addView(et);
+        int dp4 = Math.round(4 * d);
+        int dp6 = Math.round(6 * d);
+
+        TextView acceptTv = new TextView(this);
+        acceptTv.setText("✓ Accept");
+        acceptTv.setTextColor(blue);
+        acceptTv.setTextSize(11);
+        acceptTv.setTypeface(null, Typeface.BOLD);
+        acceptTv.setGravity(Gravity.CENTER);
+        acceptTv.setPadding(dp8, dp6, dp8, dp6);
+        acceptTv.setClickable(true);
+        acceptTv.setFocusable(true);
+        row.addView(acceptTv, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
+        TextView discardTv = new TextView(this);
+        discardTv.setText("✕ Discard");
+        discardTv.setTextColor(red);
+        discardTv.setTextSize(11);
+        discardTv.setGravity(Gravity.CENTER);
+        discardTv.setPadding(dp8, dp6, dp8, dp6);
+        discardTv.setClickable(true);
+        discardTv.setFocusable(true);
+        row.addView(discardTv, new LinearLayout.LayoutParams(
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1));
+
+        box.addView(row, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        // ── Position: centre the box on the tap point ────────────────────────
+        FrameLayout.LayoutParams flp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        flp.leftMargin = Math.max(0, (int) tapX - dp180 / 2);
+        flp.topMargin  = Math.max(0, (int) tapY - dp8);
+        overlay.addView(box, flp);
+
         et.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         if (imm != null) imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT);
+
+        // ── Handlers ─────────────────────────────────────────────────────────
+        final boolean[] done = {false};
+
+        acceptTv.setOnClickListener(v -> {
+            if (done[0]) return;
+            done[0] = true;
+            commitTextEdit(tapX, tapY, et, box, overlay, pageIndex);
+        });
+
+        discardTv.setOnClickListener(v -> {
+            done[0] = true;
+            overlay.removeView(box);
+            InputMethodManager imm2 = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (imm2 != null) imm2.hideSoftInputFromWindow(overlay.getWindowToken(), 0);
+        });
 
         et.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE ||
                     (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER
                             && event.getAction() == KeyEvent.ACTION_DOWN)) {
-                commitEdit(et, overlay, pageIndex);
+                if (!done[0]) { done[0] = true; commitTextEdit(tapX, tapY, et, box, overlay, pageIndex); }
                 return true;
             }
             return false;
         });
-
-        et.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) commitEdit(et, overlay, pageIndex);
-        });
     }
 
-    private void commitEdit(EditText et, FrameLayout overlay, int pageIndex) {
+    private void commitTextEdit(float tapX, float tapY,
+                                EditText et, View box,
+                                FrameLayout overlay, int pageIndex) {
         String text = et.getText().toString().trim();
-        overlay.removeView(et);
+        overlay.removeView(box);
 
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
         if (imm != null) imm.hideSoftInputFromWindow(overlay.getWindowToken(), 0);
 
         if (text.isEmpty()) return;
 
-        float xF = et.getLeft()  / (float) Math.max(1, overlay.getWidth());
-        float yF = (et.getTop() + et.getTextSize()) / (float) Math.max(1, overlay.getHeight());
+        float xF = tapX / (float) Math.max(1, overlay.getWidth());
+        float yF = (tapY + et.getTextSize()) / (float) Math.max(1, overlay.getHeight());
 
         List<TextAnnotation> list = annotations.get(pageIndex);
         if (list != null) {
-            list.add(new TextAnnotation(pageIndex, xF, yF, text, currentTextSize, currentTextColor));
+            // Store pixel size (et.getTextSize() returns px; currentTextSize is SP so would render tiny)
+            list.add(new TextAnnotation(pageIndex, xF, yF, text, (int) et.getTextSize(), currentTextColor));
         }
         hasAnnotations = true;
         btnSave.setEnabled(true);
         if (pageAdapter != null) pageAdapter.refreshPage(pageIndex);
+    }
+
+    // ── Annotation overlay helpers ────────────────────────────────────────────
+
+    void clearAnnotationViews(FrameLayout overlay) {
+        selectedAnnotationView = null;
+        for (int i = overlay.getChildCount() - 1; i >= 0; i--) {
+            if (overlay.getChildAt(i).getTag() instanceof TextAnnotation) overlay.removeViewAt(i);
+        }
+    }
+
+    private void selectAnnotationView(TextView tv) {
+        if (selectedAnnotationView == tv) return;
+        deselectAnnotationView();
+        selectedAnnotationView = tv;
+        float d = getResources().getDisplayMetrics().density;
+        GradientDrawable border = new GradientDrawable();
+        border.setShape(GradientDrawable.RECTANGLE);
+        border.setColor(Color.TRANSPARENT);
+        border.setStroke(Math.round(1.5f * d), ContextCompat.getColor(this, R.color.primary_blue));
+        border.setCornerRadius(Math.round(4 * d));
+        tv.setBackground(border);
+        tv.setPadding(Math.round(4 * d), Math.round(2 * d), Math.round(4 * d), Math.round(2 * d));
+    }
+
+    private void deselectAnnotationView() {
+        if (selectedAnnotationView == null) return;
+        selectedAnnotationView.setBackground(null);
+        selectedAnnotationView.setPadding(0, 0, 0, 0);
+        selectedAnnotationView = null;
+    }
+
+    void populateAnnotationViews(int pageIndex, FrameLayout overlay) {
+        clearAnnotationViews(overlay);
+        List<TextAnnotation> anns = annotations.get(pageIndex);
+        if (anns == null || anns.isEmpty() || overlay.getWidth() <= 0) return;
+        for (TextAnnotation ann : anns) addAnnotationView(pageIndex, overlay, ann);
+    }
+
+    private void addAnnotationView(int pageIndex, FrameLayout overlay, TextAnnotation ann) {
+        TextView tv = new TextView(this);
+        tv.setText(ann.text);
+        tv.setTextColor(ann.color);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_PX, ann.textSize);
+        tv.setIncludeFontPadding(false);
+        tv.setBackground(null);
+        tv.setTag(ann);
+        tv.setClickable(true);
+        tv.setFocusable(true);
+
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.leftMargin = (int) (ann.xFraction * overlay.getWidth());
+        lp.topMargin  = (int) (ann.yFraction * overlay.getHeight() - ann.textSize);
+        overlay.addView(tv, lp);
+
+        setupAnnotationTouch(pageIndex, ann, tv, overlay);
+    }
+
+    private void setupAnnotationTouch(int pageIndex, TextAnnotation ann, TextView tv, FrameLayout overlay) {
+        final float[] startRaw = {0, 0};
+        final float[] lastRaw  = {0, 0};
+        final boolean[] moved  = {false};
+
+        tv.setOnTouchListener((v, event) -> {
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) tv.getLayoutParams();
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    startRaw[0] = lastRaw[0] = event.getRawX();
+                    startRaw[1] = lastRaw[1] = event.getRawY();
+                    moved[0] = false;
+                    selectAnnotationView(tv);
+                    return true;
+                case MotionEvent.ACTION_MOVE:
+                    float dx = event.getRawX() - lastRaw[0];
+                    float dy = event.getRawY() - lastRaw[1];
+                    lastRaw[0] = event.getRawX();
+                    lastRaw[1] = event.getRawY();
+                    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) moved[0] = true;
+                    lp.leftMargin = Math.max(0, Math.min(lp.leftMargin + (int) dx, overlay.getWidth()  - tv.getWidth()));
+                    lp.topMargin  = Math.max(0, Math.min(lp.topMargin  + (int) dy, overlay.getHeight() - tv.getHeight()));
+                    tv.setLayoutParams(lp);
+                    ann.xFraction = lp.leftMargin / (float) Math.max(1, overlay.getWidth());
+                    ann.yFraction = (lp.topMargin + ann.textSize) / (float) Math.max(1, overlay.getHeight());
+                    hasAnnotations = true;
+                    btnSave.setEnabled(true);
+                    return true;
+                case MotionEvent.ACTION_UP:
+                    if (!moved[0]) showAnnotationOptions(pageIndex, ann, tv, overlay);
+                    return true;
+            }
+            return false;
+        });
+    }
+
+    private void showAnnotationOptions(int pageIndex, TextAnnotation ann, TextView tv, FrameLayout overlay) {
+        float d   = getResources().getDisplayMetrics().density;
+        int dp8   = Math.round(8 * d);
+        int dp16  = Math.round(16 * d);
+        int dp32  = Math.round(32 * d);
+
+        int[] palette = {Color.BLACK, 0xFF1E1B4B, 0xFF2563EB, 0xFFDC2626, 0xFF10B981};
+
+        LinearLayout colorRow = new LinearLayout(this);
+        colorRow.setOrientation(LinearLayout.HORIZONTAL);
+        colorRow.setPadding(dp16, dp16, dp16, dp8);
+        colorRow.setGravity(Gravity.CENTER_VERTICAL);
+
+        AlertDialog[] ref = {null};
+
+        for (int col : palette) {
+            View dot = new View(this);
+            GradientDrawable circle = new GradientDrawable();
+            circle.setShape(GradientDrawable.OVAL);
+            circle.setColor(col);
+            if (col == ann.color) circle.setStroke(Math.round(3 * d), 0xFF6366F1);
+            dot.setBackground(circle);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp32, dp32);
+            lp.setMarginEnd(dp8);
+            colorRow.addView(dot, lp);
+            dot.setClickable(true);
+            final int fc = col;
+            dot.setOnClickListener(v -> {
+                ann.color = fc;
+                tv.setTextColor(fc);
+                if (ref[0] != null) ref[0].dismiss();
+            });
+        }
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Text options")
+                .setView(colorRow)
+                .setNegativeButton("Delete", (d2, w) -> {
+                    List<TextAnnotation> list = annotations.get(pageIndex);
+                    if (list != null) list.remove(ann);
+                    if (selectedAnnotationView == tv) selectedAnnotationView = null;
+                    overlay.removeView(tv);
+                })
+                .setPositiveButton("Done", null)
+                .create();
+        ref[0] = dialog;
+        dialog.show();
     }
 
     // ── Signature placement ───────────────────────────────────────────────────
@@ -551,7 +766,7 @@ public class EditPdfActivity extends AppCompatActivity {
                                 paint.setTypeface(Typeface.DEFAULT);
                                 for (TextAnnotation ann : anns) {
                                     paint.setColor(ann.color);
-                                    paint.setTextSize(ann.textSize * scale);
+                                    paint.setTextSize(ann.textSize); // already in px, same resolution as preview
                                     canvas.drawText(ann.text, ann.xFraction * w, ann.yFraction * h, paint);
                                 }
                             }
@@ -716,6 +931,7 @@ public class EditPdfActivity extends AppCompatActivity {
                     return false;
                 });
                 textOverlay.setOnClickListener(vv -> {
+                    deselectAnnotationView();
                     if (boundPos < 0) return;
                     if (isTextMode) {
                         onPageTapped(boundPos, textOverlay, tap[0], tap[1]);
@@ -734,6 +950,7 @@ public class EditPdfActivity extends AppCompatActivity {
                 // Reset the signature overlay for recycled VHs
                 signatureOverlay.clearSignature();
                 signatureOverlay.setVisibility(View.GONE);
+                clearAnnotationViews(textOverlay);
 
                 executor.execute(() -> {
                     Bitmap bmp = renderPage(position);
@@ -742,34 +959,19 @@ public class EditPdfActivity extends AppCompatActivity {
                         return;
                     }
 
-                    List<TextAnnotation> anns = annotations.get(position);
+                    // Only signatures are baked into the preview; text annotations
+                    // stay as draggable overlay views so the user can move/recolor them.
                     List<SignatureOverlay> sigs = signatureOverlays.get(position);
-                    boolean hasText = anns != null && !anns.isEmpty();
-                    boolean hasSigs = sigs != null && !sigs.isEmpty();
-
-                    if (hasText || hasSigs) {
+                    if (sigs != null && !sigs.isEmpty()) {
                         Canvas c = new Canvas(bmp);
-                        if (hasText) {
-                            Paint p = new Paint();
-                            p.setAntiAlias(true);
-                            for (TextAnnotation ann : anns) {
-                                p.setColor(ann.color);
-                                p.setTextSize(ann.textSize);
-                                c.drawText(ann.text,
-                                        ann.xFraction * bmp.getWidth(),
-                                        ann.yFraction * bmp.getHeight(), p);
-                            }
-                        }
-                        if (hasSigs) {
-                            Paint sp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-                            for (SignatureOverlay sig : sigs) {
-                                RectF dst = new RectF(
-                                        sig.xFraction * bmp.getWidth(),
-                                        sig.yFraction * bmp.getHeight(),
-                                        (sig.xFraction + sig.widthFraction) * bmp.getWidth(),
-                                        (sig.yFraction + sig.heightFraction) * bmp.getHeight());
-                                c.drawBitmap(sig.bitmap, null, dst, sp);
-                            }
+                        Paint sp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+                        for (SignatureOverlay sig : sigs) {
+                            RectF dst = new RectF(
+                                    sig.xFraction * bmp.getWidth(),
+                                    sig.yFraction * bmp.getHeight(),
+                                    (sig.xFraction + sig.widthFraction) * bmp.getWidth(),
+                                    (sig.yFraction + sig.heightFraction) * bmp.getHeight());
+                            c.drawBitmap(sig.bitmap, null, dst, sp);
                         }
                     }
 
@@ -778,6 +980,11 @@ public class EditPdfActivity extends AppCompatActivity {
                         if (getBindingAdapterPosition() == position) {
                             pageImage.setImageBitmap(finalBmp);
                             progress.setVisibility(View.GONE);
+                            textOverlay.post(() -> {
+                                if (getBindingAdapterPosition() == position) {
+                                    populateAnnotationViews(position, textOverlay);
+                                }
+                            });
                         } else {
                             finalBmp.recycle();
                         }
