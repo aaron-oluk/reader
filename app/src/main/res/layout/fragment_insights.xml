@@ -32,7 +32,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Reading Insights"
-                    android:textSize="26sp"
+                    android:textSize="20sp"
                     android:textStyle="bold"
                     android:textColor="@color/text_primary" />
 
@@ -412,7 +412,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:textSize="26sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:layout_marginTop="2dp" />
@@ -464,7 +464,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:textSize="26sp"
+                        android:textSize="20sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:layout_marginTop="2dp" />
