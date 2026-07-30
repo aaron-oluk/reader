@@ -62,4 +62,12 @@ dependencies {
     // Image loading - updated to 16KB compatible version
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
+
+    // PDF rendering engine that draws annotation/AcroForm appearance streams
+    // (android.graphics.pdf.PdfRenderer does not render these on this app's target API)
+    implementation 'com.tom-roush:pdfbox-android:2.0.27.0'
+
+    // Reads EXIF orientation so captured photos are displayed/cropped upright
+    // (BitmapFactory ignores EXIF orientation on its own)
+    implementation 'androidx.exifinterface:exifinterface:1.3.6'
 }

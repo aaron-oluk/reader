@@ -2,7 +2,6 @@ package com.pdfreader.app;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -11,13 +10,13 @@ import java.io.File;
 import java.io.IOException;
 
 public class PdfThumbnailGenerator {
-    
+
     private static final String TAG = "PdfThumbnailGenerator";
-    
+
     public static Bitmap generateThumbnail(Context context, String pdfPath, int maxWidth, int maxHeight) {
         ParcelFileDescriptor pfd = null;
-        PdfRenderer renderer = null;
-        
+        PdfBoxRenderer renderer = null;
+
         try {
             // Handle both URI strings and file paths
             if (pdfPath.startsWith("content://") || pdfPath.startsWith("file://")) {
@@ -41,35 +40,22 @@ public class PdfThumbnailGenerator {
                 return null;
             }
             
-            renderer = new PdfRenderer(pfd);
-            
+            renderer = new PdfBoxRenderer(context, pfd);
+
             if (renderer.getPageCount() == 0) {
                 return null;
             }
-            
-            // Render first page
-            PdfRenderer.Page page = renderer.openPage(0);
-            
+
             // Calculate scale to fit within max dimensions
-            int pageWidth = page.getWidth();
-            int pageHeight = page.getHeight();
-            
-            float scaleX = (float) maxWidth / pageWidth;
-            float scaleY = (float) maxHeight / pageHeight;
+            float pageWidth = renderer.getPageWidthPoints(0);
+            float pageHeight = renderer.getPageHeightPoints(0);
+
+            float scaleX = maxWidth / pageWidth;
+            float scaleY = maxHeight / pageHeight;
             float scale = Math.min(scaleX, scaleY);
-            
-            int scaledWidth = (int) (pageWidth * scale);
-            int scaledHeight = (int) (pageHeight * scale);
-            
-            // Create bitmap
-            Bitmap bitmap = Bitmap.createBitmap(scaledWidth, scaledHeight, Bitmap.Config.ARGB_8888);
-            bitmap.eraseColor(0xFFFFFFFF); // White background
-            
-            // Render page to bitmap
-            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-            page.close();
-            
-            return bitmap;
+
+            // Render first page
+            return renderer.renderPage(0, scale);
             
         } catch (Exception e) {
             Log.e(TAG, "Error generating thumbnail for: " + pdfPath, e);

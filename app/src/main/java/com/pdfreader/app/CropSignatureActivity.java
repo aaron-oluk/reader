@@ -3,13 +3,8 @@ package com.pdfreader.app;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
 import android.graphics.RectF;
 import android.os.Bundle;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
@@ -20,11 +15,22 @@ import com.google.android.material.button.MaterialButton;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class CropSignatureActivity extends AppCompatActivity {
 
     public static final String EXTRA_IMAGE_PATH = "image_path";
     public static final String EXTRA_CROPPED_IMAGE_PATH = "cropped_image_path";
+
+    // Optional suggested crop region, in full-resolution upright-image pixel coordinates
+    // (i.e. after accounting for EXIF rotation), mapped from the on-screen capture guide.
+    public static final String EXTRA_SUGGESTED_CROP_LEFT = "suggested_crop_left";
+    public static final String EXTRA_SUGGESTED_CROP_TOP = "suggested_crop_top";
+    public static final String EXTRA_SUGGESTED_CROP_RIGHT = "suggested_crop_right";
+    public static final String EXTRA_SUGGESTED_CROP_BOTTOM = "suggested_crop_bottom";
+
+    private static final int MAX_DIMENSION = 2048;
 
     private CropImageView cropImageView;
     private MaterialButton btnCrop;
@@ -33,6 +39,9 @@ public class CropSignatureActivity extends AppCompatActivity {
 
     private String imagePath;
     private Bitmap originalBitmap;
+    private boolean hasSuggestedCropRect;
+    private float suggestedCropLeft, suggestedCropTop, suggestedCropRight, suggestedCropBottom;
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +60,14 @@ public class CropSignatureActivity extends AppCompatActivity {
             return;
         }
 
+        hasSuggestedCropRect = getIntent().hasExtra(EXTRA_SUGGESTED_CROP_LEFT);
+        if (hasSuggestedCropRect) {
+            suggestedCropLeft = getIntent().getFloatExtra(EXTRA_SUGGESTED_CROP_LEFT, 0f);
+            suggestedCropTop = getIntent().getFloatExtra(EXTRA_SUGGESTED_CROP_TOP, 0f);
+            suggestedCropRight = getIntent().getFloatExtra(EXTRA_SUGGESTED_CROP_RIGHT, 0f);
+            suggestedCropBottom = getIntent().getFloatExtra(EXTRA_SUGGESTED_CROP_BOTTOM, 0f);
+        }
+
         loadImage();
 
         btnBack.setOnClickListener(v -> finish());
@@ -59,23 +76,58 @@ public class CropSignatureActivity extends AppCompatActivity {
     }
 
     private void loadImage() {
-        try {
-            BitmapFactory.Options options = new BitmapFactory.Options();
-            options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-            originalBitmap = BitmapFactory.decodeFile(imagePath, options);
+        executorService.execute(() -> {
+            try {
+                // First, check the image dimensions without allocating a bitmap
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inJustDecodeBounds = true;
+                BitmapFactory.decodeFile(imagePath, options);
 
-            if (originalBitmap == null) {
-                Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
-                finish();
-                return;
+                // Calculate appropriate sample size so we never decode a full
+                // camera-resolution (e.g. 4000x3000+) image at full size
+                int sampleSize = 1;
+                if (options.outHeight > MAX_DIMENSION || options.outWidth > MAX_DIMENSION) {
+                    final int heightRatio = Math.round((float) options.outHeight / (float) MAX_DIMENSION);
+                    final int widthRatio = Math.round((float) options.outWidth / (float) MAX_DIMENSION);
+                    // Use the larger ratio so BOTH dimensions end up under MAX_DIMENSION;
+                    // taking the smaller one leaves typical 4:3 camera photos undownsampled.
+                    sampleSize = Math.max(heightRatio, widthRatio);
+                }
+
+                options.inJustDecodeBounds = false;
+                options.inSampleSize = sampleSize;
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                Bitmap decodedBitmap = BitmapFactory.decodeFile(imagePath, options);
+                if (decodedBitmap != null) {
+                    decodedBitmap = ImageOrientationUtils.applyExifOrientation(decodedBitmap, imagePath);
+                }
+                final Bitmap decoded = decodedBitmap;
+                final int finalSampleSize = sampleSize;
+
+                runOnUiThread(() -> {
+                    if (decoded == null) {
+                        Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+                        finish();
+                        return;
+                    }
+                    originalBitmap = decoded;
+                    if (hasSuggestedCropRect) {
+                        cropImageView.setSuggestedCropRegion(new RectF(
+                                suggestedCropLeft / finalSampleSize,
+                                suggestedCropTop / finalSampleSize,
+                                suggestedCropRight / finalSampleSize,
+                                suggestedCropBottom / finalSampleSize));
+                    }
+                    cropImageView.setImageBitmap(originalBitmap);
+                });
+            } catch (Throwable t) {
+                t.printStackTrace();
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
+                    finish();
+                });
             }
-
-            cropImageView.setImageBitmap(originalBitmap);
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error loading image", Toast.LENGTH_SHORT).show();
-            finish();
-        }
+        });
     }
 
     private void skipCrop() {
@@ -115,9 +167,9 @@ public class CropSignatureActivity extends AppCompatActivity {
             setResult(RESULT_OK, resultIntent);
             finish();
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            Toast.makeText(this, "Error cropping image: " + e.getMessage(), 
+        } catch (Throwable t) {
+            t.printStackTrace();
+            Toast.makeText(this, "Error cropping image: " + t.getMessage(),
                     Toast.LENGTH_SHORT).show();
         }
     }
@@ -125,239 +177,9 @@ public class CropSignatureActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        executorService.shutdownNow();
         if (originalBitmap != null && !originalBitmap.isRecycled()) {
             originalBitmap.recycle();
-        }
-    }
-
-    /**
-     * Custom ImageView for cropping with draggable corners
-     */
-    public static class CropImageView extends androidx.appcompat.widget.AppCompatImageView {
-
-        private Bitmap bitmap;
-        private Paint paintRect;
-        private Paint paintCorner;
-        private Paint paintOverlay;
-        
-        private RectF cropRect;
-        private float imageScale = 1f;
-        private float imageTransX = 0f;
-        private float imageTransY = 0f;
-        
-        private static final int CORNER_SIZE = 60;
-        private static final int TOUCH_TOLERANCE = 80;
-        
-        private int activeTouchCorner = -1; // -1: none, 0: TL, 1: TR, 2: BL, 3: BR
-        private static final int CORNER_TL = 0;
-        private static final int CORNER_TR = 1;
-        private static final int CORNER_BL = 2;
-        private static final int CORNER_BR = 3;
-
-        public CropImageView(android.content.Context context) {
-            super(context);
-            init();
-        }
-
-        public CropImageView(android.content.Context context, android.util.AttributeSet attrs) {
-            super(context, attrs);
-            init();
-        }
-
-        public CropImageView(android.content.Context context, android.util.AttributeSet attrs, int defStyleAttr) {
-            super(context, attrs, defStyleAttr);
-            init();
-        }
-
-        private void init() {
-            paintRect = new Paint();
-            paintRect.setColor(Color.WHITE);
-            paintRect.setStyle(Paint.Style.STROKE);
-            paintRect.setStrokeWidth(4f);
-
-            paintCorner = new Paint();
-            paintCorner.setColor(Color.WHITE);
-            paintCorner.setStyle(Paint.Style.FILL);
-
-            paintOverlay = new Paint();
-            paintOverlay.setColor(Color.BLACK);
-            paintOverlay.setAlpha(128);
-        }
-
-        public void setImageBitmap(Bitmap bm) {
-            this.bitmap = bm;
-            if (bm != null) {
-                // Initialize crop rect to cover most of the image
-                post(() -> {
-                    float viewWidth = getWidth();
-                    float viewHeight = getHeight();
-                    
-                    if (viewWidth > 0 && viewHeight > 0 && bitmap != null) {
-                        float bitmapWidth = bitmap.getWidth();
-                        float bitmapHeight = bitmap.getHeight();
-                        
-                        // Calculate scale to fit
-                        float scaleX = viewWidth / bitmapWidth;
-                        float scaleY = viewHeight / bitmapHeight;
-                        imageScale = Math.min(scaleX, scaleY);
-                        
-                        float scaledWidth = bitmapWidth * imageScale;
-                        float scaledHeight = bitmapHeight * imageScale;
-                        
-                        imageTransX = (viewWidth - scaledWidth) / 2f;
-                        imageTransY = (viewHeight - scaledHeight) / 2f;
-                        
-                        // Initialize crop rect with padding
-                        float padding = 40;
-                        cropRect = new RectF(
-                            imageTransX + padding,
-                            imageTransY + padding,
-                            imageTransX + scaledWidth - padding,
-                            imageTransY + scaledHeight - padding
-                        );
-                        
-                        invalidate();
-                    }
-                });
-            }
-        }
-
-        @Override
-        protected void onDraw(Canvas canvas) {
-            super.onDraw(canvas);
-            
-            if (bitmap == null || bitmap.isRecycled() || cropRect == null) return;
-            
-            try {
-                // Draw bitmap
-                canvas.save();
-                canvas.translate(imageTransX, imageTransY);
-                canvas.scale(imageScale, imageScale);
-                canvas.drawBitmap(bitmap, 0, 0, null);
-                canvas.restore();
-                
-                // Draw dark overlay outside crop area
-                canvas.drawRect(0, 0, getWidth(), cropRect.top, paintOverlay);
-                canvas.drawRect(0, cropRect.bottom, getWidth(), getHeight(), paintOverlay);
-                canvas.drawRect(0, cropRect.top, cropRect.left, cropRect.bottom, paintOverlay);
-                canvas.drawRect(cropRect.right, cropRect.top, getWidth(), cropRect.bottom, paintOverlay);
-                
-                // Draw crop rectangle
-                canvas.drawRect(cropRect, paintRect);
-                
-                // Draw corner handles
-                drawCorner(canvas, cropRect.left, cropRect.top);
-                drawCorner(canvas, cropRect.right, cropRect.top);
-                drawCorner(canvas, cropRect.left, cropRect.bottom);
-                drawCorner(canvas, cropRect.right, cropRect.bottom);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        private void drawCorner(Canvas canvas, float x, float y) {
-            float halfSize = CORNER_SIZE / 2f;
-            canvas.drawRect(x - halfSize, y - halfSize, x + halfSize, y + halfSize, paintCorner);
-        }
-
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            if (cropRect == null) return false;
-            
-            float x = event.getX();
-            float y = event.getY();
-            
-            switch (event.getAction()) {
-                case MotionEvent.ACTION_DOWN:
-                    activeTouchCorner = getTouchedCorner(x, y);
-                    return activeTouchCorner >= 0;
-                    
-                case MotionEvent.ACTION_MOVE:
-                    if (activeTouchCorner >= 0) {
-                        updateCropRect(activeTouchCorner, x, y);
-                        invalidate();
-                        return true;
-                    }
-                    break;
-                    
-                case MotionEvent.ACTION_UP:
-                    activeTouchCorner = -1;
-                    break;
-            }
-            
-            return super.onTouchEvent(event);
-        }
-
-        private int getTouchedCorner(float x, float y) {
-            if (isNearPoint(x, y, cropRect.left, cropRect.top)) return CORNER_TL;
-            if (isNearPoint(x, y, cropRect.right, cropRect.top)) return CORNER_TR;
-            if (isNearPoint(x, y, cropRect.left, cropRect.bottom)) return CORNER_BL;
-            if (isNearPoint(x, y, cropRect.right, cropRect.bottom)) return CORNER_BR;
-            return -1;
-        }
-
-        private boolean isNearPoint(float x, float y, float pointX, float pointY) {
-            return Math.abs(x - pointX) < TOUCH_TOLERANCE && Math.abs(y - pointY) < TOUCH_TOLERANCE;
-        }
-
-        private void updateCropRect(int corner, float x, float y) {
-            float minSize = 100f;
-            float maxX = imageTransX + bitmap.getWidth() * imageScale;
-            float maxY = imageTransY + bitmap.getHeight() * imageScale;
-            
-            x = Math.max(imageTransX, Math.min(maxX, x));
-            y = Math.max(imageTransY, Math.min(maxY, y));
-            
-            switch (corner) {
-                case CORNER_TL:
-                    if (cropRect.right - x >= minSize) cropRect.left = x;
-                    if (cropRect.bottom - y >= minSize) cropRect.top = y;
-                    break;
-                case CORNER_TR:
-                    if (x - cropRect.left >= minSize) cropRect.right = x;
-                    if (cropRect.bottom - y >= minSize) cropRect.top = y;
-                    break;
-                case CORNER_BL:
-                    if (cropRect.right - x >= minSize) cropRect.left = x;
-                    if (y - cropRect.top >= minSize) cropRect.bottom = y;
-                    break;
-                case CORNER_BR:
-                    if (x - cropRect.left >= minSize) cropRect.right = x;
-                    if (y - cropRect.top >= minSize) cropRect.bottom = y;
-                    break;
-            }
-        }
-
-        public Bitmap getCroppedBitmap() {
-            if (bitmap == null || bitmap.isRecycled() || cropRect == null) return null;
-            
-            try {
-                // Convert screen coordinates to bitmap coordinates
-                float left = (cropRect.left - imageTransX) / imageScale;
-                float top = (cropRect.top - imageTransY) / imageScale;
-                float right = (cropRect.right - imageTransX) / imageScale;
-                float bottom = (cropRect.bottom - imageTransY) / imageScale;
-                
-                // Constrain to bitmap bounds
-                left = Math.max(0, left);
-                top = Math.max(0, top);
-                right = Math.min(bitmap.getWidth(), right);
-                bottom = Math.min(bitmap.getHeight(), bottom);
-                
-                int width = (int)(right - left);
-                int height = (int)(bottom - top);
-                
-                if (width <= 0 || height <= 0) {
-                    android.util.Log.e("CropImageView", "Invalid crop dimensions: " + width + "x" + height);
-                    return null;
-                }
-                
-                return Bitmap.createBitmap(bitmap, (int)left, (int)top, width, height);
-            } catch (Exception e) {
-                android.util.Log.e("CropImageView", "Error cropping bitmap", e);
-                e.printStackTrace();
-                return null;
-            }
         }
     }
 }

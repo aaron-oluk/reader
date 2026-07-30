@@ -168,7 +168,9 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                 if (options.outHeight > maxDimension || options.outWidth > maxDimension) {
                     final int heightRatio = Math.round((float) options.outHeight / (float) maxDimension);
                     final int widthRatio = Math.round((float) options.outWidth / (float) maxDimension);
-                    sampleSize = Math.min(heightRatio, widthRatio);
+                    // Use the larger ratio so BOTH dimensions end up under maxDimension;
+                    // taking the smaller one leaves typical 4:3 camera photos undownsampled.
+                    sampleSize = Math.max(heightRatio, widthRatio);
                 }
 
                 // Load the bitmap with appropriate sampling
@@ -176,6 +178,11 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                 options.inSampleSize = sampleSize;
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 originalBitmap = BitmapFactory.decodeFile(capturedImagePath, options);
+                if (originalBitmap != null) {
+                    // Covers the "skip crop" path, where the original camera JPEG (with its
+                    // EXIF orientation tag) is forwarded here without ever being decoded/rotated.
+                    originalBitmap = ImageOrientationUtils.applyExifOrientation(originalBitmap, capturedImagePath);
+                }
 
                 if (originalBitmap == null) {
                     runOnUiThread(() -> {
@@ -213,11 +220,11 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                         updateZoomSlider();
                     }, 100);
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Throwable t) {
+                t.printStackTrace();
                 runOnUiThread(() -> {
                     hideProcessing();
-                    Toast.makeText(this, "Error loading image: " + e.getMessage(), 
+                    Toast.makeText(this, "Error loading image: " + t.getMessage(),
                             Toast.LENGTH_SHORT).show();
                     finish();
                 });
@@ -273,8 +280,8 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                         }
                     });
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Throwable t) {
+                t.printStackTrace();
                 runOnUiThread(() -> {
                     hideProcessing();
                     Toast.makeText(this, "Error processing signature", Toast.LENGTH_SHORT).show();
@@ -351,11 +358,11 @@ public class ReviewSignatureActivity extends AppCompatActivity {
                         Toast.makeText(this, "Failed to save signature", Toast.LENGTH_SHORT).show();
                     }
                 });
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (Throwable t) {
+                t.printStackTrace();
                 runOnUiThread(() -> {
                     hideProcessing();
-                    Toast.makeText(this, "Error saving signature: " + e.getMessage(), 
+                    Toast.makeText(this, "Error saving signature: " + t.getMessage(),
                             Toast.LENGTH_SHORT).show();
                 });
             }

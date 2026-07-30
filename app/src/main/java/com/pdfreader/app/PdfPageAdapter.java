@@ -2,7 +2,6 @@ package com.pdfreader.app;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.pdf.PdfRenderer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -30,7 +29,7 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
     private static final String TAG = "PdfPageAdapter";
     
     private final Context context;
-    private final PdfRenderer pdfRenderer;
+    private final PdfBoxRenderer pdfRenderer;
     private final int pageCount;
     private final int screenWidth;
     private final Map<Integer, Bitmap> bitmapCache;
@@ -40,7 +39,7 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
     private String pdfPath;
     private com.pdfreader.app.views.HighlightOverlayView.OnHighlightListener highlightListener;
 
-    public PdfPageAdapter(Context context, PdfRenderer pdfRenderer, int screenWidth) {
+    public PdfPageAdapter(Context context, PdfBoxRenderer pdfRenderer, int screenWidth) {
         this.context = context;
         this.pdfRenderer = pdfRenderer;
         this.pageCount = pdfRenderer.getPageCount();
@@ -188,41 +187,17 @@ public class PdfPageAdapter extends RecyclerView.Adapter<PdfPageAdapter.PageView
             });
         }
 
-        private Bitmap renderPage(int pageIndex) {
-            synchronized (pdfRenderer) {
-                PdfRenderer.Page page = pdfRenderer.openPage(pageIndex);
-                
-                int pageWidth = page.getWidth();
-                int pageHeight = page.getHeight();
-                Log.d(TAG, "Page " + pageIndex + " dimensions: " + pageWidth + "x" + pageHeight);
-                
-                float scale = (float) screenWidth / pageWidth;
-                int width = screenWidth;
-                int height = (int) (pageHeight * scale);
-                
-                Log.d(TAG, "Creating bitmap: " + width + "x" + height + " with scale: " + scale);
-                
-                // Use ARGB_8888 for better compatibility (some ImageViews have issues with RGB_565)
-                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                bitmap.eraseColor(0xFFFFFFFF);
-                
-                Log.d(TAG, "Rendering page " + pageIndex + " to bitmap");
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-                page.close();
-                
-                // Verify bitmap has content (check if it's not all white)
-                int[] pixels = new int[width * Math.min(100, height)]; // Sample first 100 rows
-                bitmap.getPixels(pixels, 0, width, 0, 0, width, Math.min(100, height));
-                boolean hasContent = false;
-                for (int pixel : pixels) {
-                    if (pixel != 0xFFFFFFFF) { // Not white
-                        hasContent = true;
-                        break;
-                    }
-                }
-                Log.d(TAG, "Page " + pageIndex + " rendered, hasContent: " + hasContent + ", bitmap size: " + bitmap.getByteCount() + " bytes");
-                return bitmap;
-            }
+        private Bitmap renderPage(int pageIndex) throws java.io.IOException {
+            float pageWidth = pdfRenderer.getPageWidthPoints(pageIndex);
+            float pageHeight = pdfRenderer.getPageHeightPoints(pageIndex);
+            Log.d(TAG, "Page " + pageIndex + " dimensions: " + pageWidth + "x" + pageHeight);
+
+            float scale = screenWidth / pageWidth;
+            Log.d(TAG, "Rendering page " + pageIndex + " with scale: " + scale);
+
+            Bitmap bitmap = pdfRenderer.renderPage(pageIndex, scale);
+            Log.d(TAG, "Page " + pageIndex + " rendered, bitmap size: " + bitmap.getByteCount() + " bytes");
+            return bitmap;
         }
 
         private void cacheBitmap(int position, Bitmap bitmap) {

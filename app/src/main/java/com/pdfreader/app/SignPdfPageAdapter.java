@@ -3,7 +3,6 @@ package com.pdfreader.app;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.RectF;
-import android.graphics.pdf.PdfRenderer;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
@@ -31,7 +30,7 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
     private static final String TAG = "SignPdfPageAdapter";
 
     private final Context context;
-    private final PdfRenderer pdfRenderer;
+    private final PdfBoxRenderer pdfRenderer;
     private final int pageCount;
     private final int screenWidth;
     private final Map<Integer, Bitmap> bitmapCache;
@@ -70,7 +69,7 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
         this.signatureRemovedListener = listener;
     }
 
-    public SignPdfPageAdapter(Context context, PdfRenderer pdfRenderer, int screenWidth,
+    public SignPdfPageAdapter(Context context, PdfBoxRenderer pdfRenderer, int screenWidth,
                              OnPageClickListener listener) {
         this.context = context;
         this.pdfRenderer = pdfRenderer;
@@ -294,22 +293,9 @@ public class SignPdfPageAdapter extends RecyclerView.Adapter<SignPdfPageAdapter.
             }
         }
 
-        private Bitmap renderPage(int pageIndex) {
-            synchronized (pdfRenderer) {
-                PdfRenderer.Page page = pdfRenderer.openPage(pageIndex);
-
-                float scale = (float) screenWidth / page.getWidth();
-                int width = screenWidth;
-                int height = (int) (page.getHeight() * scale);
-
-                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                bitmap.eraseColor(0xFFFFFFFF);
-
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-                page.close();
-
-                return bitmap;
-            }
+        private Bitmap renderPage(int pageIndex) throws java.io.IOException {
+            float scale = screenWidth / pdfRenderer.getPageWidthPoints(pageIndex);
+            return pdfRenderer.renderPage(pageIndex, scale);
         }
 
         private void cacheBitmap(int position, Bitmap bitmap) {

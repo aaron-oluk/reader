@@ -9,7 +9,6 @@ import android.graphics.PorterDuff;
 import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.pdf.PdfDocument;
-import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -58,7 +57,7 @@ public class SignPdfActivity extends AppCompatActivity {
     private ScrollView scrollView;
 
     private String pdfPath;
-    private PdfRenderer pdfRenderer;
+    private PdfBoxRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private List<Boolean> pagesWithSignature;
     private SignPdfPageAdapter signPdfPageAdapter;
@@ -174,7 +173,7 @@ public class SignPdfActivity extends AppCompatActivity {
                 inputStream.close();
 
                 parcelFileDescriptor = ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY);
-                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+                pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
 
                 int pageCount = pdfRenderer.getPageCount();
                 pagesWithSignature.clear();
@@ -477,46 +476,36 @@ public class SignPdfActivity extends AppCompatActivity {
 
                 for (int i = 0; i < pdfRenderer.getPageCount(); i++) {
                     // Render page with signature if it has one
-                    synchronized (pdfRenderer) {
-                        PdfRenderer.Page page = pdfRenderer.openPage(i);
-                        
-                        float scale = (float) screenWidth / page.getWidth();
-                        int width = screenWidth;
-                        int height = (int) (page.getHeight() * scale);
-                        
-                        Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
-                        bitmap.eraseColor(0xFFFFFFFF);
-                        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-                        
-                        // Add signature if present at the user-defined position
-                        if (signPdfPageAdapter.hasSignature(i)) {
-                            SignPdfPageAdapter.SignaturePosition sigPos = signPdfPageAdapter.getSignaturePosition(i);
-                            if (sigPos != null && sigPos.bitmap != null && !sigPos.bitmap.isRecycled()) {
-                                Canvas canvas = new Canvas(bitmap);
-                                // Use the position and size set by the user
-                                int sigWidth = (int) sigPos.width;
-                                int sigHeight = (int) sigPos.height;
-                                int x = (int) sigPos.x;
-                                int y = (int) sigPos.y;
+                    float scale = screenWidth / pdfRenderer.getPageWidthPoints(i);
+                    Bitmap bitmap = pdfRenderer.renderPage(i, scale);
 
-                                if (sigWidth > 0 && sigHeight > 0) {
-                                    Bitmap scaledSignature = Bitmap.createScaledBitmap(sigPos.bitmap, sigWidth, sigHeight, true);
-                                    canvas.drawBitmap(scaledSignature, x, y, null);
-                                    scaledSignature.recycle();
-                                }
+                    // Add signature if present at the user-defined position
+                    if (signPdfPageAdapter.hasSignature(i)) {
+                        SignPdfPageAdapter.SignaturePosition sigPos = signPdfPageAdapter.getSignaturePosition(i);
+                        if (sigPos != null && sigPos.bitmap != null && !sigPos.bitmap.isRecycled()) {
+                            Canvas canvas = new Canvas(bitmap);
+                            // Use the position and size set by the user
+                            int sigWidth = (int) sigPos.width;
+                            int sigHeight = (int) sigPos.height;
+                            int x = (int) sigPos.x;
+                            int y = (int) sigPos.y;
+
+                            if (sigWidth > 0 && sigHeight > 0) {
+                                Bitmap scaledSignature = Bitmap.createScaledBitmap(sigPos.bitmap, sigWidth, sigHeight, true);
+                                canvas.drawBitmap(scaledSignature, x, y, null);
+                                scaledSignature.recycle();
                             }
                         }
-                        
-                        PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
-                                bitmap.getWidth(), bitmap.getHeight(), i + 1).create();
-                        PdfDocument.Page docPage = document.startPage(pageInfo);
-                        Canvas canvas = docPage.getCanvas();
-                        canvas.drawBitmap(bitmap, 0, 0, null);
-                        document.finishPage(docPage);
-                        
-                        bitmap.recycle();
-                        page.close();
                     }
+
+                    PdfDocument.PageInfo pageInfo = new PdfDocument.PageInfo.Builder(
+                            bitmap.getWidth(), bitmap.getHeight(), i + 1).create();
+                    PdfDocument.Page docPage = document.startPage(pageInfo);
+                    Canvas canvas = docPage.getCanvas();
+                    canvas.drawBitmap(bitmap, 0, 0, null);
+                    document.finishPage(docPage);
+
+                    bitmap.recycle();
                 }
 
                 // Serialise PDF to bytes in memory (avoids partial-read bugs with large files)

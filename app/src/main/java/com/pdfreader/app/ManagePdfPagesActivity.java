@@ -2,11 +2,8 @@ package com.pdfreader.app;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
-import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.pdf.PdfDocument;
-import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -52,7 +49,7 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
     private TextView pageCountText;
     private MaterialButton btnSave;
 
-    private PdfRenderer pdfRenderer;
+    private PdfBoxRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private String pdfPath;
     private boolean modified = false;
@@ -87,7 +84,7 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             try {
                 File file = new File(pdfPath);
                 parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
-                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+                pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
                 int count = pdfRenderer.getPageCount();
                 for (int i = 0; i < count; i++) pageOrder.add(i);
 
@@ -188,21 +185,18 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
 
                 for (int docPageNum = 0; docPageNum < pageOrder.size(); docPageNum++) {
                     int originalIndex = pageOrder.get(docPageNum);
-                    synchronized (pdfRenderer) {
-                        PdfRenderer.Page page = pdfRenderer.openPage(originalIndex);
-                        int w = screenWidth;
-                        int h = (int) ((float) page.getHeight() / page.getWidth() * w);
-                        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-                        bmp.eraseColor(Color.WHITE);
-                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
-                        page.close();
+                    float pageWidthPts = pdfRenderer.getPageWidthPoints(originalIndex);
+                    float pageHeightPts = pdfRenderer.getPageHeightPoints(originalIndex);
+                    float scale = screenWidth / pageWidthPts;
+                    int w = screenWidth;
+                    int h = Math.round(pageHeightPts * scale);
+                    Bitmap bmp = pdfRenderer.renderPage(originalIndex, scale);
 
-                        PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(w, h, docPageNum + 1).create();
-                        PdfDocument.Page docPage = doc.startPage(info);
-                        docPage.getCanvas().drawBitmap(bmp, 0, 0, new Paint());
-                        doc.finishPage(docPage);
-                        bmp.recycle();
-                    }
+                    PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(w, h, docPageNum + 1).create();
+                    PdfDocument.Page docPage = doc.startPage(info);
+                    docPage.getCanvas().drawBitmap(bmp, 0, 0, new Paint());
+                    doc.finishPage(docPage);
+                    bmp.recycle();
                 }
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -325,16 +319,9 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             private Bitmap renderThumbnail(int index) {
                 if (pdfRenderer == null) return null;
                 try {
-                    synchronized (pdfRenderer) {
-                        PdfRenderer.Page page = pdfRenderer.openPage(index);
-                        int thumbW = 400;
-                        int thumbH = (int) ((float) page.getHeight() / page.getWidth() * thumbW);
-                        Bitmap bmp = Bitmap.createBitmap(thumbW, thumbH, Bitmap.Config.ARGB_8888);
-                        bmp.eraseColor(Color.WHITE);
-                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-                        page.close();
-                        return bmp;
-                    }
+                    int thumbW = 400;
+                    float scale = thumbW / pdfRenderer.getPageWidthPoints(index);
+                    return pdfRenderer.renderPage(index, scale);
                 } catch (Exception e) { return null; }
             }
         }

@@ -11,7 +11,6 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.graphics.pdf.PdfDocument;
-import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -84,7 +83,7 @@ public class EditPdfActivity extends AppCompatActivity {
     private ImageView modeHintIcon;
     private TextView modeHintText;
 
-    private PdfRenderer pdfRenderer;
+    private PdfBoxRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private File currentPdfCacheFile;
 
@@ -199,9 +198,10 @@ public class EditPdfActivity extends AppCompatActivity {
         emptyState.setVisibility(View.GONE);
         executor.execute(() -> {
             try {
+                closePdfRenderer();
                 currentPdfCacheFile = new File(path);
                 parcelFileDescriptor = ParcelFileDescriptor.open(currentPdfCacheFile, ParcelFileDescriptor.MODE_READ_ONLY);
-                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+                pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
                 onPdfLoaded();
             } catch (Exception e) {
                 mainHandler.post(() -> {
@@ -226,7 +226,7 @@ public class EditPdfActivity extends AppCompatActivity {
                 }
                 closePdfRenderer();
                 parcelFileDescriptor = ParcelFileDescriptor.open(currentPdfCacheFile, ParcelFileDescriptor.MODE_READ_ONLY);
-                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+                pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
                 onPdfLoaded();
             } catch (Exception e) {
                 mainHandler.post(() -> {
@@ -742,53 +742,47 @@ public class EditPdfActivity extends AppCompatActivity {
                 PdfDocument doc = new PdfDocument();
 
                 for (int i = 0; i < pageCount; i++) {
-                    synchronized (pdfRenderer) {
-                        PdfRenderer.Page page = pdfRenderer.openPage(i);
-                        int w = screenWidth;
-                        int h = (int) ((float) page.getHeight() / page.getWidth() * w);
-                        float scale = (float) w / page.getWidth();
+                    int w = screenWidth;
+                    float scale = w / pdfRenderer.getPageWidthPoints(i);
+                    int h = Math.round(pdfRenderer.getPageHeightPoints(i) * scale);
 
-                        Bitmap bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-                        bmp.eraseColor(Color.WHITE);
-                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
-                        page.close();
+                    Bitmap bmp = pdfRenderer.renderPage(i, scale);
 
-                        List<TextAnnotation> anns = annotations.get(i);
-                        List<SignatureOverlay> sigs = signatureOverlays.get(i);
-                        boolean hasText = anns != null && !anns.isEmpty();
-                        boolean hasSigs = sigs != null && !sigs.isEmpty();
+                    List<TextAnnotation> anns = annotations.get(i);
+                    List<SignatureOverlay> sigs = signatureOverlays.get(i);
+                    boolean hasText = anns != null && !anns.isEmpty();
+                    boolean hasSigs = sigs != null && !sigs.isEmpty();
 
-                        if (hasText || hasSigs) {
-                            Canvas canvas = new Canvas(bmp);
-                            if (hasText) {
-                                Paint paint = new Paint();
-                                paint.setAntiAlias(true);
-                                paint.setTypeface(Typeface.DEFAULT);
-                                for (TextAnnotation ann : anns) {
-                                    paint.setColor(ann.color);
-                                    paint.setTextSize(ann.textSize); // already in px, same resolution as preview
-                                    canvas.drawText(ann.text, ann.xFraction * w, ann.yFraction * h, paint);
-                                }
-                            }
-                            if (hasSigs) {
-                                Paint sigPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-                                for (SignatureOverlay sig : sigs) {
-                                    RectF dst = new RectF(
-                                            sig.xFraction * w,
-                                            sig.yFraction * h,
-                                            (sig.xFraction + sig.widthFraction) * w,
-                                            (sig.yFraction + sig.heightFraction) * h);
-                                    canvas.drawBitmap(sig.bitmap, null, dst, sigPaint);
-                                }
+                    if (hasText || hasSigs) {
+                        Canvas canvas = new Canvas(bmp);
+                        if (hasText) {
+                            Paint paint = new Paint();
+                            paint.setAntiAlias(true);
+                            paint.setTypeface(Typeface.DEFAULT);
+                            for (TextAnnotation ann : anns) {
+                                paint.setColor(ann.color);
+                                paint.setTextSize(ann.textSize); // already in px, same resolution as preview
+                                canvas.drawText(ann.text, ann.xFraction * w, ann.yFraction * h, paint);
                             }
                         }
-
-                        PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(w, h, i + 1).create();
-                        PdfDocument.Page docPage = doc.startPage(info);
-                        docPage.getCanvas().drawBitmap(bmp, 0, 0, null);
-                        doc.finishPage(docPage);
-                        bmp.recycle();
+                        if (hasSigs) {
+                            Paint sigPaint = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
+                            for (SignatureOverlay sig : sigs) {
+                                RectF dst = new RectF(
+                                        sig.xFraction * w,
+                                        sig.yFraction * h,
+                                        (sig.xFraction + sig.widthFraction) * w,
+                                        (sig.yFraction + sig.heightFraction) * h);
+                                canvas.drawBitmap(sig.bitmap, null, dst, sigPaint);
+                            }
+                        }
                     }
+
+                    PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(w, h, i + 1).create();
+                    PdfDocument.Page docPage = doc.startPage(info);
+                    docPage.getCanvas().drawBitmap(bmp, 0, 0, null);
+                    doc.finishPage(docPage);
+                    bmp.recycle();
                 }
 
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -995,16 +989,9 @@ public class EditPdfActivity extends AppCompatActivity {
             private Bitmap renderPage(int index) {
                 if (pdfRenderer == null) return null;
                 try {
-                    synchronized (pdfRenderer) {
-                        PdfRenderer.Page page = pdfRenderer.openPage(index);
-                        int screenW = getResources().getDisplayMetrics().widthPixels - 64;
-                        int h = (int) ((float) page.getHeight() / page.getWidth() * screenW);
-                        Bitmap bmp = Bitmap.createBitmap(screenW, h, Bitmap.Config.ARGB_8888);
-                        bmp.eraseColor(Color.WHITE);
-                        page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
-                        page.close();
-                        return bmp;
-                    }
+                    int screenW = getResources().getDisplayMetrics().widthPixels - 64;
+                    float scale = screenW / pdfRenderer.getPageWidthPoints(index);
+                    return pdfRenderer.renderPage(index, scale);
                 } catch (Exception e) { return null; }
             }
         }

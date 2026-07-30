@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.pdf.PdfDocument;
-import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -245,13 +244,10 @@ public class MergePdfActivity extends AppCompatActivity {
             while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
         }
         try (ParcelFileDescriptor pfd = ParcelFileDescriptor.open(cache, ParcelFileDescriptor.MODE_READ_ONLY);
-             PdfRenderer renderer = new PdfRenderer(pfd)) {
+             PdfBoxRenderer renderer = new PdfBoxRenderer(this, pfd)) {
             for (int i = 0; i < renderer.getPageCount(); i++) {
-                PdfRenderer.Page page = renderer.openPage(i);
-                Bitmap bmp = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
-                bmp.eraseColor(Color.WHITE);
-                page.render(bmp, null, null, PdfRenderer.Page.RENDER_MODE_FOR_PRINT);
-                page.close();
+                // scale 1.0 renders at native point resolution, matching prior behavior
+                Bitmap bmp = renderer.renderPage(i, 1f);
 
                 PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(bmp.getWidth(), bmp.getHeight(), pageNum++).create();
                 PdfDocument.Page p = merged.startPage(info);

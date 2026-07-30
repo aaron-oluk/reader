@@ -2,7 +2,6 @@ package com.pdfreader.app;
 
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -42,7 +41,7 @@ public class PdfReaderActivity extends AppCompatActivity {
     private CoordinatorLayout coordinatorLayout;
     private String pdfPath;
     private String pdfTitle;
-    private PdfRenderer pdfRenderer;
+    private PdfBoxRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private ReadingProgressManager progressManager;
     private HistoryManager historyManager;
@@ -224,7 +223,7 @@ public class PdfReaderActivity extends AppCompatActivity {
 
             parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
             try {
-                pdfRenderer = new PdfRenderer(parcelFileDescriptor);
+                pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
             } catch (SecurityException se) {
                 parcelFileDescriptor.close();
                 Toast.makeText(this,

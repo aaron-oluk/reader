@@ -48,7 +48,7 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@id/toolbar">
 
-        <com.pdfreader.app.CropSignatureActivity.CropImageView
+        <com.pdfreader.app.CropImageView
             android:id="@+id/crop_image_view"
             android:layout_width="match_parent"
             android:layout_height="match_parent" />
