@@ -23,8 +23,8 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:text="Your Library"
-            android:textSize="20sp"
-            android:textStyle="bold"
+            android:textSize="24sp"
+            android:fontFamily="@font/outfit_bold"
             android:textColor="@color/text_primary" />
 
         <com.google.android.material.card.MaterialCardView

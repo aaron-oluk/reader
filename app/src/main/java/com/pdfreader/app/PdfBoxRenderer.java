@@ -4,11 +4,17 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffXfermode;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 
 import com.tom_roush.pdfbox.pdmodel.PDDocument;
 import com.tom_roush.pdfbox.pdmodel.encryption.InvalidPasswordException;
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.AnnotationFilter;
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
+import com.tom_roush.pdfbox.pdmodel.interactive.annotation.PDAnnotationTextMarkup;
 import com.tom_roush.pdfbox.rendering.ImageType;
 
 import java.io.ByteArrayInputStream;
@@ -33,6 +39,29 @@ import java.io.IOException;
 public class PdfBoxRenderer implements Closeable {
 
     private static final String TAG = "PdfBoxRenderer";
+
+    // PdfBox-Android detects PDF blend modes (see PDFRenderer.hasBlendMode) but never actually
+    // implements them -- it has no Xfermode/blend-compositing logic at all, so a Highlight
+    // annotation's intended Multiply blend (which lets the underlying text show through the
+    // color) renders as flat opaque color instead, hiding the text. We work around this by
+    // rendering highlight annotations in their own pass and compositing that pass with a real
+    // PorterDuff.Mode.MULTIPLY ourselves; every other annotation type composites normally.
+    private static final AnnotationFilter HIGHLIGHT_FILTER = new AnnotationFilter() {
+        @Override
+        public boolean accept(PDAnnotation annotation) {
+            return PDAnnotationTextMarkup.SUB_TYPE_HIGHLIGHT.equals(annotation.getSubtype());
+        }
+    };
+    private static final AnnotationFilter NON_HIGHLIGHT_FILTER = new AnnotationFilter() {
+        @Override
+        public boolean accept(PDAnnotation annotation) {
+            return !PDAnnotationTextMarkup.SUB_TYPE_HIGHLIGHT.equals(annotation.getSubtype());
+        }
+    };
+    private static final Paint MULTIPLY_PAINT = new Paint();
+    static {
+        MULTIPLY_PAINT.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.MULTIPLY));
+    }
 
     private final PDDocument document;
     private final AnnotationOnlyPDFRenderer annotationRenderer;
@@ -78,12 +107,21 @@ public class PdfBoxRenderer implements Closeable {
         return document.getNumberOfPages();
     }
 
+    // Uses CropBox + accounts for /Rotate, matching PDFRenderer.renderImage()'s own internal
+    // sizing exactly (it swaps width/height for 90/270deg pages) so the content bitmap we
+    // create and the annotation overlay PdfBox-Android produces always end up pixel-aligned.
     public float getPageWidthPoints(int index) {
-        return document.getPage(index).getMediaBox().getWidth();
+        com.tom_roush.pdfbox.pdmodel.PDPage page = document.getPage(index);
+        com.tom_roush.pdfbox.pdmodel.common.PDRectangle box = page.getCropBox();
+        int rotation = page.getRotation();
+        return (rotation == 90 || rotation == 270) ? box.getHeight() : box.getWidth();
     }
 
     public float getPageHeightPoints(int index) {
-        return document.getPage(index).getMediaBox().getHeight();
+        com.tom_roush.pdfbox.pdmodel.PDPage page = document.getPage(index);
+        com.tom_roush.pdfbox.pdmodel.common.PDRectangle box = page.getCropBox();
+        int rotation = page.getRotation();
+        return (rotation == 90 || rotation == 270) ? box.getWidth() : box.getHeight();
     }
 
     public synchronized Bitmap renderPage(int index, float scale) throws IOException {
@@ -98,9 +136,27 @@ public class PdfBoxRenderer implements Closeable {
         page.render(content, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
         page.close();
 
-        Bitmap annotations = annotationRenderer.renderImage(index, scale, ImageType.ARGB);
-        new Canvas(content).drawBitmap(annotations, 0, 0, null);
-        annotations.recycle();
+        Canvas canvas = new Canvas(content);
+
+        annotationRenderer.setAnnotationsFilter(HIGHLIGHT_FILTER);
+        Bitmap highlights = annotationRenderer.renderImage(index, scale, ImageType.ARGB);
+        // PorterDuff.Mode.MULTIPLY multiplies the ALPHA channels too (resultAlpha = Sa * Da),
+        // unlike the standard CSS/PDF "Multiply" blend mode -- compositing it directly onto
+        // `content` would zero out content's alpha (and colors) everywhere the highlight
+        // overlay is transparent, wiping out the rest of the page. So the multiply is done on
+        // a scratch copy first; that copy's resulting alpha exactly matches the highlight's own
+        // alpha (since `content` is fully opaque going in), so compositing the scratch copy back
+        // with normal SRC_OVER only affects the highlighted region and leaves everything else untouched.
+        Bitmap multiplied = content.copy(Bitmap.Config.ARGB_8888, true);
+        new Canvas(multiplied).drawBitmap(highlights, 0, 0, MULTIPLY_PAINT);
+        highlights.recycle();
+        canvas.drawBitmap(multiplied, 0, 0, null);
+        multiplied.recycle();
+
+        annotationRenderer.setAnnotationsFilter(NON_HIGHLIGHT_FILTER);
+        Bitmap otherAnnotations = annotationRenderer.renderImage(index, scale, ImageType.ARGB);
+        canvas.drawBitmap(otherAnnotations, 0, 0, null);
+        otherAnnotations.recycle();
 
         return content;
     }

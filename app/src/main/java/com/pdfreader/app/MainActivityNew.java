@@ -25,13 +25,18 @@ public class MainActivityNew extends AppCompatActivity {
         fileManager.ensureFoldersExist();
 
         bottomNavigation = findViewById(R.id.bottom_navigation);
-        
+
         // Load home fragment by default
         if (savedInstanceState == null) {
             loadFragment(new HomeFragment());
         }
 
         setupBottomNavigation();
+
+        int requestedTab = getIntent().getIntExtra("open_tab", 0);
+        if (requestedTab != 0) {
+            navigateToTab(requestedTab);
+        }
     }
 
     private void setupBottomNavigation() {

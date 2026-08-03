@@ -17,22 +17,21 @@
             android:orientation="vertical"
             android:paddingBottom="100dp">
 
-            <!-- Warm gradient header -->
+            <!-- Flat header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:background="@drawable/gradient_primary"
-                android:paddingTop="52dp"
-                android:paddingBottom="36dp"
+                android:background="@color/background_light_gray"
+                android:paddingTop="56dp"
+                android:paddingBottom="20dp"
                 android:paddingHorizontal="24dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:gravity="center_vertical"
-                    android:layout_marginBottom="8dp">
+                    android:gravity="top">
 
                     <LinearLayout
                         android:layout_width="0dp"
@@ -44,18 +43,18 @@
                             android:id="@+id/greeting_text"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Good morning!"
-                            android:textSize="22sp"
-                            android:textStyle="bold"
-                            android:textColor="#FFFFFF"
+                            android:text="Good morning"
+                            android:textSize="28sp"
+                            android:fontFamily="@font/outfit_bold"
+                            android:textColor="@color/text_primary"
                             android:letterSpacing="-0.01" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="What are we reading today?"
-                            android:textSize="12sp"
-                            android:textColor="#CCFFFFFF"
+                            android:textSize="14sp"
+                            android:textColor="@color/text_secondary"
                             android:layout_marginTop="4dp" />
                     </LinearLayout>
 
@@ -64,17 +63,17 @@
                         android:layout_width="44dp"
                         android:layout_height="44dp"
                         app:cardCornerRadius="14dp"
-                        app:cardBackgroundColor="#33FFFFFF"
+                        app:cardBackgroundColor="@color/background_card"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         android:clickable="true"
                         android:focusable="true">
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
                             android:layout_gravity="center"
                             android:src="@drawable/ic_profile"
-                            app:tint="#FFFFFF"
+                            app:tint="@color/primary_blue"
                             android:contentDescription="Profile" />
                     </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
@@ -93,8 +92,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Quick Actions"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/outfit_bold"
                     android:textColor="@color/text_primary"
                     android:layout_marginBottom="14dp" />
 
@@ -112,7 +111,7 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="8dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="@color/background_card"
@@ -160,7 +159,7 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="8dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="@color/background_card"
@@ -208,7 +207,7 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="8dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="@color/background_card"
@@ -256,7 +255,7 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="8dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="@color/background_card"
@@ -304,7 +303,7 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="8dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="@color/background_card"
@@ -352,7 +351,7 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="8dp"
+                        app:cardCornerRadius="14dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="@color/background_card"
@@ -418,8 +417,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Continue Reading"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/outfit_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -601,8 +600,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Recently Opened"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
+                        android:textSize="16sp"
+                        android:fontFamily="@font/outfit_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView

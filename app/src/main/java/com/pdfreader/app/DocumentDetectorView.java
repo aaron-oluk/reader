@@ -10,7 +10,7 @@ import android.view.View;
 
 public class DocumentDetectorView extends View {
 
-    private static final int COLOR_DETECTED  = 0xFF4CAF50; // green
+    private static final int COLOR_DETECTED  = 0xFF6366F1; // brand indigo
     private static final int COLOR_SEARCHING = 0xFFFFFFFF; // white
 
     private final Paint edgePaint   = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -67,7 +67,7 @@ public class DocumentDetectorView extends View {
         int color = det ? COLOR_DETECTED : COLOR_SEARCHING;
         edgePaint.setColor(color);
         cornerPaint.setColor(color);
-        fillPaint.setColor(det ? Color.argb(35, 76, 175, 80) : Color.argb(18, 255, 255, 255));
+        fillPaint.setColor(det ? Color.argb(35, 99, 102, 241) : Color.argb(18, 255, 255, 255));
 
         Path fill = new Path();
         fill.moveTo(q[0], q[1]);

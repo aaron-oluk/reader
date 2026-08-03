@@ -47,6 +47,32 @@
                 android:paddingVertical="3dp"
                 android:visibility="gone" />
 
+            <!-- Status pill (Signed / Pending / Draft / Merged / Scanned) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/status_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="top|start"
+                android:layout_margin="8dp"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/accent_green"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/status_badge_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="SIGNED"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:letterSpacing="0.05"
+                    android:textColor="#FFFFFF" />
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Delete button -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btn_delete"

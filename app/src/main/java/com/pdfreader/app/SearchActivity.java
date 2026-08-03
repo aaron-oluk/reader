@@ -7,14 +7,12 @@ import android.os.Looper;
 import android.os.Environment;
 import android.text.Editable;
 import android.text.TextWatcher;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,6 +28,7 @@ public class SearchActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private ProgressBar progressBar;
     private TextView emptyText;
+    private View emptyState;
     private PdfBookAdapter adapter;
     private List<PdfBook> allFiles;
     private List<PdfBook> filteredFiles;
@@ -40,12 +39,7 @@ public class SearchActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle(R.string.search_files);
-        }
+        findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 
         historyManager = new HistoryManager(this);
 
@@ -53,6 +47,7 @@ public class SearchActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerView);
         progressBar = findViewById(R.id.progressBar);
         emptyText = findViewById(R.id.emptyText);
+        emptyState = findViewById(R.id.empty_state);
 
         allFiles = new ArrayList<>();
         filteredFiles = new ArrayList<>();
@@ -96,10 +91,10 @@ public class SearchActivity extends AppCompatActivity {
 
     private void updateEmptyState() {
         if (filteredFiles.isEmpty()) {
-            emptyText.setVisibility(View.VISIBLE);
+            emptyState.setVisibility(View.VISIBLE);
             recyclerView.setVisibility(View.GONE);
         } else {
-            emptyText.setVisibility(View.GONE);
+            emptyState.setVisibility(View.GONE);
             recyclerView.setVisibility(View.VISIBLE);
         }
     }
@@ -112,21 +107,12 @@ public class SearchActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
     private ExecutorService executorService = Executors.newSingleThreadExecutor();
     private Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private void scanFiles() {
         progressBar.setVisibility(View.VISIBLE);
-        emptyText.setVisibility(View.GONE);
+        emptyState.setVisibility(View.GONE);
 
         executorService.execute(() -> {
             List<PdfBook> files = new ArrayList<>();

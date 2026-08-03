@@ -383,6 +383,8 @@ public class LibraryFragment extends Fragment {
             private final android.widget.ImageView coverImage;
             private final View btnDelete;
             private final ProgressBar progressBar;
+            private final com.google.android.material.card.MaterialCardView statusBadge;
+            private final TextView statusBadgeText;
 
             ViewHolder(@NonNull View itemView) {
                 super(itemView);
@@ -390,12 +392,15 @@ public class LibraryFragment extends Fragment {
                 coverImage = itemView.findViewById(R.id.book_cover);
                 btnDelete = itemView.findViewById(R.id.btn_delete);
                 progressBar = itemView.findViewById(R.id.reading_progress);
+                statusBadge = itemView.findViewById(R.id.status_badge);
+                statusBadgeText = itemView.findViewById(R.id.status_badge_text);
             }
 
-            void bind(PdfBook book, OnBookClickListener listener, OnBookDeleteListener deleteListener, 
+            void bind(PdfBook book, OnBookClickListener listener, OnBookDeleteListener deleteListener,
                      ExecutorService executorService, Handler mainHandler) {
                 titleText.setText(book.getTitle());
-                
+                bindStatusBadge(book);
+
                 // Setup delete button
                 btnDelete.setOnClickListener(v -> {
                     if (deleteListener != null) {
@@ -496,7 +501,38 @@ public class LibraryFragment extends Fragment {
                 
                 itemView.setOnClickListener(v -> listener.onBookClick(book));
             }
-            
+
+            private void bindStatusBadge(PdfBook book) {
+                if (statusBadge == null || statusBadgeText == null) {
+                    return;
+                }
+                String path = book.getFilePath();
+                if (path == null) {
+                    statusBadge.setVisibility(View.GONE);
+                    return;
+                }
+                android.content.Context context = itemView.getContext();
+                String label = null;
+                int colorRes = R.color.accent_green;
+                if (path.contains("/" + com.pdfreader.app.FileManager.CATEGORY_SIGNED + "/")) {
+                    label = "SIGNED";
+                    colorRes = R.color.accent_green;
+                } else if (path.contains("/" + com.pdfreader.app.FileManager.CATEGORY_MERGED + "/")) {
+                    label = "MERGED";
+                    colorRes = R.color.primary_blue;
+                } else if (path.contains("/" + com.pdfreader.app.FileManager.CATEGORY_SCANNED + "/")) {
+                    label = "SCANNED";
+                    colorRes = R.color.accent_amber;
+                }
+                if (label != null) {
+                    statusBadgeText.setText(label);
+                    statusBadge.setCardBackgroundColor(ContextCompat.getColor(context, colorRes));
+                    statusBadge.setVisibility(View.VISIBLE);
+                } else {
+                    statusBadge.setVisibility(View.GONE);
+                }
+            }
+
             private int getPdfPageCount(android.content.Context context, String pdfPath) {
                 try {
                     android.graphics.pdf.PdfRenderer renderer = null;

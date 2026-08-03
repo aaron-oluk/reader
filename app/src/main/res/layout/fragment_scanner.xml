@@ -38,16 +38,33 @@
                 android:contentDescription="Close" />
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:id="@+id/scanner_title"
+        <LinearLayout
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Document Scanner"
-            android:textAppearance="@style/TextAppearance.App.TitleMedium"
-            android:textColor="@color/text_white"
-            android:textStyle="bold"
-            android:gravity="center" />
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <TextView
+                android:id="@+id/scanner_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Scan Document"
+                android:textAppearance="@style/TextAppearance.App.TitleMedium"
+                android:textColor="@color/text_white"
+                android:fontFamily="@font/outfit_semibold"
+                android:gravity="center" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="AUTO MODE"
+                android:textSize="10sp"
+                android:textStyle="bold"
+                android:letterSpacing="0.1"
+                android:textColor="#B3FFFFFF"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/flash_toggle"

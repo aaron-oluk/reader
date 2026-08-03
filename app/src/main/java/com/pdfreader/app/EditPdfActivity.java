@@ -83,6 +83,12 @@ public class EditPdfActivity extends AppCompatActivity {
     private ImageView modeHintIcon;
     private TextView modeHintText;
 
+    // Success state
+    private View successState;
+    private TextView successFileName;
+    private TextView successFileMeta;
+    private String lastSavedPdfPath;
+
     private PdfBoxRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private File currentPdfCacheFile;
@@ -151,10 +157,34 @@ public class EditPdfActivity extends AppCompatActivity {
         modeHintIcon     = findViewById(R.id.mode_hint_icon);
         modeHintText     = findViewById(R.id.mode_hint_text);
 
+        successState     = findViewById(R.id.success_state);
+        successFileName  = findViewById(R.id.success_file_name);
+        successFileMeta  = findViewById(R.id.success_file_meta);
+        findViewById(R.id.success_btn_back).setOnClickListener(v -> finish());
+        findViewById(R.id.success_btn_share).setOnClickListener(v -> {
+            if (lastSavedPdfPath != null) sharePdf(lastSavedPdfPath);
+        });
+        findViewById(R.id.success_btn_back_to_documents).setOnClickListener(v -> finish());
+        findViewById(R.id.success_btn_view_history).setOnClickListener(v -> {
+            Intent intent = new Intent(this, MainActivityNew.class);
+            intent.putExtra("open_tab", R.id.navigation_library);
+            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            startActivity(intent);
+            finish();
+        });
+
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_exit_mode).setOnClickListener(v -> exitAllModes());
 
         toolOpenBtn.setOnClickListener(v -> openFilePicker());
+
+        View btnOpenPdfEmpty = findViewById(R.id.btn_open_pdf_empty);
+        if (btnOpenPdfEmpty != null) btnOpenPdfEmpty.setOnClickListener(v -> openFilePicker());
+        View btnRecentFilesEmpty = findViewById(R.id.btn_recent_files_empty);
+        if (btnRecentFilesEmpty != null) btnRecentFilesEmpty.setOnClickListener(v -> openFilePicker());
+        View btnScanEmpty = findViewById(R.id.btn_scan_empty);
+        if (btnScanEmpty != null) btnScanEmpty.setOnClickListener(v ->
+                startActivity(new Intent(this, ScanDocumentActivity.class)));
         toolTextBtn.setOnClickListener(v -> {
             if (pdfRenderer == null) {
                 Toast.makeText(this, "Open a PDF first", Toast.LENGTH_SHORT).show();
@@ -803,16 +833,13 @@ public class EditPdfActivity extends AppCompatActivity {
                     new HistoryManager(this).addToHistory(fileName, finalPath);
                 }
 
+                final String finalFileName = fileName;
+                final double sizeMb = bytes.length / (1024.0 * 1024.0);
                 mainHandler.post(() -> {
                     btnSave.setEnabled(true);
                     btnSave.setText("Save PDF");
                     btnSave.setIconResource(R.drawable.ic_save);
-                    new AlertDialog.Builder(this)
-                            .setTitle("Saved")
-                            .setMessage("PDF saved. Share it now?")
-                            .setPositiveButton("Share", (d, w) -> sharePdf(finalPath))
-                            .setNegativeButton("Done", null)
-                            .show();
+                    showSuccessScreen(finalPath, finalFileName, sizeMb);
                 });
             } catch (Exception e) {
                 mainHandler.post(() -> {
@@ -836,6 +863,19 @@ public class EditPdfActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "Share failed: " + e.getMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void showSuccessScreen(String path, String fileName, double sizeMb) {
+        lastSavedPdfPath = path;
+        if (successFileName != null) {
+            successFileName.setText(fileName);
+        }
+        if (successFileMeta != null) {
+            successFileMeta.setText(String.format(Locale.US, "Saved just now • %.1f MB", sizeMb));
+        }
+        View mainContentRoot = findViewById(R.id.main_content_root);
+        if (mainContentRoot != null) mainContentRoot.setVisibility(View.GONE);
+        if (successState != null) successState.setVisibility(View.VISIBLE);
     }
 
     private void closePdfRenderer() {

@@ -20,6 +20,10 @@ public class AnnotationOnlyPDFRenderer extends PDFRenderer {
 
     @Override
     protected PageDrawer createPageDrawer(PageDrawerParameters parameters) throws IOException {
-        return new AnnotationOnlyPageDrawer(parameters);
+        PageDrawer drawer = new AnnotationOnlyPageDrawer(parameters);
+        // Propagate whatever filter is set via setAnnotationsFilter(...), matching
+        // PDFRenderer's own default createPageDrawer() behavior.
+        drawer.setAnnotationFilter(getAnnotationsFilter());
+        return drawer;
     }
 }
