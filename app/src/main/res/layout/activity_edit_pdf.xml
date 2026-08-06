@@ -233,9 +233,11 @@
             android:id="@+id/pages_recycler"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:paddingTop="12dp"
-            android:paddingBottom="12dp"
+            android:background="#E5EEFF"
+            android:paddingTop="16dp"
+            android:paddingBottom="24dp"
             android:clipToPadding="false"
+            android:overScrollMode="never"
             android:visibility="gone" />
 
     </FrameLayout>
@@ -279,6 +281,7 @@
             android:layout_marginStart="12dp"
             android:text="Tap any page to add"
             android:textSize="13sp"
+            android:fontFamily="@font/montserrat_semibold"
             android:textColor="@color/text_primary" />
 
         <ImageView

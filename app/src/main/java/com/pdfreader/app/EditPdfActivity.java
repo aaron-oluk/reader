@@ -64,6 +64,7 @@ import java.util.concurrent.Executors;
 public class EditPdfActivity extends AppCompatActivity {
 
     public static final String EXTRA_PDF_PATH = "pdf_path";
+    public static final String EXTRA_PDF_TITLE = "pdf_title";
 
     private RecyclerView pagesRecycler;
     private ProgressBar loadingIndicator;
@@ -225,7 +226,18 @@ public class EditPdfActivity extends AppCompatActivity {
         pagesRecycler.setLayoutManager(new LinearLayoutManager(this));
 
         String passedPath = getIntent().getStringExtra(EXTRA_PDF_PATH);
-        if (passedPath != null) loadFromPath(passedPath);
+        if (passedPath != null && !passedPath.isEmpty()) {
+            if (passedPath.startsWith("content://")) {
+                loadPdf(Uri.parse(passedPath));
+            } else {
+                loadFromPath(passedPath);
+            }
+            String title = getIntent().getStringExtra(EXTRA_PDF_TITLE);
+            if (title != null && !title.isEmpty()) {
+                // Show document name until page count is known
+                pageCountText.setText(title);
+            }
+        }
     }
 
     // ── File loading ──────────────────────────────────────────────────────────
@@ -294,7 +306,12 @@ public class EditPdfActivity extends AppCompatActivity {
             loadingIndicator.setVisibility(View.GONE);
             emptyState.setVisibility(View.GONE);
             pagesRecycler.setVisibility(View.VISIBLE);
-            pageCountText.setText(count + (count == 1 ? " page" : " pages"));
+            String title = getIntent().getStringExtra(EXTRA_PDF_TITLE);
+            if (title != null && !title.isEmpty()) {
+                pageCountText.setText(title + "  ·  " + count + (count == 1 ? " page" : " pages"));
+            } else {
+                pageCountText.setText(count + (count == 1 ? " page" : " pages"));
+            }
             btnSave.setEnabled(false);
             pageAdapter = new EditPageAdapter();
             pagesRecycler.setAdapter(pageAdapter);
@@ -991,7 +1008,9 @@ public class EditPdfActivity extends AppCompatActivity {
 
             void bind(int position) {
                 boundPos = position;
-                pageNum.setText(String.valueOf(position + 1));
+                int total = getItemCount();
+                pageNum.setText(String.format(
+                        java.util.Locale.US, "PAGE %d OF %d", position + 1, Math.max(total, 1)));
                 progress.setVisibility(View.VISIBLE);
                 pageImage.setImageBitmap(null);
 
@@ -1043,7 +1062,9 @@ public class EditPdfActivity extends AppCompatActivity {
             private Bitmap renderPage(int index) {
                 if (pdfRenderer == null) return null;
                 try {
-                    int screenW = getResources().getDisplayMetrics().widthPixels - 64;
+                    float density = getResources().getDisplayMetrics().density;
+                    int sideInset = Math.round(40f * density); // 20dp margin each side
+                    int screenW = getResources().getDisplayMetrics().widthPixels - sideInset;
                     float scale = screenW / pdfRenderer.getPageWidthPoints(index);
                     return pdfRenderer.renderPage(index, scale);
                 } catch (Exception e) { return null; }

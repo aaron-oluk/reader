@@ -19,6 +19,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
 import androidx.core.content.ContextCompat;
@@ -134,29 +135,33 @@ public class PdfReaderActivity extends AppCompatActivity {
         ImageButton btnShare = findViewById(R.id.btn_share);
         btnShare.setOnClickListener(v -> shareDocument());
         
-        // Manage Pages button (reuses the search slot)
+        // Manage Pages — operate on the currently open document
         ImageButton btnSearch = findViewById(R.id.btn_search);
         btnSearch.setOnClickListener(v -> {
-            if (resolvedFilePath == null) {
-                Toast.makeText(this, "Open a PDF first", Toast.LENGTH_SHORT).show();
+            String path = currentDocumentPath();
+            if (path == null) {
+                Toast.makeText(this, "Document not ready yet", Toast.LENGTH_SHORT).show();
                 return;
             }
             Intent intent = new Intent(this, ManagePdfPagesActivity.class);
-            intent.putExtra(ManagePdfPagesActivity.EXTRA_PDF_PATH, resolvedFilePath);
+            intent.putExtra(ManagePdfPagesActivity.EXTRA_PDF_PATH, path);
             startActivity(intent);
         });
 
-        // Edit PDF button
+        // Edit & Sign — operate on the currently open document
         ImageButton btnEditPdf = findViewById(R.id.btn_edit_pdf);
         btnEditPdf.setOnClickListener(v -> {
-            if (pdfPath != null && !pdfPath.startsWith("content://")) {
-                Intent intent = new Intent(this, EditPdfActivity.class);
-                intent.putExtra(EditPdfActivity.EXTRA_PDF_PATH, pdfPath);
-                startActivity(intent);
-            } else {
-                Intent intent = new Intent(this, EditPdfActivity.class);
-                startActivity(intent);
+            String path = currentDocumentPath();
+            if (path == null) {
+                Toast.makeText(this, "Document not ready yet", Toast.LENGTH_SHORT).show();
+                return;
             }
+            Intent intent = new Intent(this, EditPdfActivity.class);
+            intent.putExtra(EditPdfActivity.EXTRA_PDF_PATH, path);
+            if (pdfTitle != null) {
+                intent.putExtra(EditPdfActivity.EXTRA_PDF_TITLE, pdfTitle);
+            }
+            startActivity(intent);
         });
 
         // Scroll listener for page tracking
@@ -169,6 +174,18 @@ public class PdfReaderActivity extends AppCompatActivity {
         });
     }
 
+
+    /** Prefer the resolved local file path (after content:// copy); fall back to the original path. */
+    @Nullable
+    private String currentDocumentPath() {
+        if (resolvedFilePath != null && !resolvedFilePath.isEmpty()) {
+            return resolvedFilePath;
+        }
+        if (pdfPath != null && !pdfPath.isEmpty() && !pdfPath.startsWith("content://")) {
+            return pdfPath;
+        }
+        return pdfPath; // may still be content:// — EditPdf can open URIs
+    }
 
     private void shareDocument() {
         if (pdfPath == null) return;
