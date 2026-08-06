@@ -12,7 +12,7 @@
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:background="@drawable/gradient_primary"
-        android:paddingTop="52dp"
+        android:paddingTop="32dp"
         android:paddingBottom="20dp"
         android:paddingHorizontal="20dp">
 
