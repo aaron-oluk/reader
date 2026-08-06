@@ -68,8 +68,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="18dp"
-        app:cardCornerRadius="8dp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="20dp"
+        app:cardCornerRadius="10dp"
         app:cardElevation="0dp"
         app:strokeWidth="0dp"
         app:cardBackgroundColor="@color/background_card">
@@ -80,7 +81,7 @@
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp">
+            android:paddingVertical="14dp">
 
             <ImageView
                 android:layout_width="20dp"
@@ -98,6 +99,7 @@
                 android:background="@android:color/transparent"
                 android:hint="Search PDF and EPUB files..."
                 android:textSize="15sp"
+                android:fontFamily="@font/montserrat"
                 android:textColor="@color/text_primary"
                 android:textColorHint="@color/text_secondary"
                 android:inputType="text"
@@ -110,11 +112,11 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="20dp"
-        android:layout_marginBottom="10dp"
+        android:layout_marginBottom="12dp"
         android:text="RECENT DOCUMENTS"
-        android:textSize="12sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.05"
+        android:textSize="11sp"
+        android:fontFamily="@font/montserrat_semibold"
+        android:letterSpacing="0.1"
         android:textColor="@color/text_secondary" />
 
     <FrameLayout

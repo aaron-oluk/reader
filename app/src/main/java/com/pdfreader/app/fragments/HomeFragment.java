@@ -202,6 +202,15 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupQuickActions(View view) {
+        View profileIcon = view.findViewById(R.id.profile_icon);
+        if (profileIcon != null) {
+            profileIcon.setOnClickListener(v -> {
+                if (getActivity() instanceof MainActivityNew) {
+                    ((MainActivityNew) getActivity()).navigateToTab(R.id.navigation_profile);
+                }
+            });
+        }
+
         // Open PDF quick action
         View actionOpenPdf = view.findViewById(R.id.action_open_pdf);
         if (actionOpenPdf != null) {
