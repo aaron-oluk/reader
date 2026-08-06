@@ -13,7 +13,9 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -30,20 +32,42 @@ public class SignatureManagementActivity extends AppCompatActivity {
     private SignatureManager signatureManager;
     private SignatureAdapter adapter;
     private TextView emptyStateText;
+    private TextView signatureCount;
+    private ImageView activeSignaturePreview;
+    private ImageView activeSignaturePlaceholder;
+    private TextView activeSignatureName;
 
     private ActivityResultLauncher<Intent> cameraSignatureLauncher;
     private ActivityResultLauncher<Intent> drawSignatureLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signature_management);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-            getSupportActionBar().setTitle("My Signatures");
+        View appBar = findViewById(R.id.app_bar);
+        if (appBar != null) {
+            final int contentTop = appBar.getPaddingTop(); // 12dp from XML
+            ViewCompat.setOnApplyWindowInsetsListener(appBar, (v, windowInsets) -> {
+                Insets status = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+                v.setPadding(
+                        v.getPaddingLeft(),
+                        contentTop + status.top,
+                        v.getPaddingRight(),
+                        v.getPaddingBottom()
+                );
+                return windowInsets;
+            });
+            ViewCompat.requestApplyInsets(appBar);
+        }
+
+        View root = findViewById(android.R.id.content);
+        if (root instanceof android.view.ViewGroup) {
+            View contentRoot = ((android.view.ViewGroup) root).getChildAt(0);
+            if (contentRoot != null) {
+                WindowInsetsHelper.applyNavigationBarPadding(contentRoot);
+            }
         }
 
         signatureManager = new SignatureManager(this);
@@ -58,16 +82,23 @@ public class SignatureManagementActivity extends AppCompatActivity {
         cardDrawSignature = findViewById(R.id.card_draw_signature);
         cardCameraSignature = findViewById(R.id.card_camera_signature);
         emptyStateText = findViewById(R.id.empty_state_text);
+        signatureCount = findViewById(R.id.signature_count);
+        activeSignaturePreview = findViewById(R.id.active_signature_preview);
+        activeSignaturePlaceholder = findViewById(R.id.active_signature_placeholder);
+        activeSignatureName = findViewById(R.id.active_signature_name);
+
+        View btnBack = findViewById(R.id.btn_back);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> getOnBackPressedDispatcher().onBackPressed());
+        }
 
         signaturesRecycler.setLayoutManager(new LinearLayoutManager(this));
 
-        // Create new signature options
         cardDrawSignature.setOnClickListener(v -> openDrawSignature());
         cardCameraSignature.setOnClickListener(v -> openCameraSignatureCapture());
     }
 
     private void setupLaunchers() {
-        // Camera signature launcher
         cameraSignatureLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -81,7 +112,6 @@ public class SignatureManagementActivity extends AppCompatActivity {
                     }
                 });
 
-        // Draw signature launcher
         drawSignatureLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
                 result -> {
@@ -99,10 +129,16 @@ public class SignatureManagementActivity extends AppCompatActivity {
     private void loadSignatures() {
         List<String> savedSignatures = signatureManager.getSavedSignatures();
 
+        if (signatureCount != null) {
+            signatureCount.setText(String.valueOf(savedSignatures.size()));
+        }
+
+        updateActiveSignature(savedSignatures);
+
         if (savedSignatures.isEmpty()) {
             signaturesRecycler.setVisibility(View.GONE);
             emptyStateContainer.setVisibility(View.VISIBLE);
-            emptyStateText.setText("No saved signatures yet\nCreate one using the options above");
+            emptyStateText.setText("Draw or photograph a signature to get started");
         } else {
             signaturesRecycler.setVisibility(View.VISIBLE);
             emptyStateContainer.setVisibility(View.GONE);
@@ -111,14 +147,37 @@ public class SignatureManagementActivity extends AppCompatActivity {
         adapter = new SignatureAdapter(savedSignatures, signatureManager);
         signaturesRecycler.setAdapter(adapter);
 
-        adapter.setOnSignatureClickListener(filePath -> {
-            // View signature details
-            showSignatureDetails(filePath);
-        });
+        adapter.setOnSignatureClickListener(this::showSignatureDetails);
+        adapter.setOnSignatureDeleteListener(this::showDeleteConfirmation);
+    }
 
-        adapter.setOnSignatureDeleteListener(filePath -> {
-            showDeleteConfirmation(filePath);
-        });
+    private void updateActiveSignature(List<String> savedSignatures) {
+        if (activeSignaturePreview == null) return;
+
+        if (savedSignatures.isEmpty()) {
+            activeSignaturePreview.setVisibility(View.GONE);
+            activeSignaturePreview.setImageDrawable(null);
+            if (activeSignaturePlaceholder != null) {
+                activeSignaturePlaceholder.setVisibility(View.VISIBLE);
+            }
+            if (activeSignatureName != null) {
+                activeSignatureName.setText("No signature selected");
+            }
+            return;
+        }
+
+        String path = savedSignatures.get(0);
+        Bitmap bitmap = signatureManager.loadSignature(path);
+        if (bitmap != null) {
+            activeSignaturePreview.setImageBitmap(bitmap);
+            activeSignaturePreview.setVisibility(View.VISIBLE);
+            if (activeSignaturePlaceholder != null) {
+                activeSignaturePlaceholder.setVisibility(View.GONE);
+            }
+            if (activeSignatureName != null) {
+                activeSignatureName.setText(signatureManager.getSignatureName(path));
+            }
+        }
     }
 
     private void showSignatureDetails(String filePath) {
@@ -130,13 +189,13 @@ public class SignatureManagementActivity extends AppCompatActivity {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature_preview, null);
-        
+
         ImageView previewImage = dialogView.findViewById(R.id.signature_preview);
         TextView signatureName = dialogView.findViewById(R.id.signature_name);
-        
+
         previewImage.setImageBitmap(signature);
         signatureName.setText(signatureManager.getSignatureName(filePath));
-        
+
         builder.setView(dialogView);
         builder.setPositiveButton("Close", null);
         builder.show();
@@ -166,11 +225,5 @@ public class SignatureManagementActivity extends AppCompatActivity {
     private void openDrawSignature() {
         Intent intent = new Intent(this, DrawSignatureActivity.class);
         drawSignatureLauncher.launch(intent);
-    }
-
-    @Override
-    public boolean onSupportNavigateUp() {
-        onBackPressed();
-        return true;
     }
 }

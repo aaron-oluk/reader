@@ -6,78 +6,110 @@
     android:orientation="vertical"
     android:background="@color/background_light_gray">
 
-    <!-- Header -->
+    <!-- App bar — status-bar inset applied at runtime via @id/app_bar -->
     <LinearLayout
+        android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@drawable/gradient_primary"
-        android:paddingTop="12dp"
-        android:paddingBottom="28dp"
-        android:paddingHorizontal="24dp">
+        android:background="@color/background_white"
+        android:elevation="2dp"
+        android:paddingTop="12dp">
 
-        <androidx.appcompat.widget.Toolbar
-            android:id="@+id/toolbar"
+        <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/transparent"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="#FFFFFF" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="14dp">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Signatures"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="#FFFFFF"
-            android:layout_marginTop="4dp" />
+            <ImageView
+                android:id="@+id/btn_back"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/text_primary"
+                android:padding="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back" />
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Create and manage your saved signatures"
-            android:textSize="13sp"
-            android:textColor="#CCFFFFFF"
-            android:layout_marginTop="4dp" />
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="My Signatures"
+                    android:textSize="20sp"
+                    android:fontFamily="@font/montserrat_bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Create and reuse digital signatures"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/montserrat"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Hidden toolbar kept for setSupportActionBar compatibility -->
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:fillViewport="true">
+        android:fillViewport="true"
+        android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:paddingHorizontal="20dp"
-            android:paddingTop="24dp"
+            android:paddingTop="20dp"
             android:paddingBottom="40dp">
 
-            <!-- Create New -->
+            <!-- Create new section -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Create New"
-                android:textSize="17sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:layout_marginBottom="14dp" />
+                android:text="CREATE NEW"
+                android:textSize="11sp"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textColor="@color/text_secondary"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="12dp" />
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:layout_marginBottom="28dp">
+                android:layout_marginBottom="28dp"
+                android:baselineAligned="false">
 
                 <!-- Draw -->
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_draw_signature"
                     android:layout_width="0dp"
-                    android:layout_height="100dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
+                    android:minHeight="128dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
@@ -88,18 +120,18 @@
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:paddingHorizontal="12dp"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            app:cardCornerRadius="10dp"
-                            app:cardBackgroundColor="#EEF2FF"
-                            app:cardElevation="0dp"
-                            app:strokeWidth="0dp">
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_profile_pill">
+
                             <ImageView
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
@@ -107,24 +139,28 @@
                                 android:src="@drawable/ic_draw"
                                 app:tint="@color/primary_blue"
                                 android:contentDescription="Draw" />
-                        </com.google.android.material.card.MaterialCardView>
+                        </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:text="Draw"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
+                            android:textSize="15sp"
+                            android:fontFamily="@font/montserrat_semibold"
+                            android:textColor="@color/text_primary"
+                            android:maxLines="1" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Sign on screen"
-                            android:textSize="11sp"
+                            android:textSize="12sp"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:maxLines="2" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
@@ -132,9 +168,10 @@
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/card_camera_signature"
                     android:layout_width="0dp"
-                    android:layout_height="100dp"
+                    android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
+                    android:minHeight="128dp"
                     android:clickable="true"
                     android:focusable="true"
                     android:foreground="?android:attr/selectableItemBackground"
@@ -145,18 +182,18 @@
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:gravity="center"
+                        android:layout_height="wrap_content"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical"
-                        android:padding="16dp">
+                        android:paddingHorizontal="12dp"
+                        android:paddingTop="16dp"
+                        android:paddingBottom="16dp">
 
-                        <com.google.android.material.card.MaterialCardView
-                            android:layout_width="40dp"
-                            android:layout_height="40dp"
-                            app:cardCornerRadius="10dp"
-                            app:cardBackgroundColor="#FEF3C7"
-                            app:cardElevation="0dp"
-                            app:strokeWidth="0dp">
+                        <FrameLayout
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:background="@drawable/bg_sig_action_amber">
+
                             <ImageView
                                 android:layout_width="22dp"
                                 android:layout_height="22dp"
@@ -164,36 +201,104 @@
                                 android:src="@drawable/ic_camera"
                                 app:tint="@color/accent_amber"
                                 android:contentDescription="Camera" />
-                        </com.google.android.material.card.MaterialCardView>
+                        </FrameLayout>
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
+                            android:layout_marginTop="10dp"
                             android:text="Camera"
-                            android:textSize="13sp"
-                            android:textStyle="bold"
-                            android:textColor="@color/text_primary" />
+                            android:textSize="15sp"
+                            android:fontFamily="@font/montserrat_semibold"
+                            android:textColor="@color/text_primary"
+                            android:maxLines="1" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Photograph signature"
-                            android:textSize="11sp"
+                            android:text="Photograph ink"
+                            android:textSize="12sp"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="4dp"
+                            android:gravity="center"
+                            android:maxLines="2" />
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
-
             </LinearLayout>
 
-            <!-- Saved Signatures header -->
+            <!-- Active signature spotlight -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/active_signature_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="28dp"
+                app:cardCornerRadius="10dp"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                app:cardBackgroundColor="@color/background_card">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CURRENT ACTIVE SIGNATURE"
+                        android:textSize="11sp"
+                        android:fontFamily="@font/montserrat_semibold"
+                        android:textColor="@color/text_secondary"
+                        android:letterSpacing="0.1"
+                        android:layout_marginBottom="14dp" />
+
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="112dp"
+                        android:background="@drawable/signature_dashed_border">
+
+                        <ImageView
+                            android:id="@+id/active_signature_preview"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:scaleType="fitCenter"
+                            android:padding="16dp"
+                            android:contentDescription="Active signature"
+                            android:visibility="gone" />
+
+                        <ImageView
+                            android:id="@+id/active_signature_placeholder"
+                            android:layout_width="40dp"
+                            android:layout_height="40dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_signature"
+                            app:tint="@color/primary_blue"
+                            android:alpha="0.45"
+                            android:contentDescription="No active signature" />
+                    </FrameLayout>
+
+                    <TextView
+                        android:id="@+id/active_signature_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:gravity="center"
+                        android:text="No signature selected"
+                        android:textSize="13sp"
+                        android:fontFamily="@font/montserrat"
+                        android:textColor="@color/text_secondary" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Saved list header -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:layout_marginBottom="14dp">
+                android:layout_marginBottom="12dp">
 
                 <TextView
                     android:layout_width="0dp"
@@ -201,14 +306,20 @@
                     android:layout_weight="1"
                     android:text="Saved Signatures"
                     android:textSize="17sp"
-                    android:textStyle="bold"
+                    android:fontFamily="@font/montserrat_bold"
                     android:textColor="@color/text_primary" />
 
-                <View
-                    android:layout_width="0dp"
-                    android:layout_height="1dp"
-                    android:layout_weight="0.6"
-                    android:background="@color/divider" />
+                <TextView
+                    android:id="@+id/signature_count"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/montserrat_semibold"
+                    android:textColor="@color/primary_blue"
+                    android:background="@drawable/bg_profile_pill"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp" />
             </LinearLayout>
 
             <!-- Empty State -->
@@ -218,25 +329,42 @@
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:orientation="vertical"
-                android:paddingVertical="40dp"
+                android:paddingVertical="48dp"
                 android:visibility="gone">
 
-                <ImageView
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
-                    android:src="@drawable/ic_signature"
-                    android:alpha="0.25"
-                    app:tint="@color/primary_blue"
-                    android:contentDescription="No signatures" />
+                <FrameLayout
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:background="@drawable/bg_profile_pill">
+
+                    <ImageView
+                        android:layout_width="32dp"
+                        android:layout_height="32dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_signature"
+                        app:tint="@color/primary_blue"
+                        android:alpha="0.7"
+                        android:contentDescription="No signatures" />
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:text="Nothing saved yet"
+                    android:textSize="16sp"
+                    android:fontFamily="@font/montserrat_semibold"
+                    android:textColor="@color/text_primary" />
 
                 <TextView
                     android:id="@+id/empty_state_text"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
+                    android:layout_marginTop="6dp"
                     android:gravity="center"
-                    android:text="No saved signatures yet"
-                    android:textSize="14sp"
+                    android:text="Draw or photograph a signature to get started"
+                    android:textSize="13sp"
+                    android:fontFamily="@font/montserrat"
                     android:textColor="@color/text_secondary" />
             </LinearLayout>
 
@@ -245,6 +373,7 @@
                 android:id="@+id/signatures_recycler"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
                 android:scrollbars="none" />
 
         </LinearLayout>

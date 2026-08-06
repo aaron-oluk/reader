@@ -111,8 +111,9 @@ public final class WindowInsetsHelper {
             }
             return;
         }
-        if (activity instanceof MainActivityNew) {
-            return; // handled explicitly in MainActivityNew
+        if (activity instanceof MainActivityNew
+                || activity instanceof SignatureManagementActivity) {
+            return; // handled explicitly in those activities
         }
 
         enableEdgeToEdge(activity, true);
@@ -120,6 +121,14 @@ public final class WindowInsetsHelper {
         if (!(content instanceof ViewGroup)) return;
         View root = ((ViewGroup) content).getChildAt(0);
         if (root == null) return;
+
+        // Prefer a dedicated app bar so the header clears the status bar (My Signatures, etc.)
+        View appBar = activity.findViewById(R.id.app_bar);
+        if (appBar != null) {
+            applyStatusBarPadding(appBar);
+            applyNavigationBarPadding(root);
+            return;
+        }
 
         // Readers keep floating chrome; pad toolbar + list clearance with status insets.
         View toolbar = activity.findViewById(R.id.top_toolbar);
