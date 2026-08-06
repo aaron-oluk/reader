@@ -17,8 +17,8 @@ public class MainActivityNew extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
         WindowInsetsHelper.enableEdgeToEdge(this, true);
+        super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_new);
 
         // Initialize app folders on startup
@@ -26,7 +26,7 @@ public class MainActivityNew extends AppCompatActivity {
         fileManager.ensureFoldersExist();
 
         bottomNavigation = findViewById(R.id.bottom_navigation);
-        WindowInsetsHelper.applyStatusBarPadding(findViewById(R.id.fragment_container));
+        WindowInsetsHelper.applyAppBarInsets(findViewById(R.id.fragment_container));
         WindowInsetsHelper.applyNavigationBarPadding(bottomNavigation);
 
         // Load home fragment by default

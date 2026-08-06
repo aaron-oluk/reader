@@ -52,6 +52,8 @@
             android:minHeight="60dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
             android:paddingHorizontal="12dp"
             android:background="@color/background_white"
             android:elevation="4dp">

@@ -13,9 +13,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -45,30 +42,7 @@ public class SignatureManagementActivity extends AppCompatActivity {
         WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signature_management);
-
-        View appBar = findViewById(R.id.app_bar);
-        if (appBar != null) {
-            final int contentTop = appBar.getPaddingTop(); // 12dp from XML
-            ViewCompat.setOnApplyWindowInsetsListener(appBar, (v, windowInsets) -> {
-                Insets status = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
-                v.setPadding(
-                        v.getPaddingLeft(),
-                        contentTop + status.top,
-                        v.getPaddingRight(),
-                        v.getPaddingBottom()
-                );
-                return windowInsets;
-            });
-            ViewCompat.requestApplyInsets(appBar);
-        }
-
-        View root = findViewById(android.R.id.content);
-        if (root instanceof android.view.ViewGroup) {
-            View contentRoot = ((android.view.ViewGroup) root).getChildAt(0);
-            if (contentRoot != null) {
-                WindowInsetsHelper.applyNavigationBarPadding(contentRoot);
-            }
-        }
+        // App-bar insets applied globally via WindowInsetsHelper.setupAfterSetContentView
 
         signatureManager = new SignatureManager(this);
         initViews();
