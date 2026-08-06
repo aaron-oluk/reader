@@ -1,5 +1,6 @@
 package com.pdfreader.app;
 
+import android.app.DatePickerDialog;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Bitmap;
@@ -32,6 +33,8 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -58,6 +61,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -80,10 +84,10 @@ public class EditPdfActivity extends AppCompatActivity {
     // Bottom tool palette
     private View toolPalette;
     private View toolOpenBtn;
-    private LinearLayout toolTextBtn, toolSignBtn;
-    private MaterialCardView toolTextIconBg, toolSignIconBg;
-    private ImageView toolTextIcon, toolSignIcon;
-    private TextView toolTextLabel, toolSignLabel;
+    private LinearLayout toolTextBtn, toolSignBtn, toolDateBtn;
+    private MaterialCardView toolTextIconBg, toolSignIconBg, toolDateIconBg;
+    private ImageView toolTextIcon, toolSignIcon, toolDateIcon;
+    private TextView toolTextLabel, toolSignLabel, toolDateLabel;
     private View btnReplacePdf;
 
     // Mode hint bar
@@ -108,11 +112,24 @@ public class EditPdfActivity extends AppCompatActivity {
 
     boolean isTextMode = false;
     boolean isSignMode = false;
+    boolean isDateMode = false;
     private boolean hasAnnotations = false;
 
     int currentTextColor = Color.BLACK;
     int currentTextSizeSp = 14;
     boolean currentTextBold = false;
+    private int selectedDateFormatIndex = 0;
+    private Calendar stampCalendar = Calendar.getInstance();
+
+    private static final String[] DATE_FORMAT_PATTERNS = {
+            "MM/dd/yyyy",
+            "dd/MM/yyyy",
+            "yyyy-MM-dd",
+            "MMM d, yyyy",
+            "d MMMM yyyy",
+            "EEEE, MMM d, yyyy",
+            "MM/dd/yy"
+    };
 
     private static final int[] TEXT_COLORS = {
             Color.BLACK, 0xFF1E1B4B, 0xFF2563EB, 0xFFDC2626, 0xFF10B981, 0xFFD97706
@@ -128,12 +145,15 @@ public class EditPdfActivity extends AppCompatActivity {
     private ActivityResultLauncher<Intent> pdfPickerLauncher;
     private Bitmap pendingSigBitmap = null;
     private View selectedAnnotationView = null;
+    /** After cross-page transfer, reopen edit chrome on this model once views rebuild. */
+    private SignatureOverlay signatureToResumeEditing = null;
 
     /** Live on-page text editor — kept above the IME via scroll + margin lift. */
     private View activeLiveEditBox = null;
     private FrameLayout activeLiveEditOverlay = null;
     private int liveEditBaseTopMargin = 0;
     private int liveEditKeyboardLift = 0;
+    private int pagesRecyclerBasePadBottom = -1;
     private final Runnable liveEditImeRelayout = this::relayoutLiveEditorForIme;
 
     final ExecutorService executor = Executors.newFixedThreadPool(2);
@@ -193,12 +213,16 @@ public class EditPdfActivity extends AppCompatActivity {
         toolOpenBtn      = findViewById(R.id.tool_open_btn);
         toolTextBtn      = findViewById(R.id.tool_text_btn);
         toolSignBtn      = findViewById(R.id.tool_sign_btn);
+        toolDateBtn      = findViewById(R.id.tool_date_btn);
         toolTextIconBg   = findViewById(R.id.tool_text_icon_bg);
         toolSignIconBg   = findViewById(R.id.tool_sign_icon_bg);
+        toolDateIconBg   = findViewById(R.id.tool_date_icon_bg);
         toolTextIcon     = findViewById(R.id.tool_text_icon);
         toolSignIcon     = findViewById(R.id.tool_sign_icon);
+        toolDateIcon     = findViewById(R.id.tool_date_icon);
         toolTextLabel    = findViewById(R.id.tool_text_label);
         toolSignLabel    = findViewById(R.id.tool_sign_label);
+        toolDateLabel    = findViewById(R.id.tool_date_label);
         btnReplacePdf    = findViewById(R.id.btn_replace_pdf);
 
         modeHintBar      = findViewById(R.id.mode_hint_bar);
@@ -259,6 +283,15 @@ public class EditPdfActivity extends AppCompatActivity {
             }
             setSignMode(!isSignMode);
         });
+        if (toolDateBtn != null) {
+            toolDateBtn.setOnClickListener(v -> {
+                if (pdfRenderer == null) {
+                    Toast.makeText(this, "Open a PDF first", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                setDateMode(!isDateMode);
+            });
+        }
 
         btnSave.setOnClickListener(v -> saveAnnotatedPdf());
         pagesRecycler.setLayoutManager(new LinearLayoutManager(this));
@@ -367,7 +400,10 @@ public class EditPdfActivity extends AppCompatActivity {
 
     void setTextMode(boolean on) {
         isTextMode = on;
-        if (on) isSignMode = false;
+        if (on) {
+            isSignMode = false;
+            isDateMode = false;
+        }
         updateToolStates();
         if (on) {
             modeHintIcon.setImageResource(R.drawable.ic_draw);
@@ -376,7 +412,7 @@ public class EditPdfActivity extends AppCompatActivity {
             if (textStyleBar != null) textStyleBar.setVisibility(View.VISIBLE);
             refreshTextStyleBar();
             toolPalette.setVisibility(View.GONE);
-        } else if (!isSignMode) {
+        } else if (!isSignMode && !isDateMode) {
             modeHintBar.setVisibility(View.GONE);
             if (textStyleBar != null) textStyleBar.setVisibility(View.GONE);
             showEditingDock();
@@ -387,7 +423,10 @@ public class EditPdfActivity extends AppCompatActivity {
 
     void setSignMode(boolean on) {
         isSignMode = on;
-        if (on) isTextMode = false;
+        if (on) {
+            isTextMode = false;
+            isDateMode = false;
+        }
         updateToolStates();
         if (on) {
             modeHintIcon.setImageResource(R.drawable.ic_signature);
@@ -395,7 +434,26 @@ public class EditPdfActivity extends AppCompatActivity {
             modeHintBar.setVisibility(View.VISIBLE);
             if (textStyleBar != null) textStyleBar.setVisibility(View.GONE);
             toolPalette.setVisibility(View.GONE);
-        } else if (!isTextMode) {
+        } else if (!isTextMode && !isDateMode) {
+            modeHintBar.setVisibility(View.GONE);
+            showEditingDock();
+        }
+    }
+
+    void setDateMode(boolean on) {
+        isDateMode = on;
+        if (on) {
+            isTextMode = false;
+            isSignMode = false;
+        }
+        updateToolStates();
+        if (on) {
+            modeHintIcon.setImageResource(R.drawable.ic_calendar);
+            modeHintText.setText("Tap a page to place a date stamp");
+            modeHintBar.setVisibility(View.VISIBLE);
+            if (textStyleBar != null) textStyleBar.setVisibility(View.GONE);
+            toolPalette.setVisibility(View.GONE);
+        } else if (!isTextMode && !isSignMode) {
             modeHintBar.setVisibility(View.GONE);
             showEditingDock();
         }
@@ -404,9 +462,11 @@ public class EditPdfActivity extends AppCompatActivity {
     private void exitAllModes() {
         isTextMode = false;
         isSignMode = false;
+        isDateMode = false;
         updateToolStates();
         modeHintBar.setVisibility(View.GONE);
         if (textStyleBar != null) textStyleBar.setVisibility(View.GONE);
+        deselectAllSignatures();
         showEditingDock();
     }
 
@@ -421,7 +481,7 @@ public class EditPdfActivity extends AppCompatActivity {
         if (btnReplacePdf != null) {
             btnReplacePdf.setVisibility(loaded ? View.VISIBLE : View.GONE);
         }
-        if (!isTextMode && !isSignMode) {
+        if (!isTextMode && !isSignMode && !isDateMode) {
             toolPalette.setVisibility(loaded ? View.VISIBLE : View.GONE);
         }
     }
@@ -429,6 +489,9 @@ public class EditPdfActivity extends AppCompatActivity {
     private void updateToolStates() {
         applyToolState(toolTextIconBg, toolTextIcon, toolTextLabel, isTextMode);
         applyToolState(toolSignIconBg, toolSignIcon, toolSignLabel, isSignMode);
+        if (toolDateIconBg != null) {
+            applyToolState(toolDateIconBg, toolDateIcon, toolDateLabel, isDateMode);
+        }
     }
 
     private void applyToolState(MaterialCardView bg, ImageView icon, TextView label, boolean active) {
@@ -552,6 +615,102 @@ public class EditPdfActivity extends AppCompatActivity {
 
     void onPageTapped(int pageIndex, FrameLayout overlay, float tapX, float tapY) {
         startLiveTextEditor(pageIndex, overlay, tapX, tapY, null);
+    }
+
+    void onDatePageTapped(int pageIndex, FrameLayout overlay, float tapX, float tapY) {
+        showDateStampDialog(pageIndex, overlay, tapX, tapY);
+    }
+
+    private String formatStampDate(int formatIndex) {
+        int idx = Math.max(0, Math.min(DATE_FORMAT_PATTERNS.length - 1, formatIndex));
+        return new SimpleDateFormat(DATE_FORMAT_PATTERNS[idx], Locale.getDefault())
+                .format(stampCalendar.getTime());
+    }
+
+    private void showDateStampDialog(int pageIndex, FrameLayout overlay, float tapX, float tapY) {
+        View dialogView = getLayoutInflater().inflate(R.layout.dialog_date_stamp, null);
+        TextView selectedLabel = dialogView.findViewById(R.id.date_selected_label);
+        View pickerCard = dialogView.findViewById(R.id.date_picker_card);
+        RadioGroup formatGroup = dialogView.findViewById(R.id.date_format_group);
+        MaterialButton btnPlace = dialogView.findViewById(R.id.date_btn_place);
+
+        Runnable refreshPreviews = () -> {
+            selectedLabel.setText(new SimpleDateFormat("EEEE, MMM d, yyyy", Locale.getDefault())
+                    .format(stampCalendar.getTime()));
+            for (int i = 0; i < formatGroup.getChildCount(); i++) {
+                View child = formatGroup.getChildAt(i);
+                if (child instanceof RadioButton) {
+                    RadioButton rb = (RadioButton) child;
+                    int idx = (Integer) rb.getTag();
+                    rb.setText(formatStampDate(idx));
+                }
+            }
+        };
+
+        formatGroup.removeAllViews();
+        float d = getResources().getDisplayMetrics().density;
+        for (int i = 0; i < DATE_FORMAT_PATTERNS.length; i++) {
+            RadioButton rb = new RadioButton(this);
+            rb.setId(View.generateViewId());
+            rb.setTag(i);
+            rb.setText(formatStampDate(i));
+            rb.setTextSize(15);
+            rb.setPadding(Math.round(4 * d), Math.round(10 * d), Math.round(4 * d), Math.round(10 * d));
+            rb.setTextColor(ContextCompat.getColor(this, R.color.text_primary));
+            formatGroup.addView(rb, new RadioGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            if (i == selectedDateFormatIndex) rb.setChecked(true);
+        }
+
+        refreshPreviews.run();
+
+        pickerCard.setOnClickListener(v -> new DatePickerDialog(
+                this,
+                (view, year, month, dayOfMonth) -> {
+                    stampCalendar.set(Calendar.YEAR, year);
+                    stampCalendar.set(Calendar.MONTH, month);
+                    stampCalendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                    refreshPreviews.run();
+                },
+                stampCalendar.get(Calendar.YEAR),
+                stampCalendar.get(Calendar.MONTH),
+                stampCalendar.get(Calendar.DAY_OF_MONTH)
+        ).show());
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Add date")
+                .setView(dialogView)
+                .setNegativeButton("Cancel", null)
+                .create();
+
+        btnPlace.setOnClickListener(v -> {
+            int checkedId = formatGroup.getCheckedRadioButtonId();
+            View checked = formatGroup.findViewById(checkedId);
+            if (checked != null && checked.getTag() instanceof Integer) {
+                selectedDateFormatIndex = (Integer) checked.getTag();
+            }
+            String dateText = formatStampDate(selectedDateFormatIndex);
+            placeDateAnnotation(pageIndex, overlay, tapX, tapY, dateText);
+            dialog.dismiss();
+        });
+
+        dialog.show();
+    }
+
+    private void placeDateAnnotation(int pageIndex, FrameLayout overlay,
+                                     float tapX, float tapY, String dateText) {
+        int sizePx = spToPx(currentTextSizeSp);
+        float xF = tapX / (float) Math.max(1, overlay.getWidth());
+        float yF = (tapY + sizePx) / (float) Math.max(1, overlay.getHeight());
+        List<TextAnnotation> list = annotations.get(pageIndex);
+        if (list != null) {
+            list.add(new TextAnnotation(
+                    pageIndex, xF, yF, dateText, sizePx, currentTextColor, currentTextBold));
+        }
+        hasAnnotations = true;
+        btnSave.setEnabled(true);
+        if (pageAdapter != null) pageAdapter.refreshPage(pageIndex);
+        Toast.makeText(this, "Date placed", Toast.LENGTH_SHORT).show();
     }
 
     private void startLiveTextEditor(int pageIndex, FrameLayout overlay,
@@ -718,9 +877,7 @@ public class EditPdfActivity extends AppCompatActivity {
         }
 
         box.bringToFront();
-        if (pagesRecycler != null) {
-            pagesRecycler.requestDisallowInterceptTouchEvent(true);
-        }
+        // Keep page scrolling available while editing (don't lock the RecyclerView)
 
         et.requestFocus();
         InputMethodManager imm = (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
@@ -824,6 +981,22 @@ public class EditPdfActivity extends AppCompatActivity {
         activeLiveEditOverlay = null;
         liveEditKeyboardLift = 0;
         liveEditBaseTopMargin = 0;
+        applyImeRecyclerPadding(0);
+    }
+
+    private void applyImeRecyclerPadding(int imeBottom) {
+        if (pagesRecycler == null) return;
+        if (pagesRecyclerBasePadBottom < 0) {
+            pagesRecyclerBasePadBottom = pagesRecycler.getPaddingBottom();
+        }
+        int target = pagesRecyclerBasePadBottom + Math.max(0, imeBottom);
+        if (pagesRecycler.getPaddingBottom() == target) return;
+        pagesRecycler.setClipToPadding(false);
+        pagesRecycler.setPadding(
+                pagesRecycler.getPaddingLeft(),
+                pagesRecycler.getPaddingTop(),
+                pagesRecycler.getPaddingRight(),
+                target);
     }
 
     private void relayoutLiveEditorForIme() {
@@ -838,6 +1011,9 @@ public class EditPdfActivity extends AppCompatActivity {
             imeBottom = ime.bottom;
         }
 
+        // Extra bottom space so the user can scroll pages above the keyboard
+        applyImeRecyclerPadding(imeBottom);
+
         int gap = Math.round(16 * getResources().getDisplayMetrics().density);
         int[] boxLoc = new int[2];
         box.getLocationOnScreen(boxLoc);
@@ -849,7 +1025,6 @@ public class EditPdfActivity extends AppCompatActivity {
         int visibleBottom = decorLoc[1] + decor.getHeight() - imeBottom;
 
         if (imeBottom <= 0) {
-            // Keyboard gone — restore original placement within the page
             if (liveEditKeyboardLift != 0) {
                 FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) box.getLayoutParams();
                 lp.topMargin = liveEditBaseTopMargin;
@@ -862,12 +1037,10 @@ public class EditPdfActivity extends AppCompatActivity {
         int overlap = boxBottom + gap - visibleBottom;
         if (overlap <= 0) return;
 
-        // 1) Prefer scrolling the document so the editor rides with the page
         if (pagesRecycler != null) {
             pagesRecycler.smoothScrollBy(0, overlap);
         }
 
-        // 2) After scroll, lift the editor inside the page if still covered
         final int expectedIme = imeBottom;
         box.postDelayed(() -> {
             if (activeLiveEditBox != box || box.getParent() == null) return;
@@ -891,7 +1064,6 @@ public class EditPdfActivity extends AppCompatActivity {
             FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) box.getLayoutParams();
             liveEditKeyboardLift += still;
             lp.topMargin = Math.max(0, liveEditBaseTopMargin - liveEditKeyboardLift);
-            // Keep horizontally on-page
             lp.leftMargin = Math.max(0, Math.min(lp.leftMargin,
                     Math.max(0, overlay.getWidth() - box.getWidth() - 8)));
             box.setLayoutParams(lp);
@@ -1255,16 +1427,16 @@ public class EditPdfActivity extends AppCompatActivity {
 
     // ── Signature placement ───────────────────────────────────────────────────
 
-    void onSignPageTapped(int pageIndex, DraggableSignatureView sigOverlay, float tapX, float tapY) {
+    void onSignPageTapped(int pageIndex, FrameLayout sigContainer, float tapX, float tapY) {
         if (pendingSigBitmap != null) {
-            placeSignatureOnView(pageIndex, sigOverlay, pendingSigBitmap, tapX, tapY);
+            placeSignatureOnPage(pageIndex, sigContainer, pendingSigBitmap, tapX, tapY);
             pendingSigBitmap = null;
             return;
         }
-        showSignatureSelectorDialog(pageIndex, sigOverlay, tapX, tapY);
+        showSignatureSelectorDialog(pageIndex, sigContainer, tapX, tapY);
     }
 
-    private void showSignatureSelectorDialog(int pageIndex, DraggableSignatureView sigOverlay,
+    private void showSignatureSelectorDialog(int pageIndex, FrameLayout sigContainer,
                                              float tapX, float tapY) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select or Create Signature");
@@ -1289,7 +1461,7 @@ public class EditPdfActivity extends AppCompatActivity {
         adapter.setOnSignatureClickListener(filePath -> {
             Bitmap bmp = signatureManager.loadSignature(filePath);
             if (bmp != null) {
-                placeSignatureOnView(pageIndex, sigOverlay, bmp, tapX, tapY);
+                placeSignatureOnPage(pageIndex, sigContainer, bmp, tapX, tapY);
                 dialog.dismiss();
             } else {
                 Toast.makeText(this, "Failed to load signature", Toast.LENGTH_SHORT).show();
@@ -1315,7 +1487,7 @@ public class EditPdfActivity extends AppCompatActivity {
 
         cardDraw.setOnClickListener(v -> {
             dialog.dismiss();
-            showDrawSignatureDialog(pageIndex, sigOverlay, tapX, tapY);
+            showDrawSignatureDialog(pageIndex, sigContainer, tapX, tapY);
         });
 
         cardCamera.setOnClickListener(v -> {
@@ -1326,7 +1498,7 @@ public class EditPdfActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void showDrawSignatureDialog(int pageIndex, DraggableSignatureView sigOverlay,
+    private void showDrawSignatureDialog(int pageIndex, FrameLayout sigContainer,
                                          float tapX, float tapY) {
         View dialogView = getLayoutInflater().inflate(R.layout.dialog_signature, null);
         SignatureView signatureView = dialogView.findViewById(R.id.signatureView);
@@ -1340,7 +1512,7 @@ public class EditPdfActivity extends AppCompatActivity {
         btnClear.setOnClickListener(v -> signatureView.clear());
         btnDone.setOnClickListener(v -> {
             if (signatureView.hasSignature()) {
-                placeSignatureOnView(pageIndex, sigOverlay, signatureView.getSignatureBitmap(), tapX, tapY);
+                placeSignatureOnPage(pageIndex, sigContainer, signatureView.getSignatureBitmap(), tapX, tapY);
                 dialog.dismiss();
             } else {
                 Toast.makeText(this, "Please draw your signature first", Toast.LENGTH_SHORT).show();
@@ -1350,48 +1522,169 @@ public class EditPdfActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void placeSignatureOnView(int pageIndex, DraggableSignatureView sigOverlay,
+    private void deselectAllSignatures() {
+        if (pagesRecycler == null) return;
+        for (int i = 0; i < pagesRecycler.getChildCount(); i++) {
+            View child = pagesRecycler.getChildAt(i);
+            FrameLayout container = child.findViewById(R.id.signature_container);
+            if (container == null) continue;
+            for (int c = 0; c < container.getChildCount(); c++) {
+                View v = container.getChildAt(c);
+                if (v instanceof DraggableSignatureView) {
+                    ((DraggableSignatureView) v).setEditing(false);
+                }
+            }
+        }
+    }
+
+    private void placeSignatureOnPage(int pageIndex, FrameLayout container,
                                       Bitmap bitmap, float tapX, float tapY) {
-        sigOverlay.setVisibility(View.VISIBLE);
-        sigOverlay.post(() -> {
-            int refW = sigOverlay.getWidth() > 0 ? sigOverlay.getWidth() : sigOverlay.getRootView().getWidth();
-            int refH = sigOverlay.getHeight() > 0 ? sigOverlay.getHeight() : refW;
+        container.setVisibility(View.VISIBLE);
+        deselectAllSignatures();
+
+        DraggableSignatureView sigView = new DraggableSignatureView(this);
+        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
+        container.addView(sigView, lp);
+
+        SignatureOverlay model = new SignatureOverlay(pageIndex, 0, 0, 0, 0, bitmap);
+        List<SignatureOverlay> list = signatureOverlays.get(pageIndex);
+        if (list == null) {
+            list = new ArrayList<>();
+            signatureOverlays.put(pageIndex, list);
+        }
+        list.add(model);
+        sigView.setTag(model);
+
+        wireSignatureView(pageIndex, container, sigView, model);
+
+        sigView.post(() -> {
+            int refW = Math.max(1, container.getWidth());
+            int refH = Math.max(1, container.getHeight());
             float w = refW * 0.28f;
             float h = w * ((float) bitmap.getHeight() / Math.max(1, bitmap.getWidth()));
-
             float x = (tapX > 0) ? tapX - w / 2f : (refW - w) / 2f;
             float y = (tapY > 0) ? tapY - h / 2f : (refH - h) / 2f;
             x = Math.max(0, Math.min(x, refW - w));
             y = Math.max(0, Math.min(y, refH - h));
+            sigView.setSignature(bitmap, x, y, w, h);
+            syncSignatureModel(sigView, model);
+            markDirty();
+        });
+    }
 
-            sigOverlay.setSignature(bitmap, x, y, w, h);
+    private void wireSignatureView(int pageIndex, FrameLayout container,
+                                   DraggableSignatureView sigView, SignatureOverlay model) {
+        sigView.setOnSignatureSelectedListener(view -> {
+            // Only one signature editing at a time
+            for (int c = 0; c < container.getChildCount(); c++) {
+                View v = container.getChildAt(c);
+                if (v instanceof DraggableSignatureView && v != view) {
+                    ((DraggableSignatureView) v).setEditing(false);
+                }
+            }
         });
 
-        sigOverlay.setOnSignatureAcceptedListener(() -> {
-            float oW = sigOverlay.getWidth();
-            float oH = sigOverlay.getHeight();
-            if (oW <= 0 || oH <= 0) return;
+        sigView.setOnSignatureChangedListener((x, y, w, h) -> {
+            syncSignatureModel(sigView, model);
+            markDirty();
+        });
 
-            float xF = sigOverlay.getSignatureX()      / oW;
-            float yF = sigOverlay.getSignatureY()      / oH;
-            float wF = sigOverlay.getSignatureWidth()  / oW;
-            float hF = sigOverlay.getSignatureHeight() / oH;
+        sigView.setOnSignatureAcceptedListener(() -> {
+            syncSignatureModel(sigView, model);
+            markDirty();
+        });
 
+        sigView.setOnSignatureDeletedListener(() -> {
             List<SignatureOverlay> list = signatureOverlays.get(pageIndex);
-            if (list == null) { list = new ArrayList<>(); signatureOverlays.put(pageIndex, list); }
-            list.add(new SignatureOverlay(pageIndex, xF, yF, wF, hF, bitmap));
-
-            sigOverlay.clearSignature();
-            sigOverlay.setVisibility(View.GONE);
-            hasAnnotations = true;
-            btnSave.setEnabled(true);
-            if (pageAdapter != null) pageAdapter.refreshPage(pageIndex);
+            if (list != null) list.remove(model);
+            container.removeView(sigView);
+            markDirty();
         });
 
-        sigOverlay.setOnSignatureDeletedListener(() -> {
-            sigOverlay.clearSignature();
-            sigOverlay.setVisibility(View.GONE);
-        });
+        sigView.setOnSignatureEdgeTransferListener((view, direction) ->
+                transferSignatureAcrossPages(pageIndex, container, view, model, direction));
+    }
+
+    private void syncSignatureModel(DraggableSignatureView sigView, SignatureOverlay model) {
+        float oW = Math.max(1, sigView.getWidth());
+        float oH = Math.max(1, sigView.getHeight());
+        model.xFraction = sigView.getSignatureX() / oW;
+        model.yFraction = sigView.getSignatureY() / oH;
+        model.widthFraction = sigView.getSignatureWidth() / oW;
+        model.heightFraction = sigView.getSignatureHeight() / oH;
+        model.pageIndex = /* keep current until transfer */ model.pageIndex;
+    }
+
+    private void transferSignatureAcrossPages(int fromPage, FrameLayout fromContainer,
+                                              DraggableSignatureView view, SignatureOverlay model,
+                                              int direction) {
+        int toPage = fromPage + direction;
+        if (pdfRenderer == null || toPage < 0 || toPage >= pdfRenderer.getPageCount()) {
+            view.snapCenterOntoPage();
+            view.setEditing(true);
+            return;
+        }
+
+        syncSignatureModel(view, model);
+        List<SignatureOverlay> fromList = signatureOverlays.get(fromPage);
+        if (fromList != null) fromList.remove(model);
+
+        // Place near the opposite edge of the destination page
+        if (direction > 0) {
+            model.yFraction = 0.02f;
+        } else {
+            model.yFraction = Math.max(0f, 1f - model.heightFraction - 0.02f);
+        }
+        model.pageIndex = toPage;
+
+        List<SignatureOverlay> toList = signatureOverlays.get(toPage);
+        if (toList == null) {
+            toList = new ArrayList<>();
+            signatureOverlays.put(toPage, toList);
+        }
+        toList.add(model);
+
+        signatureToResumeEditing = model;
+        fromContainer.removeView(view);
+        markDirty();
+        if (pageAdapter != null) {
+            pageAdapter.refreshPage(fromPage);
+            pageAdapter.refreshPage(toPage);
+        }
+        if (pagesRecycler != null) {
+            pagesRecycler.smoothScrollToPosition(toPage);
+        }
+    }
+
+    void populateSignatureViews(int pageIndex, FrameLayout container) {
+        container.removeAllViews();
+        List<SignatureOverlay> list = signatureOverlays.get(pageIndex);
+        if (list == null || list.isEmpty()) {
+            container.setVisibility(View.GONE);
+            return;
+        }
+        container.setVisibility(View.VISIBLE);
+        for (SignatureOverlay model : list) {
+            DraggableSignatureView sigView = new DraggableSignatureView(this);
+            container.addView(sigView, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+            sigView.setTag(model);
+            wireSignatureView(pageIndex, container, sigView, model);
+            final boolean resumeEditing = model == signatureToResumeEditing;
+            if (resumeEditing) signatureToResumeEditing = null;
+            sigView.post(() -> {
+                int w = Math.max(1, container.getWidth());
+                int h = Math.max(1, container.getHeight());
+                float x = model.xFraction * w;
+                float y = model.yFraction * h;
+                float sw = model.widthFraction * w;
+                float sh = model.heightFraction * h;
+                sigView.setSignature(model.bitmap, x, y, sw, sh);
+                // Restored signatures start without chrome unless just transferred
+                sigView.setEditing(resumeEditing);
+            });
+        }
     }
 
     // ── Save ──────────────────────────────────────────────────────────────────
@@ -1595,37 +1888,58 @@ public class EditPdfActivity extends AppCompatActivity {
             ProgressBar progress;
             TextView pageNum;
             FrameLayout textOverlay;
-            DraggableSignatureView signatureOverlay;
+            FrameLayout signatureContainer;
             int boundPos = -1;
 
             VH(@NonNull View v) {
                 super(v);
-                pageImage        = v.findViewById(R.id.page_image);
-                progress         = v.findViewById(R.id.page_progress);
-                pageNum          = v.findViewById(R.id.page_number);
-                textOverlay      = v.findViewById(R.id.text_overlay);
-                signatureOverlay = v.findViewById(R.id.signature_overlay);
-
-                signatureOverlay.setOnSignatureDeletedListener(() -> {
-                    signatureOverlay.clearSignature();
-                    signatureOverlay.setVisibility(View.GONE);
-                });
+                pageImage           = v.findViewById(R.id.page_image);
+                progress            = v.findViewById(R.id.page_progress);
+                pageNum             = v.findViewById(R.id.page_number);
+                textOverlay         = v.findViewById(R.id.text_overlay);
+                signatureContainer  = v.findViewById(R.id.signature_container);
 
                 final float[] tap = {0f, 0f};
+                final float[] down = {0f, 0f};
+                final boolean[] moved = {false};
+                final int touchSlop = ViewConfiguration.get(EditPdfActivity.this).getScaledTouchSlop();
+
+                // Tap to place annotations, but let vertical drags scroll across pages
+                textOverlay.setClickable(false);
+                textOverlay.setFocusable(false);
                 textOverlay.setOnTouchListener((vv, ev) -> {
-                    if (ev.getAction() == MotionEvent.ACTION_DOWN) {
-                        tap[0] = ev.getX();
-                        tap[1] = ev.getY();
-                    }
-                    return false;
-                });
-                textOverlay.setOnClickListener(vv -> {
-                    deselectAnnotationView();
-                    if (boundPos < 0) return;
-                    if (isTextMode) {
-                        onPageTapped(boundPos, textOverlay, tap[0], tap[1]);
-                    } else if (isSignMode && !signatureOverlay.hasSignature()) {
-                        onSignPageTapped(boundPos, signatureOverlay, tap[0], tap[1]);
+                    if (!isTextMode && !isSignMode && !isDateMode) return false;
+                    switch (ev.getActionMasked()) {
+                        case MotionEvent.ACTION_DOWN:
+                            down[0] = tap[0] = ev.getX();
+                            down[1] = tap[1] = ev.getY();
+                            moved[0] = false;
+                            if (vv.getParent() != null) {
+                                vv.getParent().requestDisallowInterceptTouchEvent(false);
+                            }
+                            return true;
+                        case MotionEvent.ACTION_MOVE:
+                            if (Math.abs(ev.getX() - down[0]) > touchSlop
+                                    || Math.abs(ev.getY() - down[1]) > touchSlop) {
+                                moved[0] = true;
+                            }
+                            return true;
+                        case MotionEvent.ACTION_UP:
+                            if (!moved[0] && boundPos >= 0) {
+                                deselectAnnotationView();
+                                if (isTextMode) {
+                                    onPageTapped(boundPos, textOverlay, tap[0], tap[1]);
+                                } else if (isDateMode) {
+                                    onDatePageTapped(boundPos, textOverlay, tap[0], tap[1]);
+                                } else if (isSignMode) {
+                                    onSignPageTapped(boundPos, signatureContainer, tap[0], tap[1]);
+                                }
+                            }
+                            return true;
+                        case MotionEvent.ACTION_CANCEL:
+                            return true;
+                        default:
+                            return false;
                     }
                 });
             }
@@ -1638,10 +1952,8 @@ public class EditPdfActivity extends AppCompatActivity {
                 progress.setVisibility(View.VISIBLE);
                 pageImage.setImageBitmap(null);
 
-                // Reset the signature overlay for recycled VHs
-                signatureOverlay.clearSignature();
-                signatureOverlay.setVisibility(View.GONE);
                 clearAnnotationViews(textOverlay);
+                if (signatureContainer != null) signatureContainer.removeAllViews();
 
                 executor.execute(() -> {
                     Bitmap bmp = renderPage(position);
@@ -1650,22 +1962,7 @@ public class EditPdfActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // Only signatures are baked into the preview; text annotations
-                    // stay as draggable overlay views so the user can move/recolor them.
-                    List<SignatureOverlay> sigs = signatureOverlays.get(position);
-                    if (sigs != null && !sigs.isEmpty()) {
-                        Canvas c = new Canvas(bmp);
-                        Paint sp = new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG);
-                        for (SignatureOverlay sig : sigs) {
-                            RectF dst = new RectF(
-                                    sig.xFraction * bmp.getWidth(),
-                                    sig.yFraction * bmp.getHeight(),
-                                    (sig.xFraction + sig.widthFraction) * bmp.getWidth(),
-                                    (sig.yFraction + sig.heightFraction) * bmp.getHeight());
-                            c.drawBitmap(sig.bitmap, null, dst, sp);
-                        }
-                    }
-
+                    // Signatures stay as interactive overlays (not baked into preview)
                     final Bitmap finalBmp = bmp;
                     mainHandler.post(() -> {
                         if (getBindingAdapterPosition() == position) {
@@ -1674,6 +1971,9 @@ public class EditPdfActivity extends AppCompatActivity {
                             textOverlay.post(() -> {
                                 if (getBindingAdapterPosition() == position) {
                                     populateAnnotationViews(position, textOverlay);
+                                    if (signatureContainer != null) {
+                                        populateSignatureViews(position, signatureContainer);
+                                    }
                                 }
                             });
                         } else {
@@ -1687,7 +1987,7 @@ public class EditPdfActivity extends AppCompatActivity {
                 if (pdfRenderer == null) return null;
                 try {
                     float density = getResources().getDisplayMetrics().density;
-                    int sideInset = Math.round(40f * density); // 20dp margin each side
+                    int sideInset = Math.round(40f * density);
                     int screenW = getResources().getDisplayMetrics().widthPixels - sideInset;
                     float scale = screenW / pdfRenderer.getPageWidthPoints(index);
                     return pdfRenderer.renderPage(index, scale);

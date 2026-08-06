@@ -486,6 +486,54 @@
                     android:background="#D8D6E8" />
 
                 <LinearLayout
+                    android:id="@+id/tool_date_btn"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:paddingVertical="10dp">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/tool_date_icon_bg"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@color/background_white">
+
+                        <ImageView
+                            android:id="@+id/tool_date_icon"
+                            android:layout_width="22dp"
+                            android:layout_height="22dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_calendar"
+                            app:tint="@color/primary_blue"
+                            android:contentDescription="Add Date" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:id="@+id/tool_date_label"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="Date"
+                        android:textSize="12sp"
+                        android:fontFamily="@font/montserrat_semibold"
+                        android:textColor="@color/text_secondary" />
+                </LinearLayout>
+
+                <View
+                    android:layout_width="1dp"
+                    android:layout_height="36dp"
+                    android:layout_gravity="center_vertical"
+                    android:background="#D8D6E8" />
+
+                <LinearLayout
                     android:id="@+id/tool_text_btn"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"

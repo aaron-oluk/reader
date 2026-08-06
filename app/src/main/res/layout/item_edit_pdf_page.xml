@@ -44,7 +44,13 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent" />
 
-            <!-- Draggable signature overlay -->
+            <!-- Signature overlays — one child view per placed signature -->
+            <FrameLayout
+                android:id="@+id/signature_container"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
+
+            <!-- Kept for binary compatibility; unused -->
             <com.pdfreader.app.DraggableSignatureView
                 android:id="@+id/signature_overlay"
                 android:layout_width="match_parent"
@@ -64,7 +70,10 @@
                 android:letterSpacing="0.06"
                 android:textColor="#FFFFFF"
                 android:textSize="10sp"
-                android:text="PAGE 1" />
+                android:text="PAGE 1"
+                android:clickable="false"
+                android:focusable="false"
+                android:importantForAccessibility="no" />
 
         </FrameLayout>
     </com.google.android.material.card.MaterialCardView>

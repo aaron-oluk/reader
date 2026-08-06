@@ -6,8 +6,11 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.MotionEvent;
@@ -15,11 +18,13 @@ import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewParent;
 
+import androidx.core.content.ContextCompat;
+
 /**
- * Draggable / resizable signature overlay.
+ * Draggable signature overlay.
  *
- * While editing (not yet accepted), small signatures are magnified for easier
- * grabbing and handle use. Accept commits the logical (un-magnified) rect.
+ * Editing: trash (top-left), scale (right), accept (✓) under the signature.
+ * When not editing, only the bitmap is drawn — tap to edit again.
  */
 public class DraggableSignatureView extends View {
 
@@ -31,14 +36,16 @@ public class DraggableSignatureView extends View {
 
     private Paint borderPaint;
     private Paint handlePaint;
+    private Paint handleIconPaint;
     private Paint deletePaint;
-    private Paint deleteCrossPaint;
     private Paint acceptPaint;
     private Paint acceptCheckPaint;
     private Paint hintPaint;
     private Paint hitHaloPaint;
+    private Bitmap trashIcon;
 
-    private boolean isAccepted = false;
+    /** When false, no handles/highlight — tap body to edit again. */
+    private boolean isEditing = true;
     private boolean isDragging = false;
     private boolean isResizing = false;
     private int activeHandle = -1;
@@ -46,18 +53,25 @@ public class DraggableSignatureView extends View {
     private float lastTouchX, lastTouchY;
     private float downTouchX, downTouchY;
     private boolean gestureMoved = false;
+    private boolean edgeTransferQueued = false;
     private float minWidthPx;
     private float minHeightPx;
     private float handleRadius;
     private float touchTolerance;
     private float bodyPad;
+    private float sideHandleGap;
     private float editMagnification = 1f;
     private float dragFeedback = 1f;
 
-    // Handle indices: 0=TL, 1=TR delete, 2=BL, 3=BR, 4=BC accept
+    private static final int HANDLE_SCALE = 0;
+    private static final int HANDLE_DELETE = 1;
+    private static final int HANDLE_ACCEPT = 2;
+
     private OnSignatureChangedListener listener;
     private OnSignatureDeletedListener deleteListener;
     private OnSignatureAcceptedListener acceptListener;
+    private OnSignatureSelectedListener selectedListener;
+    private OnSignatureEdgeTransferListener edgeTransferListener;
 
     public interface OnSignatureChangedListener {
         void onSignatureMoved(float x, float y, float width, float height);
@@ -69,6 +83,15 @@ public class DraggableSignatureView extends View {
 
     public interface OnSignatureAcceptedListener {
         void onSignatureAccepted();
+    }
+
+    public interface OnSignatureSelectedListener {
+        void onSignatureSelected(DraggableSignatureView view);
+    }
+
+    /** Called when the signature is dragged past the top (−1) or bottom (+1) of the page. */
+    public interface OnSignatureEdgeTransferListener {
+        void onTransferOffPage(DraggableSignatureView view, int direction);
     }
 
     public DraggableSignatureView(Context context) {
@@ -88,11 +111,12 @@ public class DraggableSignatureView extends View {
 
     private void init() {
         float d = getResources().getDisplayMetrics().density;
-        minWidthPx = 80f * d;
-        minHeightPx = 40f * d;
-        handleRadius = 14f * d;
-        touchTolerance = 28f * d;
+        minWidthPx = 48f * d;
+        minHeightPx = 28f * d;
+        handleRadius = 15f * d;
+        touchTolerance = 30f * d;
         bodyPad = 16f * d;
+        sideHandleGap = 10f * d;
 
         borderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         borderPaint.setColor(Color.parseColor("#4C45D6"));
@@ -104,15 +128,15 @@ public class DraggableSignatureView extends View {
         handlePaint.setColor(Color.parseColor("#4C45D6"));
         handlePaint.setStyle(Paint.Style.FILL);
 
+        handleIconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        handleIconPaint.setColor(Color.WHITE);
+        handleIconPaint.setStyle(Paint.Style.STROKE);
+        handleIconPaint.setStrokeWidth(2.8f * d);
+        handleIconPaint.setStrokeCap(Paint.Cap.ROUND);
+
         deletePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         deletePaint.setColor(Color.parseColor("#BA1A1A"));
         deletePaint.setStyle(Paint.Style.FILL);
-
-        deleteCrossPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-        deleteCrossPaint.setColor(Color.WHITE);
-        deleteCrossPaint.setStyle(Paint.Style.STROKE);
-        deleteCrossPaint.setStrokeWidth(3f * d);
-        deleteCrossPaint.setStrokeCap(Paint.Cap.ROUND);
 
         acceptPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
         acceptPaint.setColor(Color.parseColor("#10B981"));
@@ -140,22 +164,44 @@ public class DraggableSignatureView extends View {
         this.acceptListener = listener;
     }
 
+    public void setOnSignatureSelectedListener(OnSignatureSelectedListener listener) {
+        this.selectedListener = listener;
+    }
+
+    public void setOnSignatureEdgeTransferListener(OnSignatureEdgeTransferListener listener) {
+        this.edgeTransferListener = listener;
+    }
+
+    public boolean isEditing() {
+        return isEditing;
+    }
+
+    /** @deprecated use {@link #isEditing()} */
     public boolean isAccepted() {
-        return isAccepted;
+        return !isEditing;
+    }
+
+    public void setEditing(boolean editing) {
+        isEditing = editing;
+        if (!editing) {
+            isDragging = false;
+            isResizing = false;
+            editMagnification = 1f;
+            dragFeedback = 1f;
+        }
+        invalidate();
     }
 
     public void resetAccepted() {
-        isAccepted = false;
-        refreshEditMagnification();
-        invalidate();
+        setEditing(true);
     }
 
     public void setSignature(Bitmap bitmap, float initialX, float initialY, float width, float height) {
         this.signatureBitmap = bitmap;
         signatureRect.set(initialX, initialY, initialX + width, initialY + height);
-        isAccepted = false;
+        isEditing = true;
+        edgeTransferQueued = false;
         refreshEditMagnification();
-        // Keep magnified display on-screen
         clampLogicalToParent();
         invalidate();
     }
@@ -169,7 +215,7 @@ public class DraggableSignatureView extends View {
             float x = (getWidth() - width) / 2f;
             float y = getHeight() - height - 100;
             signatureRect.set(x, y, x + width, y + height);
-            isAccepted = false;
+            isEditing = true;
             refreshEditMagnification();
         }
         invalidate();
@@ -177,13 +223,17 @@ public class DraggableSignatureView extends View {
 
     public void clearSignature() {
         this.signatureBitmap = null;
-        isAccepted = false;
+        isEditing = true;
         editMagnification = 1f;
         invalidate();
     }
 
     public boolean hasSignature() {
         return signatureBitmap != null;
+    }
+
+    public Bitmap getSignatureBitmap() {
+        return signatureBitmap;
     }
 
     public RectF getSignatureRect() {
@@ -214,13 +264,12 @@ public class DraggableSignatureView extends View {
         this.deleteListener = listener;
     }
 
-    /** Magnify only while dragging so placement is easier; idle edit stays true size. */
     private void refreshEditMagnification() {
         editMagnification = 1f;
     }
 
     private float activeMagnification() {
-        if (isAccepted) return 1f;
+        if (!isEditing) return 1f;
         if (isDragging) {
             float d = getResources().getDisplayMetrics().density;
             float comfortW = 160f * d;
@@ -244,18 +293,53 @@ public class DraggableSignatureView extends View {
         displayRect.set(cx - hw, cy - hh, cx + hw, cy + hh);
     }
 
+    private float rightHandleX() {
+        return displayRect.right + sideHandleGap + handleRadius;
+    }
+
+    private float scaleHandleY() {
+        return displayRect.centerY();
+    }
+
+    private float deleteHandleX() {
+        return displayRect.left - sideHandleGap - handleRadius;
+    }
+
+    private float deleteHandleY() {
+        return displayRect.top - sideHandleGap - handleRadius;
+    }
+
+    /** Keep a small sliver on-page so edges/corners are reachable; center can cross for page transfer. */
     private void clampLogicalToParent() {
         if (getWidth() <= 0 || getHeight() <= 0) return;
-        updateDisplayRect();
+        float minVisible = Math.min(signatureRect.width(), signatureRect.height()) * 0.2f;
+        minVisible = Math.max(minVisible, 12f);
+
         float dx = 0, dy = 0;
-        if (displayRect.left < 0) dx = -displayRect.left;
-        if (displayRect.right > getWidth()) dx = getWidth() - displayRect.right;
-        if (displayRect.top < bodyPad + hintPaint.getTextSize()) {
-            dy = bodyPad + hintPaint.getTextSize() - displayRect.top;
-        }
-        if (displayRect.bottom > getHeight()) dy = getHeight() - displayRect.bottom;
+        if (signatureRect.right < minVisible) dx = minVisible - signatureRect.right;
+        if (signatureRect.left > getWidth() - minVisible) dx = getWidth() - minVisible - signatureRect.left;
+        if (signatureRect.bottom < minVisible) dy = minVisible - signatureRect.bottom;
+        if (signatureRect.top > getHeight() - minVisible) dy = getHeight() - minVisible - signatureRect.top;
         if (dx != 0 || dy != 0) {
             signatureRect.offset(dx, dy);
+        }
+    }
+
+    /** Pull the signature so its center stays on this page (e.g. when page transfer is impossible). */
+    public void snapCenterOntoPage() {
+        if (getWidth() <= 0 || getHeight() <= 0) return;
+        float cx = signatureRect.centerX();
+        float cy = signatureRect.centerY();
+        float dx = 0, dy = 0;
+        if (cx < 0) dx = -cx + 4f;
+        else if (cx > getWidth()) dx = getWidth() - cx - 4f;
+        if (cy < 0) dy = -cy + 4f;
+        else if (cy > getHeight()) dy = getHeight() - cy - 4f;
+        if (dx != 0 || dy != 0) {
+            signatureRect.offset(dx, dy);
+            clampLogicalToParent();
+            invalidate();
+            notifyListener();
         }
     }
 
@@ -267,29 +351,19 @@ public class DraggableSignatureView extends View {
         updateDisplayRect();
         canvas.drawBitmap(signatureBitmap, null, displayRect, null);
 
-        if (isAccepted) {
-            Paint solidBorder = new Paint(borderPaint);
-            solidBorder.setPathEffect(null);
-            solidBorder.setColor(Color.parseColor("#10B981"));
-            canvas.drawRect(displayRect, solidBorder);
+        if (!isEditing) {
+            // No highlight when confirmed / Done — tap to edit again
             return;
         }
 
-        // Soft halo makes the grab area obvious
         RectF halo = new RectF(displayRect);
         halo.inset(-bodyPad * 0.35f, -bodyPad * 0.35f);
         canvas.drawRoundRect(halo, 8, 8, hitHaloPaint);
-
         canvas.drawRect(displayRect, borderPaint);
 
-        drawResizeHandle(canvas, displayRect.left, displayRect.top);
-        drawResizeHandle(canvas, displayRect.left, displayRect.bottom);
-        drawResizeHandle(canvas, displayRect.right, displayRect.bottom);
-        drawDeleteHandle(canvas, displayRect.right, displayRect.top);
-
-        float acceptX = displayRect.centerX();
-        float acceptY = displayRect.bottom;
-        drawAcceptHandle(canvas, acceptX, acceptY);
+        drawDeleteHandle(canvas, deleteHandleX(), deleteHandleY());
+        drawScaleHandle(canvas, rightHandleX(), scaleHandleY());
+        drawAcceptHandle(canvas, displayRect.centerX(), displayRect.bottom + handleRadius * 0.35f);
 
         if (isDragging && activeMagnification() > 1.05f) {
             String hint = "Magnified while dragging";
@@ -300,15 +374,38 @@ public class DraggableSignatureView extends View {
         }
     }
 
-    private void drawResizeHandle(Canvas canvas, float x, float y) {
+    private void drawScaleHandle(Canvas canvas, float x, float y) {
         canvas.drawCircle(x, y, handleRadius, handlePaint);
+        float arm = handleRadius * 0.38f;
+        // Corner-bracket icon suggesting resize
+        canvas.drawLine(x - arm, y - arm, x - arm * 0.15f, y - arm, handleIconPaint);
+        canvas.drawLine(x - arm, y - arm, x - arm, y - arm * 0.15f, handleIconPaint);
+        canvas.drawLine(x + arm, y + arm, x + arm * 0.15f, y + arm, handleIconPaint);
+        canvas.drawLine(x + arm, y + arm, x + arm, y + arm * 0.15f, handleIconPaint);
     }
 
     private void drawDeleteHandle(Canvas canvas, float x, float y) {
         canvas.drawCircle(x, y, handleRadius, deletePaint);
-        float arm = handleRadius * 0.42f;
-        canvas.drawLine(x - arm, y - arm, x + arm, y + arm, deleteCrossPaint);
-        canvas.drawLine(x + arm, y - arm, x - arm, y + arm, deleteCrossPaint);
+        Bitmap icon = getTrashIcon();
+        if (icon != null) {
+            float iw = icon.getWidth();
+            float ih = icon.getHeight();
+            canvas.drawBitmap(icon, x - iw / 2f, y - ih / 2f, null);
+        }
+    }
+
+    private Bitmap getTrashIcon() {
+        if (trashIcon != null && !trashIcon.isRecycled()) return trashIcon;
+        Drawable d = ContextCompat.getDrawable(getContext(), R.drawable.ic_delete);
+        if (d == null) return null;
+        int size = Math.max(1, Math.round(handleRadius * 1.15f));
+        trashIcon = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Canvas c = new Canvas(trashIcon);
+        d = d.mutate();
+        d.setBounds(0, 0, size, size);
+        d.setColorFilter(new PorterDuffColorFilter(Color.WHITE, PorterDuff.Mode.SRC_IN));
+        d.draw(c);
+        return trashIcon;
     }
 
     private void drawAcceptHandle(Canvas canvas, float x, float y) {
@@ -336,13 +433,13 @@ public class DraggableSignatureView extends View {
 
         switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN: {
-                if (isAccepted) {
-                    // Expanded hit area to unlock accepted signatures
+                if (!isEditing) {
                     if (hitBody(x, y)) {
-                        isAccepted = false;
+                        isEditing = true;
+                        edgeTransferQueued = false;
                         refreshEditMagnification();
-                        clampLogicalToParent();
                         invalidate();
+                        if (selectedListener != null) selectedListener.onSignatureSelected(this);
                         disallowParentIntercept();
                         return true;
                     }
@@ -353,29 +450,27 @@ public class DraggableSignatureView extends View {
                 downTouchX = lastTouchX = x;
                 downTouchY = lastTouchY = y;
                 gestureMoved = false;
+                edgeTransferQueued = false;
 
-                if (activeHandle == 1) {
+                if (activeHandle == HANDLE_DELETE) {
                     if (deleteListener != null) deleteListener.onSignatureDeleted();
                     activeHandle = -1;
                     return true;
                 }
-                if (activeHandle == 4) {
-                    // Accept: drop magnification and commit logical rect
-                    isAccepted = true;
-                    editMagnification = 1f;
-                    dragFeedback = 1f;
-                    invalidate();
+                if (activeHandle == HANDLE_ACCEPT) {
+                    setEditing(false);
                     if (acceptListener != null) acceptListener.onSignatureAccepted();
                     activeHandle = -1;
                     return true;
                 }
-                if (activeHandle != -1) {
+                if (activeHandle == HANDLE_SCALE) {
                     isResizing = true;
                     isDragging = false;
                 } else if (hitBody(x, y)) {
                     isDragging = true;
                     isResizing = false;
                     dragFeedback = 1f;
+                    if (selectedListener != null) selectedListener.onSignatureSelected(this);
                     invalidate();
                 } else {
                     return false;
@@ -395,23 +490,27 @@ public class DraggableSignatureView extends View {
 
                 if (isDragging) {
                     disallowParentIntercept();
-                    float clampedDx = dx;
-                    float clampedDy = dy;
-                    updateDisplayRect();
-                    if (displayRect.left + clampedDx < 0) clampedDx = -displayRect.left;
-                    if (displayRect.right + clampedDx > getWidth()) {
-                        clampedDx = getWidth() - displayRect.right;
+                    signatureRect.offset(dx, dy);
+                    clampLogicalToParent();
+
+                    if (!edgeTransferQueued && edgeTransferListener != null) {
+                        float cy = signatureRect.centerY();
+                        if (cy < 0) {
+                            edgeTransferQueued = true;
+                            edgeTransferListener.onTransferOffPage(this, -1);
+                            return true;
+                        } else if (cy > getHeight()) {
+                            edgeTransferQueued = true;
+                            edgeTransferListener.onTransferOffPage(this, 1);
+                            return true;
+                        }
                     }
-                    if (displayRect.top + clampedDy < 0) clampedDy = -displayRect.top;
-                    if (displayRect.bottom + clampedDy > getHeight()) {
-                        clampedDy = getHeight() - displayRect.bottom;
-                    }
-                    signatureRect.offset(clampedDx, clampedDy);
+
                     invalidate();
                     notifyListener();
-                } else if (isResizing) {
+                } else if (isResizing && activeHandle == HANDLE_SCALE) {
                     disallowParentIntercept();
-                    resizeWithHandle(activeHandle, dx, dy);
+                    scaleUniform(dx, dy);
                     clampLogicalToParent();
                     invalidate();
                     notifyListener();
@@ -428,6 +527,7 @@ public class DraggableSignatureView extends View {
                 isResizing = false;
                 activeHandle = -1;
                 dragFeedback = 1f;
+                edgeTransferQueued = false;
                 invalidate();
                 return true;
         }
@@ -442,11 +542,11 @@ public class DraggableSignatureView extends View {
     }
 
     private int getActiveHandle(float x, float y) {
-        if (isNearPoint(x, y, displayRect.left, displayRect.top)) return 0;
-        if (isNearPoint(x, y, displayRect.right, displayRect.top)) return 1;
-        if (isNearPoint(x, y, displayRect.left, displayRect.bottom)) return 2;
-        if (isNearPoint(x, y, displayRect.right, displayRect.bottom)) return 3;
-        if (isNearPoint(x, y, displayRect.centerX(), displayRect.bottom)) return 4;
+        if (isNearPoint(x, y, deleteHandleX(), deleteHandleY())) return HANDLE_DELETE;
+        if (isNearPoint(x, y, rightHandleX(), scaleHandleY())) return HANDLE_SCALE;
+        if (isNearPoint(x, y, displayRect.centerX(), displayRect.bottom + handleRadius * 0.35f)) {
+            return HANDLE_ACCEPT;
+        }
         return -1;
     }
 
@@ -456,34 +556,23 @@ public class DraggableSignatureView extends View {
         return dx * dx + dy * dy <= touchTolerance * touchTolerance;
     }
 
-    private void resizeWithHandle(int handle, float dx, float dy) {
-        float newLeft = signatureRect.left;
-        float newTop = signatureRect.top;
-        float newRight = signatureRect.right;
-        float newBottom = signatureRect.bottom;
+    /** Uniform scale from center. Drag away (right/down) enlarges; toward shrinks. */
+    private void scaleUniform(float dx, float dy) {
+        float basis = Math.max(signatureRect.width(), 1f);
+        float delta = dx + dy * 0.35f;
+        float factor = 1f + delta / basis;
+        factor = Math.max(0.92f, Math.min(1.08f, factor));
 
-        switch (handle) {
-            case 0:
-                newLeft += dx;
-                newTop += dy;
-                break;
-            case 2:
-                newLeft += dx;
-                newBottom += dy;
-                break;
-            case 3:
-                newRight += dx;
-                newBottom += dy;
-                break;
-            default:
-                return;
-        }
+        float cx = signatureRect.centerX();
+        float cy = signatureRect.centerY();
+        float newW = signatureRect.width() * factor;
+        float newH = signatureRect.height() * factor;
 
-        if (newRight - newLeft >= minWidthPx && newBottom - newTop >= minHeightPx
-                && newLeft >= 0 && newRight <= getWidth()
-                && newTop >= 0 && newBottom <= getHeight()) {
-            signatureRect.set(newLeft, newTop, newRight, newBottom);
-        }
+        float maxW = getWidth() * 0.95f;
+        float maxH = getHeight() * 0.95f;
+        if (newW < minWidthPx || newH < minHeightPx || newW > maxW || newH > maxH) return;
+
+        signatureRect.set(cx - newW / 2f, cy - newH / 2f, cx + newW / 2f, cy + newH / 2f);
     }
 
     private void notifyListener() {
