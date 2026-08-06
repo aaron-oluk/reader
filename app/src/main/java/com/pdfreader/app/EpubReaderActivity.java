@@ -2,13 +2,13 @@ package com.pdfreader.app;
 
 import android.net.Uri;
 import android.os.Bundle;
-import android.view.MenuItem;
+import android.view.View;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
@@ -39,13 +39,18 @@ public class EpubReaderActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_epub_reader);
 
-        Toolbar toolbar = findViewById(R.id.toolbar);
-        setSupportActionBar(toolbar);
-        if (getSupportActionBar() != null) {
-            getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
+
+        View btnBack = findViewById(R.id.btn_back);
+        if (btnBack != null) {
+            btnBack.setOnClickListener(v -> finish());
         }
 
         webView = findViewById(R.id.webView);
@@ -58,8 +63,9 @@ public class EpubReaderActivity extends AppCompatActivity {
         epubPath = getIntent().getStringExtra("EPUB_PATH");
         epubTitle = getIntent().getStringExtra("EPUB_TITLE");
 
-        if (epubTitle != null && getSupportActionBar() != null) {
-            getSupportActionBar().setTitle(epubTitle);
+        TextView titleView = findViewById(R.id.toolbar_title);
+        if (epubTitle != null && titleView != null) {
+            titleView.setText(epubTitle);
         }
 
         if (epubPath != null && !epubPath.isEmpty()) {
@@ -310,14 +316,5 @@ public class EpubReaderActivity extends AppCompatActivity {
             }
         }
         file.delete();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == android.R.id.home) {
-            finish();
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
     }
 }

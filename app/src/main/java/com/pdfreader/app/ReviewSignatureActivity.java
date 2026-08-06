@@ -53,8 +53,14 @@ public class ReviewSignatureActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_review_signature);
+
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
 
         originalImage = findViewById(R.id.original_image);
         processedImage = findViewById(R.id.processed_image);

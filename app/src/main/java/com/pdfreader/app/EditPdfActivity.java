@@ -115,6 +115,7 @@ public class EditPdfActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         signatureManager = new SignatureManager(this);
 
@@ -146,6 +147,15 @@ public class EditPdfActivity extends AppCompatActivity {
                 });
 
         setContentView(R.layout.activity_edit_pdf);
+
+        View editAppBar = findViewById(R.id.app_bar);
+        if (editAppBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(editAppBar);
+        }
+        View successAppBar = findViewById(R.id.success_app_bar);
+        if (successAppBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(successAppBar);
+        }
 
         pagesRecycler    = findViewById(R.id.pages_recycler);
         loadingIndicator = findViewById(R.id.loading_indicator);

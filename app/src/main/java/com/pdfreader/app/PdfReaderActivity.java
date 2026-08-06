@@ -68,8 +68,14 @@ public class PdfReaderActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_pdf_reader);
+
+        View __appBar = findViewById(R.id.top_toolbar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
 
         initViews();
         setupListeners();

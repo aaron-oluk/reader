@@ -45,6 +45,8 @@ public class MergePdfActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private TextView statusText;
     private View emptyState;
+    private View listContainer;
+    private TextView filesSectionLabel;
 
     private final List<FileEntry> selectedFiles = new ArrayList<>();
     private FileListAdapter adapter;
@@ -65,8 +67,14 @@ public class MergePdfActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_merge_pdf);
+
+        View appBar = findViewById(R.id.app_bar);
+        if (appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(appBar);
+        }
 
         filePickerLauncher = registerForActivityResult(
                 new ActivityResultContracts.StartActivityForResult(),
@@ -81,6 +89,8 @@ public class MergePdfActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         statusText = findViewById(R.id.statusText);
         emptyState = findViewById(R.id.empty_state);
+        listContainer = findViewById(R.id.list_container);
+        filesSectionLabel = findViewById(R.id.files_section_label);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new FileListAdapter();
@@ -123,9 +133,24 @@ public class MergePdfActivity extends AppCompatActivity {
     private void updateListVisibility() {
         boolean hasFiles = !selectedFiles.isEmpty();
         emptyState.setVisibility(hasFiles ? View.GONE : View.VISIBLE);
-        recyclerView.setVisibility(hasFiles ? View.VISIBLE : View.GONE);
+        if (listContainer != null) {
+            listContainer.setVisibility(hasFiles ? View.VISIBLE : View.GONE);
+        } else {
+            recyclerView.setVisibility(hasFiles ? View.VISIBLE : View.GONE);
+        }
         btnMerge.setEnabled(selectedFiles.size() >= 2);
-        statusText.setText(selectedFiles.size() + " file" + (selectedFiles.size() == 1 ? "" : "s") + " added");
+
+        int count = selectedFiles.size();
+        if (count == 0) {
+            statusText.setText("Ready to process");
+            if (filesSectionLabel != null) filesSectionLabel.setText("SELECTED FILES");
+        } else if (count == 1) {
+            statusText.setText("1 file added — add one more to merge");
+            if (filesSectionLabel != null) filesSectionLabel.setText("1 FILE SELECTED");
+        } else {
+            statusText.setText(count + " files ready to merge");
+            if (filesSectionLabel != null) filesSectionLabel.setText(count + " FILES SELECTED");
+        }
     }
 
     private String getDisplayName(Uri uri) {

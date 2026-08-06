@@ -1,5 +1,6 @@
 package com.pdfreader.app.fragments;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -9,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -21,13 +23,14 @@ import com.pdfreader.app.R;
 
 import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class InsightsFragment extends Fragment {
 
     private static final String TAG = "InsightsFragment";
-    
+
     private TextView monthlyPages;
     private TextView booksFinished;
     private TextView readingSpeed;
@@ -37,11 +40,21 @@ public class InsightsFragment extends Fragment {
     private TextView booksGoalCount;
     private ProgressBar goalProgress;
     private TextView weeklyProgressText;
-    
+    private View shareButton;
+
     private HistoryManager historyManager;
     private ReadingProgressManager readingProgressManager;
     private ExecutorService executorService;
     private Handler mainHandler;
+
+    // Latest loaded values for sharing
+    private String reportMonthlyPages = "0";
+    private String reportBooksFinished = "0";
+    private String reportStreak = "0";
+    private String reportGoalPercent = "0%";
+    private String reportBooksRead = "0";
+    private String reportBooksGoal = "24";
+    private String reportWeekly = "Last 7 days";
 
     @Nullable
     @Override
@@ -77,6 +90,34 @@ public class InsightsFragment extends Fragment {
         booksGoalCount = view.findViewById(R.id.books_goal_count);
         goalProgress = view.findViewById(R.id.goal_progress);
         weeklyProgressText = view.findViewById(R.id.weekly_progress_text);
+        shareButton = view.findViewById(R.id.share_button);
+
+        if (shareButton != null) {
+            shareButton.setOnClickListener(v -> shareReadingReport());
+        }
+    }
+
+    private void shareReadingReport() {
+        String report = "Signet Reading Insights\n"
+                + "────────────────────\n"
+                + "Pages read this month: " + reportMonthlyPages + "\n"
+                + "Books finished: " + reportBooksFinished + "\n"
+                + "Current streak: " + reportStreak + " days\n"
+                + "Yearly goal: " + reportGoalPercent
+                + " (" + reportBooksRead + " / " + reportBooksGoal + ")\n"
+                + "Weekly activity: " + reportWeekly + "\n\n"
+                + "Shared from Signet";
+
+        try {
+            Intent shareIntent = new Intent(Intent.ACTION_SEND);
+            shareIntent.setType("text/plain");
+            shareIntent.putExtra(Intent.EXTRA_SUBJECT, "My Signet Reading Insights");
+            shareIntent.putExtra(Intent.EXTRA_TEXT, report);
+            startActivity(Intent.createChooser(shareIntent, "Share reading report"));
+        } catch (Exception e) {
+            Log.e(TAG, "Unable to share report", e);
+            Toast.makeText(requireContext(), "Unable to share report", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void loadStats() {
@@ -126,18 +167,27 @@ public class InsightsFragment extends Fragment {
                 final int fStreak = streak;
                 final int fGoal = goalPercent;
                 final int fTotal = allBooks.size();
+                final int fYearlyGoal = yearlyGoal;
                 final String fWeekly = weeklyLabel;
 
                 mainHandler.post(() -> {
-                    monthlyPages.setText(String.format(java.util.Locale.US, "%,d", fMonthly));
-                    booksFinished.setText(String.valueOf(fFinished));
+                    reportMonthlyPages = String.format(Locale.US, "%,d", fMonthly);
+                    reportBooksFinished = String.valueOf(fFinished);
+                    reportStreak = String.valueOf(fStreak);
+                    reportGoalPercent = fGoal + "%";
+                    reportBooksRead = String.valueOf(fTotal);
+                    reportBooksGoal = String.valueOf(fYearlyGoal);
+                    reportWeekly = fWeekly;
+
+                    monthlyPages.setText(reportMonthlyPages);
+                    booksFinished.setText(reportBooksFinished);
                     readingSpeed.setText("—");
-                    currentStreak.setText(String.valueOf(fStreak));
+                    currentStreak.setText(reportStreak);
                     if (weeklyProgressText != null) weeklyProgressText.setText(fWeekly);
-                    goalPercentage.setText(fGoal + "%");
+                    goalPercentage.setText(reportGoalPercent);
                     if (goalProgress != null) goalProgress.setProgress(fGoal);
-                    booksReadCount.setText(String.valueOf(fTotal));
-                    booksGoalCount.setText(" / " + yearlyGoal);
+                    booksReadCount.setText(reportBooksRead);
+                    booksGoalCount.setText(" / " + fYearlyGoal);
                 });
 
             } catch (Exception e) {

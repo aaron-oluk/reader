@@ -62,8 +62,14 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manage_pdf_pages);
+
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
 
         pagesRecycler  = findViewById(R.id.pages_recycler);
         loadingIndicator = findViewById(R.id.loading_indicator);

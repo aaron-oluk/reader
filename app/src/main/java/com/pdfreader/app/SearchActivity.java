@@ -39,7 +39,11 @@ public class SearchActivity extends AppCompatActivity {
         WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_search);
-        // App-bar insets applied globally via WindowInsetsHelper.setupAfterSetContentView
+
+        View appBar = findViewById(R.id.app_bar);
+        if (appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(appBar);
+        }
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
 

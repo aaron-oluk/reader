@@ -1,6 +1,7 @@
 package com.pdfreader.app;
 
 import android.os.Bundle;
+import android.view.View;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.TextView;
@@ -23,8 +24,14 @@ public class ReadingSessionActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_reading_session);
+
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
 
         initViews();
         setupTimer();

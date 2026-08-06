@@ -45,8 +45,14 @@ public class CropSignatureActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_crop_signature);
+
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
 
         cropImageView = findViewById(R.id.crop_image_view);
         btnCrop = findViewById(R.id.btn_crop);

@@ -114,11 +114,11 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>
 
-    <!-- Signet bottom-nav active pill (#E3E0F6 secondary-container) -->
+    <!-- No pill behind selected tab — icon/label color only -->
     <style name="Widget.App.BottomNav.ActiveIndicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
-        <item name="android:color">#E3E0F6</item>
-        <item name="android:width">64dp</item>
-        <item name="android:height">32dp</item>
+        <item name="android:color">@android:color/transparent</item>
+        <item name="android:width">0dp</item>
+        <item name="android:height">0dp</item>
     </style>
 
     <style name="ShapeAppearance.App.FabSquircle" parent="">

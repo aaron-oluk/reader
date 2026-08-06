@@ -6,38 +6,61 @@
     android:orientation="vertical"
     android:background="@color/background_light_gray">
 
-    <!-- Header -->
+    <!-- App bar — status-bar inset applied at runtime via @id/app_bar -->
     <LinearLayout
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingTop="12dp"
-        android:paddingBottom="14dp"
-        android:paddingHorizontal="8dp">
+        android:orientation="vertical"
+        android:background="@color/background_white"
+        android:elevation="2dp"
+        android:paddingTop="12dp">
 
-        <ImageView
-            android:id="@+id/btn_back"
-            android:layout_width="44dp"
-            android:layout_height="44dp"
-            android:src="@drawable/ic_arrow_back"
-            app:tint="@color/text_primary"
-            android:padding="10dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?android:attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back" />
-
-        <TextView
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Browse Files"
-            android:textSize="24sp"
-            android:fontFamily="@font/montserrat_bold"
-            android:textColor="@color/text_primary"
-            android:layout_marginStart="4dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="14dp">
+
+            <ImageView
+                android:id="@+id/btn_back"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/text_primary"
+                android:padding="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Back" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="4dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Browse Files"
+                    android:textSize="20sp"
+                    android:fontFamily="@font/montserrat_bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Find PDFs and EPUBs on this device"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/montserrat"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp" />
+            </LinearLayout>
+        </LinearLayout>
     </LinearLayout>
 
     <!-- Search bar -->

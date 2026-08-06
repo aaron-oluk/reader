@@ -6,30 +6,31 @@
     android:orientation="vertical"
     android:background="@color/background_light_gray">
 
-    <!-- Header -->
+    <!-- App bar — status-bar inset applied at runtime via @id/app_bar -->
     <LinearLayout
         android:id="@+id/app_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:background="@drawable/gradient_primary"
-        android:paddingTop="12dp"
-        android:paddingBottom="20dp"
-        android:paddingHorizontal="20dp">
+        android:background="@color/background_white"
+        android:elevation="2dp"
+        android:paddingTop="12dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:paddingHorizontal="8dp"
+            android:paddingBottom="14dp">
 
             <ImageView
                 android:id="@+id/btn_back"
-                android:layout_width="40dp"
-                android:layout_height="40dp"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
                 android:src="@drawable/ic_arrow_back"
-                app:tint="#FFFFFF"
-                android:padding="8dp"
+                app:tint="@color/text_primary"
+                android:padding="10dp"
                 android:clickable="true"
                 android:focusable="true"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
@@ -40,233 +41,306 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:layout_marginStart="8dp">
+                android:layout_marginStart="4dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Merge Files"
-                    android:textSize="28sp"
+                    android:textSize="20sp"
                     android:fontFamily="@font/montserrat_bold"
-                    android:textColor="#FFFFFF" />
+                    android:textColor="@color/text_primary" />
 
                 <TextView
-                    android:id="@+id/statusText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Select PDFs or images to merge into a single professional document."
-                    android:textSize="13sp"
-                    android:textColor="#CCFFFFFF"
+                    android:text="Combine PDFs or images into one document"
+                    android:textSize="12sp"
+                    android:fontFamily="@font/montserrat"
+                    android:textColor="@color/text_secondary"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 
-    <!-- Add files buttons -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:paddingHorizontal="16dp"
-        android:paddingVertical="12dp"
-        android:background="@color/background_card">
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnSelectFiles"
-            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:layout_marginEnd="8dp"
-            android:text="ADD FILES"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.04"
-            android:textAllCaps="true"
-            app:icon="@drawable/ic_add"
-            app:iconPadding="6dp"
-            app:cornerRadius="10dp"
-            app:strokeColor="@color/card_border"
-            app:strokeWidth="1.5dp"
-            app:backgroundTint="@color/background_white" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnMerge"
-            android:layout_width="0dp"
-            android:layout_height="52dp"
-            android:layout_weight="1"
-            android:enabled="false"
-            android:text="MERGE"
-            android:textSize="12sp"
-            android:textStyle="bold"
-            android:letterSpacing="0.04"
-            android:textAllCaps="true"
-            android:textColor="#FFFFFF"
-            app:backgroundTint="@color/primary_blue"
-            app:icon="@drawable/ic_merge"
-            app:iconTint="#FFFFFF"
-            app:iconPadding="6dp"
-            app:cornerRadius="10dp" />
-    </LinearLayout>
-
-    <!-- Progress -->
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginTop="8dp"
-        android:indeterminateTint="@color/primary_blue"
-        android:visibility="gone" />
-
-    <!-- Empty state -->
-    <LinearLayout
-        android:id="@+id/empty_state"
+    <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1"
-        android:gravity="center"
+        android:layout_weight="1">
+
+        <!-- Empty state -->
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/empty_state"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:clipToPadding="false">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingHorizontal="20dp"
+                android:paddingTop="24dp"
+                android:paddingBottom="24dp"
+                android:gravity="center_horizontal">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="96dp"
+                    android:layout_height="96dp"
+                    android:layout_marginTop="24dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="#EEF2FF"
+                    app:cardElevation="0dp"
+                    app:strokeWidth="0dp">
+
+                    <ImageView
+                        android:layout_width="48dp"
+                        android:layout_height="48dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_merge"
+                        app:tint="@color/primary_blue"
+                        android:contentDescription="Merge" />
+                </com.google.android.material.card.MaterialCardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20dp"
+                    android:text="No Files Added"
+                    android:textSize="20sp"
+                    android:fontFamily="@font/montserrat_bold"
+                    android:textColor="@color/text_primary" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:gravity="center"
+                    android:paddingHorizontal="24dp"
+                    android:text="Add at least 2 PDFs or images to merge into a single high-quality PDF."
+                    android:textSize="14sp"
+                    android:fontFamily="@font/montserrat"
+                    android:textColor="@color/text_secondary"
+                    android:lineSpacingExtra="2dp" />
+
+                <!-- Tips -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="36dp"
+                    android:baselineAligned="false">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginEnd="8dp"
+                        app:cardCornerRadius="10dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@color/background_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_signature"
+                                app:tint="@color/primary_blue"
+                                android:contentDescription="Secure" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="SECURE"
+                                android:textSize="11sp"
+                                android:fontFamily="@font/montserrat_semibold"
+                                android:letterSpacing="0.05"
+                                android:textColor="@color/text_secondary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Your files stay on this device."
+                                android:textSize="12sp"
+                                android:fontFamily="@font/montserrat"
+                                android:textColor="@color/text_primary" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        app:cardCornerRadius="10dp"
+                        app:cardElevation="0dp"
+                        app:strokeWidth="0dp"
+                        app:cardBackgroundColor="@color/background_card">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <ImageView
+                                android:layout_width="22dp"
+                                android:layout_height="22dp"
+                                android:src="@drawable/ic_speed"
+                                app:tint="@color/primary_blue"
+                                android:contentDescription="Fast" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="10dp"
+                                android:text="FAST"
+                                android:textSize="11sp"
+                                android:fontFamily="@font/montserrat_semibold"
+                                android:letterSpacing="0.05"
+                                android:textColor="@color/text_secondary" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="4dp"
+                                android:text="Merge large files in seconds."
+                                android:textSize="12sp"
+                                android:fontFamily="@font/montserrat"
+                                android:textColor="@color/text_primary" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+            </LinearLayout>
+        </androidx.core.widget.NestedScrollView>
+
+        <!-- Files list -->
+        <LinearLayout
+            android:id="@+id/list_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/files_section_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="20dp"
+                android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"
+                android:text="SELECTED FILES"
+                android:textSize="11sp"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textColor="@color/text_secondary"
+                android:letterSpacing="0.1" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/recyclerView"
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1"
+                android:clipToPadding="false"
+                android:paddingBottom="8dp" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/primary_blue"
+            android:visibility="gone" />
+    </FrameLayout>
+
+    <!-- Bottom action dock -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="40dp"
-        android:visibility="visible">
-
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="88dp"
-            android:layout_height="88dp"
-            app:cardCornerRadius="24dp"
-            app:cardBackgroundColor="#EEF2FF"
-            app:cardElevation="0dp"
-            app:strokeWidth="0dp">
-            <ImageView
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_merge"
-                app:tint="@color/primary_blue"
-                android:contentDescription="Merge" />
-        </com.google.android.material.card.MaterialCardView>
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="No Files Added"
-            android:textSize="18sp"
-            android:fontFamily="@font/montserrat_semibold"
-            android:textColor="@color/text_primary" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="center"
-            android:text="Add at least 2 PDFs or images to merge into a single PDF"
-            android:textSize="13sp"
-            android:textColor="@color/text_secondary" />
+        android:background="@color/background_white"
+        android:elevation="8dp"
+        android:paddingHorizontal="20dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="20dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:layout_marginTop="32dp">
+            android:gravity="center_vertical"
+            android:layout_marginBottom="12dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:layout_marginEnd="8dp"
-                app:cardCornerRadius="10dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:cardBackgroundColor="@color/background_card">
+            <View
+                android:layout_width="8dp"
+                android:layout_height="8dp"
+                android:background="@drawable/bg_status_dot" />
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:src="@drawable/ic_signature"
-                        app:tint="@color/primary_blue"
-                        android:contentDescription="Secure" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="SECURE"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:textColor="@color/text_secondary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Bank-grade encryption for all files."
-                        android:textSize="12sp"
-                        android:textColor="@color/text_primary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
+            <TextView
+                android:id="@+id/statusText"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="10dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="0dp"
-                app:cardBackgroundColor="@color/background_card">
+                android:text="Ready to process"
+                android:textSize="12sp"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textColor="@color/text_secondary"
+                android:letterSpacing="0.04" />
+        </LinearLayout>
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
 
-                    <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:src="@drawable/ic_speed"
-                        app:tint="@color/primary_blue"
-                        android:contentDescription="Fast" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnSelectFiles"
+                style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Add files"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textColor="@color/primary_blue"
+                app:icon="@drawable/ic_add"
+                app:iconTint="@color/primary_blue"
+                app:iconPadding="8dp"
+                app:cornerRadius="10dp"
+                app:strokeColor="#C7C4D7"
+                app:strokeWidth="1dp"
+                app:backgroundTint="@color/background_white" />
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="10dp"
-                        android:text="FAST"
-                        android:textSize="11sp"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:textColor="@color/text_secondary" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Merge multi-GB files in seconds."
-                        android:textSize="12sp"
-                        android:textColor="@color/text_primary" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnMerge"
+                android:layout_width="0dp"
+                android:layout_height="52dp"
+                android:layout_weight="1"
+                android:enabled="false"
+                android:text="Merge"
+                android:textSize="14sp"
+                android:textAllCaps="false"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textColor="#FFFFFF"
+                app:backgroundTint="@color/primary_blue"
+                app:icon="@drawable/ic_merge"
+                app:iconTint="#FFFFFF"
+                app:iconPadding="8dp"
+                app:cornerRadius="10dp"
+                app:elevation="0dp" />
         </LinearLayout>
     </LinearLayout>
-
-    <!-- Files list -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingTop="8dp"
-        android:paddingBottom="8dp"
-        android:clipToPadding="false"
-        android:visibility="gone" />
 
 </LinearLayout>

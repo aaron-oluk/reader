@@ -55,8 +55,14 @@ public class ScanReviewActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_scan_review);
+
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
 
         imagePaths = getIntent().getStringArrayListExtra(EXTRA_IMAGE_PATHS);
         if (imagePaths == null) imagePaths = new ArrayList<>();

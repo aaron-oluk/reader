@@ -78,8 +78,14 @@ public class SignPdfActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        WindowInsetsHelper.enableEdgeToEdge(this, false);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_sign_pdf);
+
+        View __appBar = findViewById(R.id.app_bar);
+        if (__appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        }
         
         // Register activity result launcher for PDF picker
         pdfPickerLauncher = registerForActivityResult(

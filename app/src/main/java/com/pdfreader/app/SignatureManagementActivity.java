@@ -42,7 +42,10 @@ public class SignatureManagementActivity extends AppCompatActivity {
         WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signature_management);
-        // App-bar insets applied globally via WindowInsetsHelper.setupAfterSetContentView
+        View appBar = findViewById(R.id.app_bar);
+        if (appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(appBar);
+        }
 
         signatureManager = new SignatureManager(this);
         initViews();

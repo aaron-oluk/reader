@@ -52,16 +52,49 @@ public final class WindowInsetsHelper {
         final int contentBottom = appBar.getPaddingBottom();
 
         ViewCompat.setOnApplyWindowInsetsListener(appBar, (v, windowInsets) -> {
-            Insets status = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
+            Insets status = statusInsets(windowInsets);
             v.setPadding(
                     contentLeft + status.left,
                     contentTop + status.top,
                     contentRight + status.right,
                     contentBottom
             );
-            return windowInsets;
+            return WindowInsetsCompat.CONSUMED;
         });
-        ViewCompat.requestApplyInsets(appBar);
+
+        Runnable apply = () -> {
+            WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(appBar);
+            if (rootInsets == null && appBar.getRootView() != null) {
+                rootInsets = ViewCompat.getRootWindowInsets(appBar.getRootView());
+            }
+            if (rootInsets != null) {
+                Insets status = statusInsets(rootInsets);
+                appBar.setPadding(
+                        contentLeft + status.left,
+                        contentTop + status.top,
+                        contentRight + status.right,
+                        contentBottom
+                );
+            }
+            ViewCompat.requestApplyInsets(appBar);
+        };
+
+        apply.run();
+        appBar.post(apply);
+        // One more pass after layout — first insets can arrive late on nested roots.
+        appBar.postDelayed(apply, 50);
+    }
+
+    @NonNull
+    private static Insets statusInsets(@NonNull WindowInsetsCompat windowInsets) {
+        Insets status = windowInsets.getInsets(
+                WindowInsetsCompat.Type.statusBars() | WindowInsetsCompat.Type.displayCutout());
+        if (status.top == 0) {
+            // Fallback: some devices report only systemBars on first pass
+            status = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+            return Insets.of(status.left, status.top, status.right, 0);
+        }
+        return status;
     }
 
     /** Status-bar inset only (preserves existing padding). Alias used by MainActivity. */
@@ -81,7 +114,14 @@ public final class WindowInsetsHelper {
             v.setPadding(contentLeft, contentTop, contentRight, contentBottom + nav.bottom);
             return windowInsets;
         });
+
+        WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(target);
+        if (rootInsets != null) {
+            Insets nav = rootInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            target.setPadding(contentLeft, contentTop, contentRight, contentBottom + nav.bottom);
+        }
         ViewCompat.requestApplyInsets(target);
+        target.post(() -> ViewCompat.requestApplyInsets(target));
     }
 
     /** Full system-bar padding on a root view (fallback when there is no app bar). */
@@ -102,6 +142,7 @@ public final class WindowInsetsHelper {
             return windowInsets;
         });
         ViewCompat.requestApplyInsets(target);
+        target.post(() -> ViewCompat.requestApplyInsets(target));
     }
 
     /**
@@ -117,7 +158,6 @@ public final class WindowInsetsHelper {
         enableEdgeToEdge(activity, usesLightStatusBars(activity));
 
         // Camera hosts: chrome may live in a fragment added after this callback.
-        // Don't pad the activity root — fragment / activity chrome handle insets.
         if (immersive) {
             View topBar = activity.findViewById(R.id.top_bar);
             if (topBar != null) {
@@ -136,18 +176,24 @@ public final class WindowInsetsHelper {
 
         View appBar = findAppBar(activity);
         if (appBar != null) {
-            // Apply status + nav in one root listener so the parent doesn't
-            // intercept insets before the app bar child can use them.
+            // Pad the app bar directly — do not rely on a parent listener
+            // (FrameLayout / nested roots often never deliver the first insets pass).
+            applyAppBarInsets(appBar);
+
             View successAppBar = activity.findViewById(R.id.success_app_bar);
-            View recycler = activity instanceof PdfReaderActivity
-                    ? activity.findViewById(R.id.pdf_recycler_view)
-                    : null;
-            if (root != null) {
-                applyAppBarAndNavInsets(root, appBar, successAppBar, recycler);
-            } else {
-                applyAppBarInsets(appBar);
-                if (successAppBar != null) applyAppBarInsets(successAppBar);
-                if (recycler != null) applyAppBarInsets(recycler);
+            if (successAppBar != null) {
+                applyAppBarInsets(successAppBar);
+            }
+
+            if (activity instanceof PdfReaderActivity) {
+                View recycler = activity.findViewById(R.id.pdf_recycler_view);
+                if (recycler != null) {
+                    applyAppBarInsets(recycler);
+                }
+            }
+
+            if (root != null && root != appBar) {
+                applyBottomNavPaddingWithoutStealingStatus(root);
             }
             return;
         }
@@ -158,63 +204,31 @@ public final class WindowInsetsHelper {
     }
 
     /**
-     * Pads {@code appBar} with the status-bar inset and {@code root} with the
-     * navigation-bar inset from a single listener (avoids parent intercepting).
+     * Pads only the bottom of {@code root} for the nav bar. Status-bar insets are
+     * left alone so child app bars can still consume them.
      */
-    private static void applyAppBarAndNavInsets(
-            @NonNull View root,
-            @NonNull View appBar,
-            @Nullable View successAppBar,
-            @Nullable View extraStatusTarget) {
-        final int rootLeft = root.getPaddingLeft();
-        final int rootTop = root.getPaddingTop();
-        final int rootRight = root.getPaddingRight();
-        final int rootBottom = root.getPaddingBottom();
-
-        final int barLeft = appBar.getPaddingLeft();
-        final int barTop = appBar.getPaddingTop();
-        final int barRight = appBar.getPaddingRight();
-        final int barBottom = appBar.getPaddingBottom();
-
-        final int successLeft = successAppBar != null ? successAppBar.getPaddingLeft() : 0;
-        final int successTop = successAppBar != null ? successAppBar.getPaddingTop() : 0;
-        final int successRight = successAppBar != null ? successAppBar.getPaddingRight() : 0;
-        final int successBottom = successAppBar != null ? successAppBar.getPaddingBottom() : 0;
-
-        final int extraLeft = extraStatusTarget != null ? extraStatusTarget.getPaddingLeft() : 0;
-        final int extraTop = extraStatusTarget != null ? extraStatusTarget.getPaddingTop() : 0;
-        final int extraRight = extraStatusTarget != null ? extraStatusTarget.getPaddingRight() : 0;
-        final int extraBottom = extraStatusTarget != null ? extraStatusTarget.getPaddingBottom() : 0;
+    private static void applyBottomNavPaddingWithoutStealingStatus(@NonNull View root) {
+        final int contentLeft = root.getPaddingLeft();
+        final int contentTop = root.getPaddingTop();
+        final int contentRight = root.getPaddingRight();
+        final int contentBottom = root.getPaddingBottom();
 
         ViewCompat.setOnApplyWindowInsetsListener(root, (v, windowInsets) -> {
-            Insets status = windowInsets.getInsets(WindowInsetsCompat.Type.statusBars());
             Insets nav = windowInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
-
-            appBar.setPadding(
-                    barLeft + status.left,
-                    barTop + status.top,
-                    barRight + status.right,
-                    barBottom);
-
-            if (successAppBar != null) {
-                successAppBar.setPadding(
-                        successLeft + status.left,
-                        successTop + status.top,
-                        successRight + status.right,
-                        successBottom);
-            }
-            if (extraStatusTarget != null) {
-                extraStatusTarget.setPadding(
-                        extraLeft + status.left,
-                        extraTop + status.top,
-                        extraRight + status.right,
-                        extraBottom);
-            }
-
-            v.setPadding(rootLeft, rootTop, rootRight, rootBottom + nav.bottom);
-            return windowInsets;
+            v.setPadding(contentLeft, contentTop, contentRight, contentBottom + nav.bottom);
+            // Keep status-bar insets available for children (app bars).
+            return new WindowInsetsCompat.Builder(windowInsets)
+                    .setInsets(WindowInsetsCompat.Type.navigationBars(), Insets.NONE)
+                    .build();
         });
+
+        WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(root);
+        if (rootInsets != null) {
+            Insets nav = rootInsets.getInsets(WindowInsetsCompat.Type.navigationBars());
+            root.setPadding(contentLeft, contentTop, contentRight, contentBottom + nav.bottom);
+        }
         ViewCompat.requestApplyInsets(root);
+        root.post(() -> ViewCompat.requestApplyInsets(root));
     }
 
     /** @deprecated Use {@link #setupAfterSetContentView(Activity)} */
@@ -239,7 +253,6 @@ public final class WindowInsetsHelper {
             if (parent instanceof AppBarLayout) {
                 return (View) parent;
             }
-            // LinearLayout toolbars (crop / review) — pad the toolbar itself
             return toolbar;
         }
         return null;
@@ -250,13 +263,10 @@ public final class WindowInsetsHelper {
         if (isImmersiveCamera(activity)) {
             return false;
         }
-        return !(activity instanceof MergePdfActivity
-                || activity instanceof SignPdfActivity
+        return !(activity instanceof SignPdfActivity
                 || activity instanceof ScanReviewActivity
                 || activity instanceof ManagePdfPagesActivity
-                || activity instanceof DrawSignatureActivity
-                || activity instanceof ImageToPdfActivity
-                || activity instanceof EpubReaderActivity);
+                || activity instanceof DrawSignatureActivity);
     }
 
     static boolean isImmersiveCamera(@NonNull Activity activity) {
