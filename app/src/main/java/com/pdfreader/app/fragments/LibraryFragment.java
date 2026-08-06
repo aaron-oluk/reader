@@ -516,13 +516,16 @@ public class LibraryFragment extends Fragment {
                 int colorRes = R.color.accent_green;
                 if (path.contains("/" + com.pdfreader.app.FileManager.CATEGORY_SIGNED + "/")) {
                     label = "SIGNED";
-                    colorRes = R.color.accent_green;
+                    colorRes = R.color.primary_fixed;
+                    statusBadgeText.setTextColor(ContextCompat.getColor(context, R.color.primary_blue));
                 } else if (path.contains("/" + com.pdfreader.app.FileManager.CATEGORY_MERGED + "/")) {
                     label = "MERGED";
-                    colorRes = R.color.primary_blue;
+                    colorRes = R.color.signet_surface_container;
+                    statusBadgeText.setTextColor(ContextCompat.getColor(context, R.color.primary_blue));
                 } else if (path.contains("/" + com.pdfreader.app.FileManager.CATEGORY_SCANNED + "/")) {
                     label = "SCANNED";
-                    colorRes = R.color.accent_amber;
+                    colorRes = R.color.primary_fixed;
+                    statusBadgeText.setTextColor(ContextCompat.getColor(context, R.color.primary_violet));
                 }
                 if (label != null) {
                     statusBadgeText.setText(label);

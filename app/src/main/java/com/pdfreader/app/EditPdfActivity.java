@@ -106,6 +106,7 @@ public class EditPdfActivity extends AppCompatActivity {
 
     private SignatureManager signatureManager;
     private ActivityResultLauncher<Intent> cameraSignatureLauncher;
+    private ActivityResultLauncher<Intent> pdfPickerLauncher;
     private Bitmap pendingSigBitmap = null;
     private TextView selectedAnnotationView = null;
 
@@ -131,6 +132,16 @@ public class EditPdfActivity extends AppCompatActivity {
                                         Toast.LENGTH_SHORT).show();
                             }
                         }
+                    }
+                });
+
+        pdfPickerLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK
+                            && result.getData() != null
+                            && result.getData().getData() != null) {
+                        loadPdf(result.getData().getData());
                     }
                 });
 
@@ -213,14 +224,7 @@ public class EditPdfActivity extends AppCompatActivity {
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
         intent.setType("application/pdf");
         intent.addCategory(Intent.CATEGORY_OPENABLE);
-        startActivityForResult(intent, 1001);
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 1001 && resultCode == RESULT_OK && data != null && data.getData() != null)
-            loadPdf(data.getData());
+        pdfPickerLauncher.launch(intent);
     }
 
     private void loadFromPath(String path) {

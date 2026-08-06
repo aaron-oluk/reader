@@ -88,6 +88,11 @@ public class ProfileFragment extends Fragment {
         view.findViewById(R.id.card_reading_preferences).setOnClickListener(v -> showReadingPreferencesDialog());
         view.findViewById(R.id.card_signature_management).setOnClickListener(v ->
             startActivity(new Intent(requireContext(), com.pdfreader.app.SignatureManagementActivity.class)));
+        View newSignatureBtn = view.findViewById(R.id.btn_new_signature);
+        if (newSignatureBtn != null) {
+            newSignatureBtn.setOnClickListener(v ->
+                startActivity(new Intent(requireContext(), com.pdfreader.app.SignatureManagementActivity.class)));
+        }
         view.findViewById(R.id.card_notifications).setOnClickListener(v -> showNotificationsDialog());
         view.findViewById(R.id.card_about).setOnClickListener(v -> showAboutDialog());
         view.findViewById(R.id.card_help).setOnClickListener(v -> openHelpEmail());

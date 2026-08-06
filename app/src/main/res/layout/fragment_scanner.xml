@@ -111,28 +111,27 @@
             android:focusable="false" />
 
         <!-- Instruction chip floating at the bottom of the camera area -->
-        <TextView
-            android:id="@+id/instruction_text"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="14dp"
-            android:text="Position document in view"
-            android:textAppearance="@style/TextAppearance.App.BodyMedium"
-            android:textColor="@color/text_white"
-            android:background="@drawable/scanner_instruction_chip"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="10dp" />
+            <TextView
+                android:id="@+id/instruction_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="bottom|center_horizontal"
+                android:layout_marginBottom="14dp"
+                android:text="Document detected — tap to capture"
+                android:textSize="13sp"
+                android:textColor="@color/text_white"
+                android:background="@drawable/scanner_instruction_chip"
+                android:paddingHorizontal="20dp"
+                android:paddingVertical="10dp" />
     </FrameLayout>
 
-    <!-- Bottom Controls -->
+    <!-- Bottom Controls — dark immersive bar -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/bottom_controls"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        app:cardBackgroundColor="@color/background_white"
+        app:cardBackgroundColor="#CC0B1C30"
         app:cardCornerRadius="0dp"
-        app:shapeAppearanceOverlay="@style/ShapeAppearance.Scanner.BottomCard"
         app:cardElevation="0dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -219,7 +218,7 @@
                         android:text="0 pages"
                         android:textSize="13sp"
                         android:textStyle="bold"
-                        android:textColor="@color/text_primary" />
+                        android:textColor="@color/text_white" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/save_pdf_button"
@@ -252,31 +251,46 @@
                 android:orientation="horizontal"
                 android:gravity="center">
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/gallery_button"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="1dp"
-                    app:strokeColor="@color/divider"
-                    app:cardBackgroundColor="@color/background_light_gray"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:src="@drawable/ic_library"
-                        android:scaleType="centerInside"
-                        android:padding="12dp"
-                        app:tint="@color/text_secondary"
-                        android:contentDescription="Gallery" />
-                </com.google.android.material.card.MaterialCardView>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/gallery_button"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#40FFFFFF"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_library"
+                            android:scaleType="centerInside"
+                            android:padding="12dp"
+                            app:tint="@color/text_white"
+                            android:contentDescription="Library" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="LIBRARY"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:textColor="#B3FFFFFF" />
+                </LinearLayout>
 
                 <FrameLayout
                     android:id="@+id/capture_button"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
+                    android:layout_width="84dp"
+                    android:layout_height="84dp"
                     android:layout_marginHorizontal="36dp"
                     android:clickable="true"
                     android:focusable="true">
@@ -291,26 +305,41 @@
                         android:background="@drawable/capture_button_circle_enhanced" />
                 </FrameLayout>
 
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/settings_button"
-                    android:layout_width="52dp"
-                    android:layout_height="52dp"
-                    app:cardCornerRadius="12dp"
-                    app:cardElevation="0dp"
-                    app:strokeWidth="1dp"
-                    app:strokeColor="@color/divider"
-                    app:cardBackgroundColor="@color/background_light_gray"
-                    android:clickable="true"
-                    android:focusable="true">
-                    <ImageView
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:src="@drawable/ic_grid"
-                        android:scaleType="centerInside"
-                        android:padding="12dp"
-                        app:tint="@color/text_secondary"
-                        android:contentDescription="Settings" />
-                </com.google.android.material.card.MaterialCardView>
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="center">
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/settings_button"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        app:cardCornerRadius="12dp"
+                        app:cardElevation="0dp"
+                        app:cardBackgroundColor="#40FFFFFF"
+                        android:clickable="true"
+                        android:focusable="true">
+                        <ImageView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:src="@drawable/ic_grid"
+                            android:scaleType="centerInside"
+                            android:padding="12dp"
+                            app:tint="@color/text_white"
+                            android:contentDescription="Grid" />
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="6dp"
+                        android:text="GRID"
+                        android:textSize="10sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08"
+                        android:textColor="#B3FFFFFF" />
+                </LinearLayout>
             </LinearLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

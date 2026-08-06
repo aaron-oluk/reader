@@ -1,179 +1,209 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
     android:background="@color/background_light_gray">
 
-    <!-- Top bar -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical"
-        android:paddingStart="24dp"
-        android:paddingEnd="16dp"
-        android:paddingTop="52dp"
-        android:paddingBottom="16dp"
-        android:background="@color/background_light_gray">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="Your Library"
-            android:textSize="24sp"
-            android:fontFamily="@font/outfit_bold"
-            android:textColor="@color/text_primary" />
-
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/profile_icon"
-            android:layout_width="42dp"
-            android:layout_height="42dp"
-            app:cardCornerRadius="14dp"
-            app:cardBackgroundColor="@color/background_card"
-            app:cardElevation="0dp"
-            app:strokeWidth="1dp"
-            app:strokeColor="@color/card_border"
-            android:clickable="true"
-            android:focusable="true">
-            <ImageView
-                android:layout_width="22dp"
-                android:layout_height="22dp"
-                android:layout_gravity="center"
-                android:src="@drawable/ic_profile"
-                app:tint="@color/primary_blue"
-                android:contentDescription="Profile" />
-        </com.google.android.material.card.MaterialCardView>
-    </LinearLayout>
-
-    <!-- Search bar -->
-    <com.google.android.material.card.MaterialCardView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="16dp"
-        app:cardCornerRadius="10dp"
-        app:cardElevation="0dp"
-        app:strokeWidth="0dp"
-        app:cardBackgroundColor="@color/background_card">
-
+        <!-- Signet top bar -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="14dp">
+            android:paddingStart="16dp"
+            android:paddingEnd="16dp"
+            android:paddingTop="48dp"
+            android:paddingBottom="8dp">
 
             <ImageView
-                android:layout_width="20dp"
-                android:layout_height="20dp"
-                android:src="@drawable/ic_search"
-                android:tint="@color/text_secondary"
-                android:contentDescription="Search"
-                android:layout_marginEnd="12dp" />
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:src="@drawable/ic_menu_hamburger"
+                app:tint="@color/primary_blue"
+                android:padding="8dp"
+                android:contentDescription="Menu" />
 
-            <EditText
-                android:id="@+id/search_input"
+            <TextView
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:hint="Search your library..."
-                android:textSize="15sp"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:background="@android:color/transparent"
-                android:inputType="text"
-                android:maxLines="1" />
+                android:text="Signet"
+                android:textSize="22sp"
+                android:fontFamily="@font/outfit_bold"
+                android:textColor="@color/primary_blue"
+                android:gravity="center" />
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/profile_icon"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                app:cardCornerRadius="20dp"
+                app:cardBackgroundColor="#EEF2FF"
+                app:cardElevation="0dp"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="@color/primary_blue"
+                android:clickable="true"
+                android:focusable="true">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:text="JD"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/primary_blue" />
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
-    </com.google.android.material.card.MaterialCardView>
 
-    <!-- Filter chips -->
-    <HorizontalScrollView
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:scrollbars="none"
-        android:paddingHorizontal="20dp"
-        android:layout_marginBottom="16dp">
-
-        <LinearLayout
-            android:layout_width="wrap_content"
+        <!-- Page title -->
+        <TextView
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:text="Your Library"
+            android:textSize="28sp"
+            android:fontFamily="@font/outfit_bold"
+            android:textColor="@color/text_primary"
+            android:paddingHorizontal="20dp"
+            android:paddingTop="8dp"
+            android:paddingBottom="12dp" />
 
-            <TextView
-                android:id="@+id/tab_all"
+        <!-- Search bar -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="20dp"
+            android:layout_marginBottom="16dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="1dp"
+            app:strokeColor="#4DC7C4D7"
+            app:cardBackgroundColor="@color/background_card">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:src="@drawable/ic_search"
+                    android:tint="@color/text_secondary"
+                    android:contentDescription="Search"
+                    android:layout_marginEnd="12dp" />
+
+                <EditText
+                    android:id="@+id/search_input"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:hint="Search your library..."
+                    android:textSize="15sp"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:background="@android:color/transparent"
+                    android:inputType="text"
+                    android:maxLines="1" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- Filter chips -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:scrollbars="none"
+            android:paddingHorizontal="20dp"
+            android:layout_marginBottom="16dp"
+            android:clipToPadding="false">
+
+            <LinearLayout
                 android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="All"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                android:textColor="#FFFFFF"
-                android:gravity="center"
-                android:paddingHorizontal="20dp"
-                android:background="@drawable/chip_background"
-                android:layout_marginEnd="8dp" />
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-            <TextView
-                android:id="@+id/tab_reading"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Currently Reading"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:gravity="center"
-                android:paddingHorizontal="20dp"
-                android:background="@drawable/chip_outline"
-                android:layout_marginEnd="8dp" />
+                <TextView
+                    android:id="@+id/tab_all"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="All"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:gravity="center"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/chip_background"
+                    android:layout_marginEnd="8dp" />
 
-            <TextView
-                android:id="@+id/tab_to_read"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="To Read"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:gravity="center"
-                android:paddingHorizontal="20dp"
-                android:background="@drawable/chip_outline"
-                android:layout_marginEnd="8dp" />
+                <TextView
+                    android:id="@+id/tab_reading"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Currently Reading"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/chip_outline"
+                    android:layout_marginEnd="8dp" />
 
-            <TextView
-                android:id="@+id/tab_finished"
-                android:layout_width="wrap_content"
-                android:layout_height="36dp"
-                android:text="Finished"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:gravity="center"
-                android:paddingHorizontal="20dp"
-                android:background="@drawable/chip_outline" />
-        </LinearLayout>
-    </HorizontalScrollView>
+                <TextView
+                    android:id="@+id/tab_to_read"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="To Read"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/chip_outline"
+                    android:layout_marginEnd="8dp" />
 
-    <!-- Books grid -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/books_recycler"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:paddingHorizontal="16dp"
-        android:paddingBottom="100dp"
-        android:clipToPadding="false" />
+                <TextView
+                    android:id="@+id/tab_finished"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36dp"
+                    android:text="Finished"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:gravity="center"
+                    android:paddingHorizontal="20dp"
+                    android:background="@drawable/chip_outline" />
+            </LinearLayout>
+        </HorizontalScrollView>
 
-    <!-- FAB -->
+        <!-- Books grid -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/books_recycler"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:paddingHorizontal="14dp"
+            android:paddingBottom="100dp"
+            android:clipToPadding="false" />
+    </LinearLayout>
+
+    <!-- Squircle FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_add_book"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="end|bottom"
-        android:layout_margin="24dp"
+        android:layout_marginEnd="24dp"
+        android:layout_marginBottom="24dp"
         android:src="@drawable/ic_add"
         app:backgroundTint="@color/primary_blue"
         app:tint="@color/text_white"
         app:fabSize="normal"
+        app:shapeAppearanceOverlay="@style/ShapeAppearance.App.FabSquircle"
         android:contentDescription="Add Book" />
 
-</LinearLayout>
+</FrameLayout>

@@ -14,6 +14,7 @@
     <color name="primary_blue_dark">#352AC1</color>
     <color name="primary_blue_light">#C3C0FF</color>
     <color name="primary_violet">#6661F0</color>
+    <color name="primary_fixed">#E2DFFF</color>
     <color name="signet_primary_container">#6661F0</color>
     <color name="signet_surface_tint">#4F48D9</color>
 

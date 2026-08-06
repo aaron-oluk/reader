@@ -53,7 +53,7 @@
                     android:id="@+id/statusText"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Select PDFs or images to merge"
+                    android:text="Select PDFs or images to merge into a single professional document."
                     android:textSize="13sp"
                     android:textColor="#CCFFFFFF"
                     android:layout_marginTop="2dp" />
@@ -74,34 +74,38 @@
             android:id="@+id/btnSelectFiles"
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="0dp"
-            android:layout_height="46dp"
+            android:layout_height="52dp"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="Add Files"
-            android:textSize="13sp"
+            android:text="ADD FILES"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:textAllCaps="false"
-            app:icon="@drawable/ic_pdf"
+            android:letterSpacing="0.04"
+            android:textAllCaps="true"
+            app:icon="@drawable/ic_add"
             app:iconPadding="6dp"
-            app:cornerRadius="24dp"
-            app:strokeColor="@color/primary_blue"
-            app:strokeWidth="1.5dp" />
+            app:cornerRadius="14dp"
+            app:strokeColor="@color/card_border"
+            app:strokeWidth="1.5dp"
+            app:backgroundTint="@color/background_white" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnMerge"
-            android:layout_width="wrap_content"
-            android:layout_height="46dp"
+            android:layout_width="0dp"
+            android:layout_height="52dp"
+            android:layout_weight="1"
             android:enabled="false"
-            android:text="Merge"
-            android:textSize="13sp"
+            android:text="MERGE"
+            android:textSize="12sp"
             android:textStyle="bold"
-            android:textAllCaps="false"
+            android:letterSpacing="0.04"
+            android:textAllCaps="true"
             android:textColor="#FFFFFF"
             app:backgroundTint="@color/primary_blue"
             app:icon="@drawable/ic_merge"
             app:iconTint="#FFFFFF"
             app:iconPadding="6dp"
-            app:cornerRadius="24dp" />
+            app:cornerRadius="14dp" />
     </LinearLayout>
 
     <!-- Progress -->

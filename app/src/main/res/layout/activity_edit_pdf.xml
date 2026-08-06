@@ -481,7 +481,7 @@
                 android:layout_marginHorizontal="16dp"
                 android:layout_marginTop="12dp"
                 android:layout_marginBottom="20dp"
-                android:text="Save PDF"
+                android:text="Save &amp; Finish"
                 android:textSize="15sp"
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
@@ -555,14 +555,14 @@
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 app:cardBackgroundColor="@color/primary_blue"
+                android:layout_marginTop="48dp"
                 android:layout_marginBottom="24dp">
 
                 <ImageView
                     android:layout_width="48dp"
                     android:layout_height="48dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_save"
-                    app:tint="#FFFFFF"
+                    android:src="@drawable/ic_check"
                     android:contentDescription="Signed" />
             </com.google.android.material.card.MaterialCardView>
 
