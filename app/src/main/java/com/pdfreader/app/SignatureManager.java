@@ -1,13 +1,13 @@
 package com.pdfreader.app;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.util.Log;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -19,13 +19,17 @@ import java.util.Locale;
 public class SignatureManager {
     private static final String TAG = "SignatureManager";
     private static final String SIGNATURES_DIR = "signatures";
+    private static final String PREFS_NAME = "signature_prefs";
+    private static final String KEY_ACTIVE_PATH = "active_signature_path";
     
     private Context context;
     private File signaturesDir;
+    private final SharedPreferences prefs;
     
     public SignatureManager(Context context) {
-        this.context = context;
-        signaturesDir = new File(context.getFilesDir(), SIGNATURES_DIR);
+        this.context = context.getApplicationContext();
+        this.prefs = this.context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        signaturesDir = new File(this.context.getFilesDir(), SIGNATURES_DIR);
         // Ensure signatures directory exists
         if (!signaturesDir.exists()) {
             boolean created = signaturesDir.mkdirs();
@@ -97,8 +101,10 @@ public class SignatureManager {
                 return null;
             }
             
-            Log.d(TAG, "Signature saved to: " + signatureFile.getAbsolutePath());
-            return signatureFile.getAbsolutePath();
+            String path = signatureFile.getAbsolutePath();
+            Log.d(TAG, "Signature saved to: " + path);
+            setActiveSignaturePath(path);
+            return path;
         } catch (IOException e) {
             Log.e(TAG, "Error saving signature", e);
             return null;
@@ -106,6 +112,37 @@ public class SignatureManager {
             Log.e(TAG, "Unexpected error saving signature", e);
             return null;
         }
+    }
+
+    /** Path of the signature shown as active on Profile / Sign flows, or null. */
+    public String getActiveSignaturePath() {
+        String path = prefs.getString(KEY_ACTIVE_PATH, null);
+        if (path != null && new File(path).exists()) {
+            return path;
+        }
+        List<String> saved = getSavedSignatures();
+        if (!saved.isEmpty()) {
+            String fallback = saved.get(0);
+            setActiveSignaturePath(fallback);
+            return fallback;
+        }
+        if (path != null) {
+            prefs.edit().remove(KEY_ACTIVE_PATH).apply();
+        }
+        return null;
+    }
+
+    public void setActiveSignaturePath(String path) {
+        if (path == null || path.trim().isEmpty()) {
+            prefs.edit().remove(KEY_ACTIVE_PATH).apply();
+            return;
+        }
+        prefs.edit().putString(KEY_ACTIVE_PATH, path).apply();
+    }
+
+    public Bitmap loadActiveSignature() {
+        String path = getActiveSignaturePath();
+        return path != null ? loadSignature(path) : null;
     }
     
     /**
@@ -183,7 +220,15 @@ public class SignatureManager {
     public boolean deleteSignature(String filePath) {
         try {
             File file = new File(filePath);
-            return file.delete();
+            boolean deleted = file.delete();
+            if (deleted) {
+                String active = prefs.getString(KEY_ACTIVE_PATH, null);
+                if (filePath != null && filePath.equals(active)) {
+                    List<String> remaining = getSavedSignatures();
+                    setActiveSignaturePath(remaining.isEmpty() ? null : remaining.get(0));
+                }
+            }
+            return deleted;
         } catch (Exception e) {
             Log.e(TAG, "Error deleting signature", e);
             return false;

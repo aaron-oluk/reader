@@ -131,7 +131,8 @@ public class SignatureManagementActivity extends AppCompatActivity {
     private void updateActiveSignature(List<String> savedSignatures) {
         if (activeSignaturePreview == null) return;
 
-        if (savedSignatures.isEmpty()) {
+        String path = signatureManager.getActiveSignaturePath();
+        if (path == null || savedSignatures.isEmpty()) {
             activeSignaturePreview.setVisibility(View.GONE);
             activeSignaturePreview.setImageDrawable(null);
             if (activeSignaturePlaceholder != null) {
@@ -143,7 +144,6 @@ public class SignatureManagementActivity extends AppCompatActivity {
             return;
         }
 
-        String path = savedSignatures.get(0);
         Bitmap bitmap = signatureManager.loadSignature(path);
         if (bitmap != null) {
             activeSignaturePreview.setImageBitmap(bitmap);
@@ -153,6 +153,14 @@ public class SignatureManagementActivity extends AppCompatActivity {
             }
             if (activeSignatureName != null) {
                 activeSignatureName.setText(signatureManager.getSignatureName(path));
+            }
+        } else {
+            activeSignaturePreview.setVisibility(View.GONE);
+            if (activeSignaturePlaceholder != null) {
+                activeSignaturePlaceholder.setVisibility(View.VISIBLE);
+            }
+            if (activeSignatureName != null) {
+                activeSignatureName.setText("No signature selected");
             }
         }
     }
@@ -175,6 +183,11 @@ public class SignatureManagementActivity extends AppCompatActivity {
 
         builder.setView(dialogView);
         builder.setPositiveButton("Close", null);
+        builder.setNeutralButton("Use as active", (d, w) -> {
+            signatureManager.setActiveSignaturePath(filePath);
+            loadSignatures();
+            Toast.makeText(this, "Active signature updated", Toast.LENGTH_SHORT).show();
+        });
         builder.show();
     }
 
