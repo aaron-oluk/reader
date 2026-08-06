@@ -6,7 +6,8 @@
         <item name="colorAccent">@color/primary_blue</item>
         <item name="colorSecondaryContainer">#E3E0F6</item>
         <item name="colorOnSecondaryContainer">@color/primary_blue</item>
-        <item name="android:statusBarColor">@color/background_light_gray</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:fontFamily">@font/montserrat</item>
         <item name="fontFamily">@font/montserrat</item>
@@ -109,7 +110,6 @@
     <style name="Theme.PDFReader.NoActionBar" parent="Theme.PDFReader">
         <item name="windowNoTitle">true</item>
         <item name="windowActionBar">false</item>
-        <item name="android:windowFullscreen">true</item>
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
     </style>

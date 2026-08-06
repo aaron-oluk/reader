@@ -39,6 +39,7 @@ import com.pdfreader.app.R;
 import com.pdfreader.app.ScanFilmstripAdapter;
 import com.pdfreader.app.ScanReviewActivity;
 import com.pdfreader.app.EditPdfActivity;
+import com.pdfreader.app.WindowInsetsHelper;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -145,6 +146,14 @@ public class ScannerFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_scanner, container, false);
 
         initViews(view);
+        View topBar = view.findViewById(R.id.top_bar);
+        if (topBar != null) {
+            WindowInsetsHelper.applyStatusBarPadding(topBar);
+        }
+        View bottomControls = view.findViewById(R.id.bottom_controls);
+        if (bottomControls != null) {
+            WindowInsetsHelper.applyNavigationBarPadding(bottomControls);
+        }
         setupClickListeners();
         updateCapturedImagesUI();
 
