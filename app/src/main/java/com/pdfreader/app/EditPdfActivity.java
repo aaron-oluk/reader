@@ -74,10 +74,12 @@ public class EditPdfActivity extends AppCompatActivity {
 
     // Bottom tool palette
     private View toolPalette;
-    private LinearLayout toolOpenBtn, toolTextBtn, toolSignBtn;
+    private View toolOpenBtn;
+    private LinearLayout toolTextBtn, toolSignBtn;
     private MaterialCardView toolTextIconBg, toolSignIconBg;
     private ImageView toolTextIcon, toolSignIcon;
     private TextView toolTextLabel, toolSignLabel;
+    private View btnReplacePdf;
 
     // Mode hint bar
     private LinearLayout modeHintBar;
@@ -174,6 +176,7 @@ public class EditPdfActivity extends AppCompatActivity {
         toolSignIcon     = findViewById(R.id.tool_sign_icon);
         toolTextLabel    = findViewById(R.id.tool_text_label);
         toolSignLabel    = findViewById(R.id.tool_sign_label);
+        btnReplacePdf    = findViewById(R.id.btn_replace_pdf);
 
         modeHintBar      = findViewById(R.id.mode_hint_bar);
         modeHintIcon     = findViewById(R.id.mode_hint_icon);
@@ -198,7 +201,12 @@ public class EditPdfActivity extends AppCompatActivity {
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         findViewById(R.id.btn_exit_mode).setOnClickListener(v -> exitAllModes());
 
-        toolOpenBtn.setOnClickListener(v -> openFilePicker());
+        if (btnReplacePdf != null) {
+            btnReplacePdf.setOnClickListener(v -> openFilePicker());
+        }
+        if (toolOpenBtn != null) {
+            toolOpenBtn.setOnClickListener(v -> openFilePicker());
+        }
 
         View btnOpenPdfEmpty = findViewById(R.id.btn_open_pdf_empty);
         if (btnOpenPdfEmpty != null) btnOpenPdfEmpty.setOnClickListener(v -> openFilePicker());
@@ -225,6 +233,9 @@ public class EditPdfActivity extends AppCompatActivity {
         btnSave.setOnClickListener(v -> saveAnnotatedPdf());
         pagesRecycler.setLayoutManager(new LinearLayoutManager(this));
 
+        // Start without editing dock until a document is loaded
+        updateDocumentChrome(false);
+
         String passedPath = getIntent().getStringExtra(EXTRA_PDF_PATH);
         if (passedPath != null && !passedPath.isEmpty()) {
             if (passedPath.startsWith("content://")) {
@@ -234,7 +245,6 @@ public class EditPdfActivity extends AppCompatActivity {
             }
             String title = getIntent().getStringExtra(EXTRA_PDF_TITLE);
             if (title != null && !title.isEmpty()) {
-                // Show document name until page count is known
                 pageCountText.setText(title);
             }
         }
@@ -263,6 +273,8 @@ public class EditPdfActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     loadingIndicator.setVisibility(View.GONE);
                     emptyState.setVisibility(View.VISIBLE);
+                    pagesRecycler.setVisibility(View.GONE);
+                    updateDocumentChrome(false);
                     Toast.makeText(this, "Could not open PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
@@ -288,6 +300,8 @@ public class EditPdfActivity extends AppCompatActivity {
                 mainHandler.post(() -> {
                     loadingIndicator.setVisibility(View.GONE);
                     emptyState.setVisibility(View.VISIBLE);
+                    pagesRecycler.setVisibility(View.GONE);
+                    updateDocumentChrome(false);
                     Toast.makeText(this, "Could not open PDF: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
@@ -315,6 +329,7 @@ public class EditPdfActivity extends AppCompatActivity {
             btnSave.setEnabled(false);
             pageAdapter = new EditPageAdapter();
             pagesRecycler.setAdapter(pageAdapter);
+            updateDocumentChrome(true);
         });
     }
 
@@ -326,12 +341,12 @@ public class EditPdfActivity extends AppCompatActivity {
         updateToolStates();
         if (on) {
             modeHintIcon.setImageResource(R.drawable.ic_draw);
-            modeHintText.setText("Tap anywhere on a page to type  •  Done to finish");
+            modeHintText.setText("Tap anywhere on the page to add text");
             modeHintBar.setVisibility(View.VISIBLE);
             toolPalette.setVisibility(View.GONE);
         } else if (!isSignMode) {
             modeHintBar.setVisibility(View.GONE);
-            toolPalette.setVisibility(View.VISIBLE);
+            showEditingDock();
         }
     }
 
@@ -341,12 +356,12 @@ public class EditPdfActivity extends AppCompatActivity {
         updateToolStates();
         if (on) {
             modeHintIcon.setImageResource(R.drawable.ic_signature);
-            modeHintText.setText("Tap anywhere on a page to place signature  •  Done to finish");
+            modeHintText.setText("Tap anywhere on the page to place your signature");
             modeHintBar.setVisibility(View.VISIBLE);
             toolPalette.setVisibility(View.GONE);
         } else if (!isTextMode) {
             modeHintBar.setVisibility(View.GONE);
-            toolPalette.setVisibility(View.VISIBLE);
+            showEditingDock();
         }
     }
 
@@ -355,7 +370,23 @@ public class EditPdfActivity extends AppCompatActivity {
         isSignMode = false;
         updateToolStates();
         modeHintBar.setVisibility(View.GONE);
-        toolPalette.setVisibility(View.VISIBLE);
+        showEditingDock();
+    }
+
+    private void showEditingDock() {
+        if (pdfRenderer != null) {
+            toolPalette.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /** Empty state vs loaded-document chrome. */
+    private void updateDocumentChrome(boolean loaded) {
+        if (btnReplacePdf != null) {
+            btnReplacePdf.setVisibility(loaded ? View.VISIBLE : View.GONE);
+        }
+        if (!isTextMode && !isSignMode) {
+            toolPalette.setVisibility(loaded ? View.VISIBLE : View.GONE);
+        }
     }
 
     private void updateToolStates() {
