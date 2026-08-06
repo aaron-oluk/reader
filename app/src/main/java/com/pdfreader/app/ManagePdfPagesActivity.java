@@ -10,7 +10,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -43,45 +42,56 @@ import java.util.concurrent.Executors;
 public class ManagePdfPagesActivity extends AppCompatActivity {
 
     public static final String EXTRA_PDF_PATH = "pdf_path";
+    public static final String EXTRA_PDF_TITLE = "pdf_title";
 
     private RecyclerView pagesRecycler;
     private ProgressBar loadingIndicator;
     private TextView pageCountText;
+    private TextView changesHint;
     private MaterialButton btnSave;
 
     private PdfBoxRenderer pdfRenderer;
     private ParcelFileDescriptor parcelFileDescriptor;
     private String pdfPath;
+    private String pdfTitle;
     private boolean modified = false;
+    private int originalPageCount = 0;
 
     private PageAdapter adapter;
-    private final List<Integer> pageOrder = new ArrayList<>(); // original indices in current display order
+    private final List<Integer> pageOrder = new ArrayList<>();
 
     private final ExecutorService executor = Executors.newFixedThreadPool(2);
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        WindowInsetsHelper.enableEdgeToEdge(this, false);
+        WindowInsetsHelper.enableEdgeToEdge(this, true);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manage_pdf_pages);
 
-        View __appBar = findViewById(R.id.app_bar);
-        if (__appBar != null) {
-            WindowInsetsHelper.applyAppBarInsets(__appBar);
+        View appBar = findViewById(R.id.app_bar);
+        if (appBar != null) {
+            WindowInsetsHelper.applyAppBarInsets(appBar);
         }
 
-        pagesRecycler  = findViewById(R.id.pages_recycler);
+        pagesRecycler = findViewById(R.id.pages_recycler);
         loadingIndicator = findViewById(R.id.loading_indicator);
-        pageCountText  = findViewById(R.id.page_count_text);
-        btnSave        = findViewById(R.id.btn_save);
+        pageCountText = findViewById(R.id.page_count_text);
+        changesHint = findViewById(R.id.changes_hint);
+        btnSave = findViewById(R.id.btn_save);
 
         findViewById(R.id.btn_back).setOnClickListener(v -> finish());
         btnSave.setOnClickListener(v -> savePdf());
 
         pdfPath = getIntent().getStringExtra(EXTRA_PDF_PATH);
-        if (pdfPath == null) { finish(); return; }
+        pdfTitle = getIntent().getStringExtra(EXTRA_PDF_TITLE);
+        if (pdfPath == null) {
+            finish();
+            return;
+        }
 
+        updateSubtitle(0);
+        updateChangesHint();
         loadPdf();
     }
 
@@ -89,13 +99,27 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
         executor.execute(() -> {
             try {
                 File file = new File(pdfPath);
+                if (!file.exists() && pdfPath.startsWith("content://")) {
+                    // Copy content URI into cache for PdfBoxRenderer
+                    File cache = new File(getCacheDir(), "manage_temp.pdf");
+                    try (java.io.InputStream in = getContentResolver().openInputStream(Uri.parse(pdfPath));
+                         FileOutputStream out = new FileOutputStream(cache)) {
+                        if (in == null) throw new IllegalStateException("Cannot open document");
+                        byte[] buf = new byte[8192];
+                        int len;
+                        while ((len = in.read(buf)) > 0) out.write(buf, 0, len);
+                    }
+                    file = cache;
+                }
                 parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
                 pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
                 int count = pdfRenderer.getPageCount();
+                originalPageCount = count;
+                pageOrder.clear();
                 for (int i = 0; i < count; i++) pageOrder.add(i);
 
                 mainHandler.post(() -> {
-                    pageCountText.setText(count + (count == 1 ? " page" : " pages"));
+                    updateSubtitle(count);
                     setupRecycler();
                     loadingIndicator.setVisibility(View.GONE);
                     pagesRecycler.setVisibility(View.VISIBLE);
@@ -116,15 +140,19 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
 
         ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN |
-                ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0) {
+                        ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT, 0) {
 
             @Override
             public boolean onMove(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder from,
                                   @NonNull RecyclerView.ViewHolder to) {
                 int fromPos = from.getBindingAdapterPosition();
-                int toPos   = to.getBindingAdapterPosition();
+                int toPos = to.getBindingAdapterPosition();
+                if (fromPos == RecyclerView.NO_POSITION || toPos == RecyclerView.NO_POSITION) return false;
                 Collections.swap(pageOrder, fromPos, toPos);
                 adapter.notifyItemMoved(fromPos, toPos);
+                // Refresh badges so PAGE numbers stay in display order
+                adapter.notifyItemChanged(fromPos);
+                adapter.notifyItemChanged(toPos);
                 markModified();
                 return true;
             }
@@ -136,18 +164,16 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             public void onSelectedChanged(RecyclerView.ViewHolder viewHolder, int actionState) {
                 super.onSelectedChanged(viewHolder, actionState);
                 if (actionState == ItemTouchHelper.ACTION_STATE_DRAG && viewHolder != null) {
-                    viewHolder.itemView.setAlpha(0.8f);
-                    viewHolder.itemView.setScaleX(1.05f);
-                    viewHolder.itemView.setScaleY(1.05f);
+                    viewHolder.itemView.animate().scaleX(1.04f).scaleY(1.04f).alpha(0.92f).setDuration(120).start();
                 }
             }
 
             @Override
             public void clearView(@NonNull RecyclerView rv, @NonNull RecyclerView.ViewHolder viewHolder) {
                 super.clearView(rv, viewHolder);
-                viewHolder.itemView.setAlpha(1f);
-                viewHolder.itemView.setScaleX(1f);
-                viewHolder.itemView.setScaleY(1f);
+                viewHolder.itemView.animate().scaleX(1f).scaleY(1f).alpha(1f).setDuration(120).start();
+                // Refresh all badges after drop so numbering is correct
+                adapter.notifyDataSetChanged();
             }
         };
         new ItemTouchHelper(callback).attachToRecyclerView(pagesRecycler);
@@ -159,13 +185,13 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             return;
         }
         new AlertDialog.Builder(this)
-                .setTitle("Delete Page")
-                .setMessage("Delete page " + (adapterPosition + 1) + "?")
+                .setTitle("Delete page")
+                .setMessage("Remove page " + (adapterPosition + 1) + " from this document?")
                 .setPositiveButton("Delete", (d, w) -> {
                     pageOrder.remove(adapterPosition);
                     adapter.notifyItemRemoved(adapterPosition);
-                    adapter.notifyItemRangeChanged(adapterPosition, pageOrder.size());
-                    pageCountText.setText(pageOrder.size() + (pageOrder.size() == 1 ? " page" : " pages"));
+                    adapter.notifyItemRangeChanged(0, pageOrder.size());
+                    updateSubtitle(pageOrder.size());
                     markModified();
                 })
                 .setNegativeButton("Cancel", null)
@@ -173,9 +199,32 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
     }
 
     private void markModified() {
+        modified = true;
+        btnSave.setEnabled(true);
+        updateChangesHint();
+    }
+
+    private void updateSubtitle(int count) {
+        String pages = count + (count == 1 ? " page" : " pages");
+        if (pdfTitle != null && !pdfTitle.isEmpty()) {
+            pageCountText.setText(pdfTitle + "  ·  " + pages);
+        } else {
+            pageCountText.setText(pages);
+        }
+    }
+
+    private void updateChangesHint() {
+        if (changesHint == null) return;
         if (!modified) {
-            modified = true;
-            btnSave.setEnabled(true);
+            changesHint.setText("No changes yet");
+            return;
+        }
+        int removed = Math.max(0, originalPageCount - pageOrder.size());
+        if (removed > 0) {
+            changesHint.setText(removed + (removed == 1 ? " page removed" : " pages removed")
+                    + " · Ready to save");
+        } else {
+            changesHint.setText("Pages reordered · Ready to save");
         }
     }
 
@@ -183,6 +232,7 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
         if (pdfRenderer == null) return;
         btnSave.setEnabled(false);
         btnSave.setText("Saving…");
+        btnSave.setIconResource(0);
 
         executor.execute(() -> {
             try {
@@ -215,17 +265,21 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
                 String savedPath = fm.savePdf(bytes, fileName, FileManager.CATEGORY_SIGNED);
                 if (savedPath == null) {
                     File fallback = new File(getFilesDir(), fileName);
-                    try (FileOutputStream fos = new FileOutputStream(fallback)) { fos.write(bytes); }
+                    try (FileOutputStream fos = new FileOutputStream(fallback)) {
+                        fos.write(bytes);
+                    }
                     savedPath = fallback.getAbsolutePath();
                 }
                 final String finalPath = savedPath;
 
                 mainHandler.post(() -> {
                     btnSave.setEnabled(true);
-                    btnSave.setText("Save");
+                    btnSave.setText("Save Pages");
+                    btnSave.setIconResource(R.drawable.ic_save);
                     new AlertDialog.Builder(this)
-                            .setTitle("Saved")
-                            .setMessage("PDF saved with " + pageOrder.size() + " pages. Share it?")
+                            .setTitle("Pages saved")
+                            .setMessage("PDF saved with " + pageOrder.size()
+                                    + (pageOrder.size() == 1 ? " page" : " pages") + ". Share it?")
                             .setPositiveButton("Share", (d, w) -> sharePdf(finalPath))
                             .setNegativeButton("Done", null)
                             .show();
@@ -233,7 +287,8 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             } catch (Exception e) {
                 mainHandler.post(() -> {
                     btnSave.setEnabled(true);
-                    btnSave.setText("Save");
+                    btnSave.setText("Save Pages");
+                    btnSave.setIconResource(R.drawable.ic_save);
                     Toast.makeText(this, "Save failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
                 });
             }
@@ -269,9 +324,12 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
 
         private final List<Integer> order;
 
-        PageAdapter(List<Integer> order) { this.order = order; }
+        PageAdapter(List<Integer> order) {
+            this.order = order;
+        }
 
-        @NonNull @Override
+        @NonNull
+        @Override
         public VH onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
             View v = LayoutInflater.from(parent.getContext())
                     .inflate(R.layout.item_manage_page, parent, false);
@@ -284,7 +342,9 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
         }
 
         @Override
-        public int getItemCount() { return order.size(); }
+        public int getItemCount() {
+            return order.size();
+        }
 
         class VH extends RecyclerView.ViewHolder {
             ImageView thumbnail;
@@ -295,8 +355,8 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             VH(@NonNull View v) {
                 super(v);
                 thumbnail = v.findViewById(R.id.page_thumbnail);
-                progress  = v.findViewById(R.id.page_progress);
-                pageNum   = v.findViewById(R.id.page_number);
+                progress = v.findViewById(R.id.page_progress);
+                pageNum = v.findViewById(R.id.page_number);
                 btnDelete = v.findViewById(R.id.btn_delete_page);
                 btnDelete.setOnClickListener(vv -> {
                     int pos = getBindingAdapterPosition();
@@ -305,7 +365,7 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
             }
 
             void bind(int originalIndex, int displayPosition) {
-                pageNum.setText(String.valueOf(displayPosition + 1));
+                pageNum.setText(String.format(Locale.US, "PAGE %d", displayPosition + 1));
                 progress.setVisibility(View.VISIBLE);
                 thumbnail.setImageBitmap(null);
 
@@ -328,7 +388,9 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
                     int thumbW = 400;
                     float scale = thumbW / pdfRenderer.getPageWidthPoints(index);
                     return pdfRenderer.renderPage(index, scale);
-                } catch (Exception e) { return null; }
+                } catch (Exception e) {
+                    return null;
+                }
             }
         }
     }

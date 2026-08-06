@@ -1,62 +1,101 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.google.android.material.card.MaterialCardView
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="6dp"
-    app:cardCornerRadius="8dp"
-    app:cardElevation="2dp"
-    app:strokeWidth="0dp"
-    app:cardBackgroundColor="#FFFFFF">
+    android:padding="6dp">
 
-    <FrameLayout
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        app:cardCornerRadius="10dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:cardBackgroundColor="@color/background_white">
 
-        <ImageView
-            android:id="@+id/page_thumbnail"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="160dp"
-            android:scaleType="centerCrop"
-            android:contentDescription="Page thumbnail" />
-
-        <ProgressBar
-            android:id="@+id/page_progress"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_gravity="center"
-            android:indeterminate="true"
-            android:visibility="visible" />
-
-        <!-- Page number badge -->
-        <TextView
-            android:id="@+id/page_number"
-            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|start"
-            android:layout_margin="6dp"
-            android:background="@drawable/badge_background"
-            android:paddingHorizontal="6dp"
-            android:paddingVertical="2dp"
-            android:textColor="#FFFFFF"
-            android:textSize="11sp"
-            android:text="1" />
+            android:orientation="vertical">
 
-        <!-- Delete button -->
-        <ImageView
-            android:id="@+id/btn_delete_page"
-            android:layout_width="32dp"
-            android:layout_height="32dp"
-            android:layout_gravity="top|end"
-            android:layout_margin="6dp"
-            android:src="@drawable/ic_delete"
-            android:background="@drawable/delete_badge_bg"
-            android:padding="6dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:contentDescription="Delete page" />
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
 
-    </FrameLayout>
+                <ImageView
+                    android:id="@+id/page_thumbnail"
+                    android:layout_width="match_parent"
+                    android:layout_height="168dp"
+                    android:scaleType="centerCrop"
+                    android:background="#F8F9FF"
+                    android:contentDescription="Page thumbnail" />
 
-</com.google.android.material.card.MaterialCardView>
+                <ProgressBar
+                    android:id="@+id/page_progress"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_gravity="center"
+                    android:indeterminate="true"
+                    android:indeterminateTint="@color/primary_blue"
+                    android:visibility="visible" />
+
+                <!-- Delete -->
+                <ImageView
+                    android:id="@+id/btn_delete_page"
+                    android:layout_width="34dp"
+                    android:layout_height="34dp"
+                    android:layout_gravity="top|end"
+                    android:layout_margin="8dp"
+                    android:src="@drawable/ic_delete"
+                    android:background="@drawable/bg_manage_delete"
+                    android:padding="8dp"
+                    app:tint="@color/accent_red"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:contentDescription="Delete page" />
+
+                <!-- Page badge -->
+                <TextView
+                    android:id="@+id/page_number"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="bottom|start"
+                    android:layout_margin="8dp"
+                    android:background="@drawable/bg_page_badge"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:fontFamily="@font/montserrat_semibold"
+                    android:letterSpacing="0.05"
+                    android:textColor="#FFFFFF"
+                    android:textSize="10sp"
+                    android:text="PAGE 1" />
+            </FrameLayout>
+
+            <!-- Drag affordance footer -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center"
+                android:paddingVertical="8dp"
+                android:background="#F8F9FF">
+
+                <ImageView
+                    android:layout_width="16dp"
+                    android:layout_height="16dp"
+                    android:src="@drawable/ic_drag_handle"
+                    app:tint="@color/text_tertiary"
+                    android:contentDescription="@null" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="6dp"
+                    android:text="Hold &amp; drag"
+                    android:textSize="11sp"
+                    android:fontFamily="@font/montserrat"
+                    android:textColor="@color/text_secondary" />
+            </LinearLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
+</FrameLayout>

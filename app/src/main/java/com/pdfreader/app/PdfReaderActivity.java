@@ -145,6 +145,9 @@ public class PdfReaderActivity extends AppCompatActivity {
             }
             Intent intent = new Intent(this, ManagePdfPagesActivity.class);
             intent.putExtra(ManagePdfPagesActivity.EXTRA_PDF_PATH, path);
+            if (pdfTitle != null) {
+                intent.putExtra(ManagePdfPagesActivity.EXTRA_PDF_TITLE, pdfTitle);
+            }
             startActivity(intent);
         });
 

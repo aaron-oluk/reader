@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="8dp"
+    android:paddingBottom="12dp">
+
+    <EditText
+        android:id="@+id/ann_edit_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:minHeight="88dp"
+        android:gravity="top|start"
+        android:background="@drawable/bg_text_edit_field"
+        android:padding="14dp"
+        android:hint="Enter annotation text"
+        android:textColorHint="@color/text_tertiary"
+        android:textColor="@color/text_primary"
+        android:textSize="15sp"
+        android:fontFamily="@font/montserrat"
+        android:inputType="textMultiLine|textCapSentences"
+        android:maxLines="6" />
+
+    <!-- Size + Bold -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="16dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Size"
+            android:textSize="12sp"
+            android:fontFamily="@font/montserrat_semibold"
+            android:textColor="@color/text_secondary"
+            android:layout_marginEnd="12dp" />
+
+        <ImageView
+            android:id="@+id/ann_size_down"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_zoom_out"
+            app:tint="@color/primary_blue"
+            android:padding="6dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Decrease size" />
+
+        <TextView
+            android:id="@+id/ann_size_label"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:gravity="center"
+            android:text="14"
+            android:textSize="14sp"
+            android:fontFamily="@font/montserrat_bold"
+            android:textColor="@color/text_primary" />
+
+        <ImageView
+            android:id="@+id/ann_size_up"
+            android:layout_width="36dp"
+            android:layout_height="36dp"
+            android:src="@drawable/ic_zoom_in"
+            app:tint="@color/primary_blue"
+            android:padding="6dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="Increase size" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/ann_bold_btn"
+            android:layout_width="44dp"
+            android:layout_height="36dp"
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp"
+            app:strokeWidth="0dp"
+            app:cardBackgroundColor="#EEF2FF"
+            android:clickable="true"
+            android:focusable="true">
+
+            <TextView
+                android:id="@+id/ann_bold_label"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:text="B"
+                android:textSize="16sp"
+                android:textStyle="bold"
+                android:textColor="@color/primary_blue"
+                android:fontFamily="@font/montserrat_bold" />
+        </com.google.android.material.card.MaterialCardView>
+    </LinearLayout>
+
+    <!-- Colors -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14dp"
+        android:text="Color"
+        android:textSize="12sp"
+        android:fontFamily="@font/montserrat_semibold"
+        android:textColor="@color/text_secondary" />
+
+    <LinearLayout
+        android:id="@+id/ann_color_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="10dp" />
+
+    <!-- Actions -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="18dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/ann_btn_delete"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:text="Delete"
+            android:textAllCaps="false"
+            android:fontFamily="@font/montserrat_semibold"
+            android:textColor="@color/accent_red"
+            app:icon="@drawable/ic_delete"
+            app:iconTint="@color/accent_red"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/ann_btn_duplicate"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:text="Duplicate"
+            android:textAllCaps="false"
+            android:fontFamily="@font/montserrat_semibold"
+            android:textColor="@color/primary_blue" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/ann_btn_apply"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp"
+        android:text="Apply changes"
+        android:textAllCaps="false"
+        android:fontFamily="@font/montserrat_semibold"
+        android:textColor="#FFFFFF"
+        app:backgroundTint="@color/primary_blue"
+        app:cornerRadius="10dp"
+        app:elevation="0dp" />
+
+</LinearLayout>
