@@ -46,7 +46,7 @@
                     android:layout_height="wrap_content"
                     android:text="Merge Files"
                     android:textSize="28sp"
-                    android:fontFamily="@font/outfit_bold"
+                    android:fontFamily="@font/montserrat_bold"
                     android:textColor="#FFFFFF" />
 
                 <TextView
@@ -84,7 +84,7 @@
             android:textAllCaps="true"
             app:icon="@drawable/ic_add"
             app:iconPadding="6dp"
-            app:cornerRadius="14dp"
+            app:cornerRadius="10dp"
             app:strokeColor="@color/card_border"
             app:strokeWidth="1.5dp"
             app:backgroundTint="@color/background_white" />
@@ -105,7 +105,7 @@
             app:icon="@drawable/ic_merge"
             app:iconTint="#FFFFFF"
             app:iconPadding="6dp"
-            app:cornerRadius="14dp" />
+            app:cornerRadius="10dp" />
     </LinearLayout>
 
     <!-- Progress -->
@@ -151,7 +151,7 @@
             android:layout_marginTop="20dp"
             android:text="No Files Added"
             android:textSize="18sp"
-            android:fontFamily="@font/outfit_semibold"
+            android:fontFamily="@font/montserrat_semibold"
             android:textColor="@color/text_primary" />
 
         <TextView
@@ -174,7 +174,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="14dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 app:cardBackgroundColor="@color/background_card">
@@ -217,7 +217,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="14dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
                 app:strokeWidth="0dp"
                 app:cardBackgroundColor="@color/background_card">

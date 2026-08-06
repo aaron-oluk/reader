@@ -45,7 +45,7 @@
                             android:layout_height="wrap_content"
                             android:text="Good morning"
                             android:textSize="28sp"
-                            android:fontFamily="@font/outfit_bold"
+                            android:fontFamily="@font/montserrat_bold"
                             android:textColor="@color/text_primary"
                             android:letterSpacing="-0.01" />
 
@@ -65,7 +65,7 @@
                         app:cardCornerRadius="24dp"
                         app:cardBackgroundColor="@color/background_card"
                         app:cardElevation="2dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="@color/card_border"
                         android:clickable="true"
                         android:focusable="true">
@@ -94,7 +94,7 @@
                     android:layout_height="wrap_content"
                     android:text="Quick Actions"
                     android:textSize="16sp"
-                    android:fontFamily="@font/outfit_bold"
+                    android:fontFamily="@font/montserrat_bold"
                     android:textColor="@color/text_primary"
                     android:layout_marginBottom="14dp" />
 
@@ -112,9 +112,9 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="#4DC7C4D7"
                         app:cardBackgroundColor="@color/background_card"
                         android:clickable="true"
@@ -161,9 +161,9 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="#4DC7C4D7"
                         app:cardBackgroundColor="@color/background_card"
                         android:clickable="true"
@@ -210,9 +210,9 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="#4DC7C4D7"
                         app:cardBackgroundColor="@color/background_card"
                         android:clickable="true"
@@ -259,9 +259,9 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="#4DC7C4D7"
                         app:cardBackgroundColor="@color/background_card"
                         android:clickable="true"
@@ -308,9 +308,9 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="#4DC7C4D7"
                         app:cardBackgroundColor="@color/background_card"
                         android:clickable="true"
@@ -357,9 +357,9 @@
                         android:layout_height="72dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="5dp"
-                        app:cardCornerRadius="14dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
-                        app:strokeWidth="1dp"
+                        app:strokeWidth="0dp"
                         app:strokeColor="#4DC7C4D7"
                         app:cardBackgroundColor="@color/background_card"
                         android:clickable="true"
@@ -425,7 +425,7 @@
                         android:layout_weight="1"
                         android:text="Continue Reading"
                         android:textSize="16sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -443,9 +443,9 @@
                     android:id="@+id/currently_reading_card"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="0dp"
-                    app:strokeWidth="1dp"
+                    app:strokeWidth="0dp"
                     app:strokeColor="#4DC7C4D7"
                     app:cardBackgroundColor="@color/background_card"
                     android:clickable="true"
@@ -524,7 +524,7 @@
                                 android:layout_height="wrap_content"
                                 android:text="Book Title"
                                 android:textSize="15sp"
-                                android:fontFamily="@font/outfit_semibold"
+                                android:fontFamily="@font/montserrat_semibold"
                                 android:textColor="@color/text_primary"
                                 android:maxLines="2"
                                 android:ellipsize="end"
@@ -594,15 +594,15 @@
                                     android:textStyle="bold"
                                     android:letterSpacing="0.04"
                                     app:backgroundTint="@color/primary_blue"
-                                    app:cornerRadius="12dp" />
+                                    app:cornerRadius="8dp" />
 
                                 <com.google.android.material.card.MaterialCardView
                                     android:layout_width="42dp"
                                     android:layout_height="42dp"
                                     android:layout_marginStart="10dp"
-                                    app:cardCornerRadius="12dp"
+                                    app:cardCornerRadius="8dp"
                                     app:cardElevation="0dp"
-                                    app:strokeWidth="1dp"
+                                    app:strokeWidth="0dp"
                                     app:strokeColor="@color/card_border"
                                     app:cardBackgroundColor="@color/background_card">
                                     <ImageView
@@ -640,7 +640,7 @@
                         android:layout_weight="1"
                         android:text="Recently Opened"
                         android:textSize="16sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView

@@ -34,7 +34,7 @@
             android:layout_weight="1"
             android:text="Browse Files"
             android:textSize="24sp"
-            android:fontFamily="@font/outfit_bold"
+            android:fontFamily="@font/montserrat_bold"
             android:textColor="@color/text_primary"
             android:layout_marginStart="4dp" />
     </LinearLayout>
@@ -45,7 +45,7 @@
         android:layout_height="wrap_content"
         android:layout_marginHorizontal="20dp"
         android:layout_marginBottom="18dp"
-        app:cardCornerRadius="12dp"
+        app:cardCornerRadius="8dp"
         app:cardElevation="0dp"
         app:strokeWidth="0dp"
         app:cardBackgroundColor="@color/background_card">

@@ -35,6 +35,7 @@ import com.pdfreader.app.PdfBook;
 import com.pdfreader.app.PdfReaderActivity;
 import com.pdfreader.app.EpubReaderActivity;
 import com.pdfreader.app.PdfThumbnailGenerator;
+import com.pdfreader.app.MainActivityNew;
 import com.pdfreader.app.ReadingProgressManager;
 import com.pdfreader.app.R;
 
@@ -110,6 +111,15 @@ public class LibraryFragment extends Fragment {
         booksRecycler = view.findViewById(R.id.books_recycler);
         searchInput = view.findViewById(R.id.search_input);
         fabAddBook = view.findViewById(R.id.fab_add_book);
+
+        View profileIcon = view.findViewById(R.id.profile_icon);
+        if (profileIcon != null) {
+            profileIcon.setOnClickListener(v -> {
+                if (getActivity() instanceof MainActivityNew) {
+                    ((MainActivityNew) getActivity()).navigateToTab(R.id.navigation_profile);
+                }
+            });
+        }
 
         // Responsive grid: 2 columns on phones, 3-4 on tablets
         int spanCount = calculateSpanCount();

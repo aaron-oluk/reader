@@ -87,7 +87,7 @@
             android:layout_weight="1"
             android:text="Skip Crop"
             android:textAppearance="@style/TextAppearance.App.BodyLarge"
-            app:cornerRadius="12dp"
+            app:cornerRadius="8dp"
             app:strokeColor="@color/primary_blue" />
 
         <com.google.android.material.button.MaterialButton
@@ -99,7 +99,7 @@
             android:text="Crop"
             android:textAppearance="@style/TextAppearance.App.BodyLarge"
             app:backgroundTint="@color/primary_blue"
-            app:cornerRadius="12dp" />
+            app:cornerRadius="8dp" />
 
     </LinearLayout>
 

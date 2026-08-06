@@ -135,7 +135,7 @@
                 android:textSize="14sp"
                 android:textStyle="bold"
                 app:backgroundTint="@color/primary_blue"
-                app:cornerRadius="12dp" />
+                app:cornerRadius="8dp" />
         </LinearLayout>
 
         <!-- PDF pages -->
@@ -302,7 +302,7 @@
                     android:id="@+id/tool_open_icon_bg"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    app:cardCornerRadius="14dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp"
                     app:cardBackgroundColor="#EEF2FF">
@@ -344,7 +344,7 @@
                     android:id="@+id/tool_sign_icon_bg"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    app:cardCornerRadius="14dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp"
                     app:cardBackgroundColor="#EEF2FF">

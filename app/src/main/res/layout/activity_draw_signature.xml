@@ -48,9 +48,9 @@
         android:layout_height="0dp"
         android:layout_weight="1"
         android:layout_margin="20dp"
-        app:cardCornerRadius="16dp"
+        app:cardCornerRadius="10dp"
         app:cardElevation="0dp"
-        app:strokeWidth="1dp"
+        app:strokeWidth="0dp"
         app:strokeColor="@color/divider"
         app:cardBackgroundColor="@color/background_card">
 
@@ -213,7 +213,7 @@
                 android:textStyle="bold"
                 android:textColor="#FFFFFF"
                 app:backgroundTint="@color/primary_blue"
-                app:cornerRadius="12dp"
+                app:cornerRadius="8dp"
                 app:icon="@drawable/ic_signature"
                 app:iconTint="#FFFFFF"
                 app:iconPadding="8dp" />

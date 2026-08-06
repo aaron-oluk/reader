@@ -52,7 +52,7 @@
                     android:layout_height="wrap_content"
                     android:text="Edit &amp; Sign PDF"
                     android:textSize="18sp"
-                    android:fontFamily="@font/outfit_semibold"
+                    android:fontFamily="@font/montserrat_semibold"
                     android:textColor="@color/text_primary" />
 
                 <TextView
@@ -121,7 +121,7 @@
                 android:layout_marginTop="24dp"
                 android:text="Ready to Sign?"
                 android:textSize="22sp"
-                android:fontFamily="@font/outfit_bold"
+                android:fontFamily="@font/montserrat_bold"
                 android:textColor="@color/text_primary" />
 
             <TextView
@@ -143,7 +143,7 @@
                 android:textStyle="bold"
                 android:textAllCaps="false"
                 app:backgroundTint="@color/primary_blue"
-                app:cornerRadius="14dp"
+                app:cornerRadius="10dp"
                 app:icon="@drawable/ic_pdf"
                 app:iconTint="#FFFFFF"
                 app:iconGravity="textStart" />
@@ -160,7 +160,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginEnd="6dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="8dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp"
                     app:cardBackgroundColor="#EEF2FF"
@@ -198,7 +198,7 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:layout_marginStart="6dp"
-                    app:cardCornerRadius="12dp"
+                    app:cardCornerRadius="8dp"
                     app:cardElevation="0dp"
                     app:strokeWidth="0dp"
                     app:cardBackgroundColor="#EEF2FF"
@@ -340,7 +340,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="52dp"
                         android:layout_height="52dp"
-                        app:cardCornerRadius="16dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="#EEF2FF">
@@ -388,7 +388,7 @@
                         android:id="@+id/tool_text_icon_bg"
                         android:layout_width="52dp"
                         android:layout_height="52dp"
-                        app:cardCornerRadius="16dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="#EEF2FF">
@@ -438,7 +438,7 @@
                         android:id="@+id/tool_sign_icon_bg"
                         android:layout_width="52dp"
                         android:layout_height="52dp"
-                        app:cardCornerRadius="16dp"
+                        app:cardCornerRadius="10dp"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp"
                         app:cardBackgroundColor="#EEF2FF">
@@ -488,7 +488,7 @@
                 android:textAllCaps="false"
                 android:enabled="false"
                 app:backgroundTint="@color/primary_blue"
-                app:cornerRadius="14dp"
+                app:cornerRadius="10dp"
                 app:icon="@drawable/ic_save"
                 app:iconTint="#FFFFFF"
                 app:iconPadding="8dp"
@@ -571,7 +571,7 @@
                 android:layout_height="wrap_content"
                 android:text="Document Signed!"
                 android:textSize="24sp"
-                android:fontFamily="@font/outfit_bold"
+                android:fontFamily="@font/montserrat_bold"
                 android:textColor="@color/text_primary" />
 
             <TextView
@@ -587,9 +587,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="28dp"
-                app:cardCornerRadius="14dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/divider"
                 app:cardBackgroundColor="@color/background_card">
 
@@ -663,7 +663,7 @@
                 android:textStyle="bold"
                 android:textAllCaps="false"
                 app:backgroundTint="@color/primary_blue"
-                app:cornerRadius="14dp"
+                app:cornerRadius="10dp"
                 app:icon="@drawable/ic_share"
                 app:iconTint="#FFFFFF"
                 app:iconGravity="textStart" />
@@ -680,7 +680,7 @@
                 android:textAllCaps="false"
                 app:strokeColor="@color/primary_blue"
                 app:strokeWidth="1.5dp"
-                app:cornerRadius="14dp"
+                app:cornerRadius="10dp"
                 app:icon="@drawable/ic_folder"
                 app:iconGravity="textStart" />
 

@@ -26,7 +26,7 @@
                 android:layout_height="wrap_content"
                 android:text="Reading Insights"
                 android:textSize="28sp"
-                android:fontFamily="@font/outfit_bold"
+                android:fontFamily="@font/montserrat_bold"
                 android:textColor="@color/text_primary" />
 
             <TextView
@@ -35,7 +35,7 @@
                 android:layout_marginTop="6dp"
                 android:text="Real-time overview of your reading habits and progress."
                 android:textSize="14sp"
-                android:fontFamily="@font/inter"
+                android:fontFamily="@font/montserrat"
                 android:textColor="@color/text_secondary"
                 android:lineSpacingExtra="2dp" />
 
@@ -47,7 +47,7 @@
                 android:text="Download Report"
                 android:textSize="13sp"
                 android:textAllCaps="false"
-                android:fontFamily="@font/inter_semibold"
+                android:fontFamily="@font/montserrat_semibold"
                 android:paddingHorizontal="16dp"
                 app:icon="@drawable/ic_share"
                 app:iconGravity="textStart"
@@ -71,9 +71,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card">
 
@@ -112,7 +112,7 @@
                         android:layout_marginTop="14dp"
                         android:text="PAGES READ"
                         android:textSize="11sp"
-                        android:fontFamily="@font/inter_semibold"
+                        android:fontFamily="@font/montserrat_semibold"
                         android:textColor="@color/text_secondary"
                         android:letterSpacing="0.05" />
 
@@ -123,7 +123,7 @@
                         android:layout_marginTop="4dp"
                         android:text="0"
                         android:textSize="32sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -132,7 +132,7 @@
                         android:layout_marginTop="6dp"
                         android:text="This month"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -143,9 +143,9 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card">
 
@@ -184,7 +184,7 @@
                         android:layout_marginTop="14dp"
                         android:text="BOOKS FINISHED"
                         android:textSize="11sp"
-                        android:fontFamily="@font/inter_semibold"
+                        android:fontFamily="@font/montserrat_semibold"
                         android:textColor="@color/text_secondary"
                         android:letterSpacing="0.05" />
 
@@ -195,7 +195,7 @@
                         android:layout_marginTop="4dp"
                         android:text="0"
                         android:textSize="32sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -204,7 +204,7 @@
                         android:layout_marginTop="6dp"
                         android:text="All time"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -223,9 +223,9 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginEnd="8dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card">
 
@@ -257,7 +257,7 @@
                         android:layout_marginTop="14dp"
                         android:text="READING SPEED"
                         android:textSize="11sp"
-                        android:fontFamily="@font/inter_semibold"
+                        android:fontFamily="@font/montserrat_semibold"
                         android:textColor="@color/text_secondary"
                         android:letterSpacing="0.05" />
 
@@ -274,7 +274,7 @@
                             android:layout_height="wrap_content"
                             android:text="—"
                             android:textSize="32sp"
-                            android:fontFamily="@font/outfit_bold"
+                            android:fontFamily="@font/montserrat_bold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -282,7 +282,7 @@
                             android:layout_height="wrap_content"
                             android:text=" WPM"
                             android:textSize="14sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:layout_marginBottom="6dp" />
                     </LinearLayout>
@@ -293,7 +293,7 @@
                         android:layout_marginTop="6dp"
                         android:text="Average pace"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -304,9 +304,9 @@
                 android:layout_height="match_parent"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card">
 
@@ -351,7 +351,7 @@
                             android:background="#EEF2FF"
                             android:text="Active"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/primary_blue"
                             android:letterSpacing="0.04" />
                     </LinearLayout>
@@ -362,7 +362,7 @@
                         android:layout_marginTop="14dp"
                         android:text="CURRENT STREAK"
                         android:textSize="11sp"
-                        android:fontFamily="@font/inter_semibold"
+                        android:fontFamily="@font/montserrat_semibold"
                         android:textColor="@color/text_secondary"
                         android:letterSpacing="0.05" />
 
@@ -379,7 +379,7 @@
                             android:layout_height="wrap_content"
                             android:text="0"
                             android:textSize="32sp"
-                            android:fontFamily="@font/outfit_bold"
+                            android:fontFamily="@font/montserrat_bold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -387,7 +387,7 @@
                             android:layout_height="wrap_content"
                             android:text=" days"
                             android:textSize="14sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:layout_marginBottom="6dp" />
                     </LinearLayout>
@@ -398,7 +398,7 @@
                         android:layout_marginTop="6dp"
                         android:text="Keep it going"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -409,9 +409,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="10dp"
             app:cardElevation="0dp"
-            app:strokeWidth="1dp"
+            app:strokeWidth="0dp"
             app:strokeColor="@color/card_border"
             app:cardBackgroundColor="@color/background_card">
 
@@ -443,7 +443,7 @@
                     android:layout_marginTop="14dp"
                     android:text="YEARLY READING GOAL"
                     android:textSize="11sp"
-                    android:fontFamily="@font/inter_semibold"
+                    android:fontFamily="@font/montserrat_semibold"
                     android:textColor="@color/text_secondary"
                     android:letterSpacing="0.05" />
 
@@ -460,7 +460,7 @@
                         android:layout_height="wrap_content"
                         android:text="0%"
                         android:textSize="36sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
                 </LinearLayout>
 
@@ -487,7 +487,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textSize="13sp"
-                        android:fontFamily="@font/inter_semibold"
+                        android:fontFamily="@font/montserrat_semibold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -496,7 +496,7 @@
                         android:layout_height="wrap_content"
                         android:text=" / 24"
                         android:textSize="13sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary" />
 
                     <TextView
@@ -504,7 +504,7 @@
                         android:layout_height="wrap_content"
                         android:text=" books"
                         android:textSize="13sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
             </LinearLayout>
@@ -515,9 +515,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="8dp"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="10dp"
             app:cardElevation="0dp"
-            app:strokeWidth="1dp"
+            app:strokeWidth="0dp"
             app:strokeColor="@color/card_border"
             app:cardBackgroundColor="@color/background_card">
 
@@ -545,7 +545,7 @@
                             android:layout_height="wrap_content"
                             android:text="Weekly Activity"
                             android:textSize="18sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -555,7 +555,7 @@
                             android:layout_marginTop="4dp"
                             android:text="Last 7 days"
                             android:textSize="13sp"
-                            android:fontFamily="@font/inter"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary" />
                     </LinearLayout>
 
@@ -568,7 +568,7 @@
                         android:background="#ECFDF5"
                         android:text="↗ 12%"
                         android:textSize="11sp"
-                        android:fontFamily="@font/inter_semibold"
+                        android:fontFamily="@font/montserrat_semibold"
                         android:textColor="@color/accent_green" />
                 </LinearLayout>
 
@@ -607,7 +607,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Mon"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:letterSpacing="0.05" />
                     </LinearLayout>
@@ -638,7 +638,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Tue"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:letterSpacing="0.05" />
                     </LinearLayout>
@@ -669,7 +669,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Wed"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:letterSpacing="0.05" />
                     </LinearLayout>
@@ -700,7 +700,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Thu"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/primary_blue"
                             android:letterSpacing="0.05" />
                     </LinearLayout>
@@ -731,7 +731,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Fri"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:letterSpacing="0.05" />
                     </LinearLayout>
@@ -762,7 +762,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Sat"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:letterSpacing="0.05" />
                     </LinearLayout>
@@ -793,7 +793,7 @@
                             android:layout_marginTop="8dp"
                             android:text="Sun"
                             android:textSize="10sp"
-                            android:fontFamily="@font/inter_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_secondary"
                             android:letterSpacing="0.05" />
                     </LinearLayout>

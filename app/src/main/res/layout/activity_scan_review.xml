@@ -132,9 +132,9 @@
                 android:textStyle="bold"
                 app:icon="@drawable/ic_add"
                 app:iconPadding="6dp"
-                app:cornerRadius="12dp"
+                app:cornerRadius="8dp"
                 app:strokeColor="@color/primary_blue"
-                app:strokeWidth="1dp" />
+                app:strokeWidth="0dp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_save_pdf"
@@ -149,7 +149,7 @@
                 app:icon="@drawable/ic_save"
                 app:iconTint="#FFFFFF"
                 app:iconPadding="6dp"
-                app:cornerRadius="12dp" />
+                app:cornerRadius="8dp" />
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>
 

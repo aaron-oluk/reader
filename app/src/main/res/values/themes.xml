@@ -8,10 +8,10 @@
         <item name="colorOnSecondaryContainer">@color/primary_blue</item>
         <item name="android:statusBarColor">@color/background_light_gray</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:fontFamily">@font/inter</item>
-        <item name="fontFamily">@font/inter</item>
+        <item name="android:fontFamily">@font/montserrat</item>
+        <item name="fontFamily">@font/montserrat</item>
 
-        <!-- Text Appearances — Outfit for headlines, Inter for body -->
+        <!-- Text Appearances — Montserrat -->
         <item name="textAppearanceHeadline1">@style/TextAppearance.App.Headline1</item>
         <item name="textAppearanceHeadline2">@style/TextAppearance.App.Headline2</item>
         <item name="textAppearanceHeadline3">@style/TextAppearance.App.Headline3</item>
@@ -25,66 +25,66 @@
     <!-- Base style required by Android's implicit parent naming
          (TextAppearance.App.* without an explicit parent resolves to this). -->
     <style name="TextAppearance.App" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="fontFamily">@font/inter</item>
-        <item name="android:fontFamily">@font/inter</item>
+        <item name="fontFamily">@font/montserrat</item>
+        <item name="android:fontFamily">@font/montserrat</item>
     </style>
 
     <!-- Text Appearance Styles -->
     <style name="TextAppearance.App.Headline1" parent="TextAppearance.MaterialComponents.Headline1">
-        <item name="fontFamily">@font/outfit_bold</item>
-        <item name="android:fontFamily">@font/outfit_bold</item>
+        <item name="fontFamily">@font/montserrat_bold</item>
+        <item name="android:fontFamily">@font/montserrat_bold</item>
     </style>
 
     <style name="TextAppearance.App.Headline2" parent="TextAppearance.MaterialComponents.Headline2">
-        <item name="fontFamily">@font/outfit_bold</item>
-        <item name="android:fontFamily">@font/outfit_bold</item>
+        <item name="fontFamily">@font/montserrat_bold</item>
+        <item name="android:fontFamily">@font/montserrat_bold</item>
         <item name="android:textColor">@color/text_primary</item>
     </style>
 
     <style name="TextAppearance.App.Headline3" parent="TextAppearance.MaterialComponents.Headline3">
-        <item name="fontFamily">@font/outfit_semibold</item>
-        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="fontFamily">@font/montserrat_semibold</item>
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
     </style>
 
     <style name="TextAppearance.App.Headline4" parent="TextAppearance.MaterialComponents.Headline4">
-        <item name="fontFamily">@font/outfit_semibold</item>
-        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="fontFamily">@font/montserrat_semibold</item>
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
     </style>
 
     <style name="TextAppearance.App.Headline5" parent="TextAppearance.MaterialComponents.Headline5">
-        <item name="fontFamily">@font/outfit_semibold</item>
-        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="fontFamily">@font/montserrat_semibold</item>
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
     </style>
 
     <style name="TextAppearance.App.Headline6" parent="TextAppearance.MaterialComponents.Headline6">
-        <item name="fontFamily">@font/outfit_semibold</item>
-        <item name="android:fontFamily">@font/outfit_semibold</item>
+        <item name="fontFamily">@font/montserrat_semibold</item>
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
     </style>
 
     <style name="TextAppearance.App.Body1" parent="TextAppearance.MaterialComponents.Body1">
-        <item name="fontFamily">@font/inter</item>
-        <item name="android:fontFamily">@font/inter</item>
+        <item name="fontFamily">@font/montserrat</item>
+        <item name="android:fontFamily">@font/montserrat</item>
     </style>
 
     <style name="TextAppearance.App.Body2" parent="TextAppearance.MaterialComponents.Body2">
-        <item name="fontFamily">@font/inter</item>
-        <item name="android:fontFamily">@font/inter</item>
+        <item name="fontFamily">@font/montserrat</item>
+        <item name="android:fontFamily">@font/montserrat</item>
     </style>
 
-    <!-- Reusable headline style for page titles / section headers (Outfit Bold) -->
+    <!-- Reusable headline styles (Montserrat) -->
     <style name="TextAppearance.App.OutfitBold" parent="TextAppearance.App">
-        <item name="android:fontFamily">@font/outfit_bold</item>
-        <item name="fontFamily">@font/outfit_bold</item>
+        <item name="android:fontFamily">@font/montserrat_bold</item>
+        <item name="fontFamily">@font/montserrat_bold</item>
     </style>
 
     <style name="TextAppearance.App.OutfitSemibold" parent="TextAppearance.App">
-        <item name="android:fontFamily">@font/outfit_semibold</item>
-        <item name="fontFamily">@font/outfit_semibold</item>
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
+        <item name="fontFamily">@font/montserrat_semibold</item>
     </style>
 
     <style name="TextAppearance.App.InterSemibold" parent="TextAppearance.App">
-        <item name="android:fontFamily">@font/inter_semibold</item>
-        <item name="fontFamily">@font/inter_semibold</item>
+        <item name="android:fontFamily">@font/montserrat_semibold</item>
+        <item name="fontFamily">@font/montserrat_semibold</item>
     </style>
 
     <!-- Shape Appearance Overlay for Top-Rounded Card -->

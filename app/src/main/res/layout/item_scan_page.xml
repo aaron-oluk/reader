@@ -43,7 +43,7 @@
             android:layout_height="28dp"
             android:layout_gravity="top|end"
             android:layout_margin="8dp"
-            app:cardCornerRadius="14dp"
+            app:cardCornerRadius="10dp"
             app:cardBackgroundColor="#CCDC2626"
             app:cardElevation="0dp"
             android:clickable="true"

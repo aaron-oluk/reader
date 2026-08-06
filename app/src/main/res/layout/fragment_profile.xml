@@ -13,7 +13,7 @@
         android:orientation="vertical"
         android:paddingBottom="100dp">
 
-        <!-- Top bar: menu · Signet · avatar -->
+        <!-- Top bar -->
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -21,43 +21,15 @@
             android:paddingBottom="12dp"
             android:paddingHorizontal="16dp">
 
-            <ImageView
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:layout_gravity="start|center_vertical"
-                android:padding="8dp"
-                android:src="@drawable/ic_menu_hamburger"
-                app:tint="@color/primary_blue"
-                android:contentDescription="Menu" />
-
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:text="@string/app_name"
                 android:textSize="28sp"
-                android:fontFamily="@font/outfit_bold"
+                android:fontFamily="@font/montserrat_bold"
                 android:textColor="@color/primary_blue"
                 android:letterSpacing="-0.01" />
-
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:layout_gravity="end|center_vertical"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp"
-                app:strokeWidth="1.5dp"
-                app:strokeColor="@color/primary_violet"
-                app:cardBackgroundColor="#EEF2FF">
-
-                <ImageView
-                    android:layout_width="18dp"
-                    android:layout_height="18dp"
-                    android:layout_gravity="center"
-                    android:src="@drawable/ic_profile"
-                    app:tint="@color/primary_blue"
-                    android:contentDescription="Profile" />
-            </com.google.android.material.card.MaterialCardView>
         </FrameLayout>
 
         <!-- Profile header -->
@@ -103,7 +75,7 @@
                     android:layout_gravity="bottom|end"
                     android:layout_marginEnd="2dp"
                     android:layout_marginBottom="2dp"
-                    app:cardCornerRadius="16dp"
+                    app:cardCornerRadius="10dp"
                     app:cardElevation="2dp"
                     app:strokeWidth="0dp"
                     app:cardBackgroundColor="@color/primary_blue">
@@ -124,7 +96,7 @@
                 android:layout_height="wrap_content"
                 android:text="User"
                 android:textSize="24sp"
-                android:fontFamily="@font/outfit_bold"
+                android:fontFamily="@font/montserrat_bold"
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="4dp" />
 
@@ -134,7 +106,7 @@
                 android:layout_height="wrap_content"
                 android:text="reader@signet.app"
                 android:textSize="14sp"
-                android:fontFamily="@font/inter"
+                android:fontFamily="@font/montserrat"
                 android:textColor="@color/text_secondary" />
 
             <!-- Status pills -->
@@ -150,7 +122,7 @@
                     android:layout_height="wrap_content"
                     android:text="Verified Account"
                     android:textSize="12sp"
-                    android:fontFamily="@font/outfit_semibold"
+                    android:fontFamily="@font/montserrat_semibold"
                     android:textColor="@color/text_secondary"
                     android:background="@drawable/bg_profile_pill_muted"
                     android:paddingHorizontal="12dp"
@@ -162,7 +134,7 @@
                     android:layout_height="wrap_content"
                     android:text="Reader"
                     android:textSize="12sp"
-                    android:fontFamily="@font/outfit_semibold"
+                    android:fontFamily="@font/montserrat_semibold"
                     android:textColor="@color/primary_blue_dark"
                     android:background="@drawable/bg_profile_pill"
                     android:paddingHorizontal="12dp"
@@ -176,9 +148,9 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:layout_marginHorizontal="16dp"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="10dp"
             app:cardElevation="0dp"
-            app:strokeWidth="1dp"
+            app:strokeWidth="0dp"
             app:strokeColor="@color/card_border"
             app:cardBackgroundColor="@color/background_card">
 
@@ -202,7 +174,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textSize="18sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -210,7 +182,7 @@
                         android:layout_height="wrap_content"
                         android:text="Books"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -234,7 +206,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textSize="18sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -242,7 +214,7 @@
                         android:layout_height="wrap_content"
                         android:text="Pages"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -266,7 +238,7 @@
                         android:layout_height="wrap_content"
                         android:text="0"
                         android:textSize="18sp"
-                        android:fontFamily="@font/outfit_bold"
+                        android:fontFamily="@font/montserrat_bold"
                         android:textColor="@color/text_primary" />
 
                     <TextView
@@ -274,7 +246,7 @@
                         android:layout_height="wrap_content"
                         android:text="Streak"
                         android:textSize="12sp"
-                        android:fontFamily="@font/inter"
+                        android:fontFamily="@font/montserrat"
                         android:textColor="@color/text_secondary"
                         android:layout_marginTop="2dp" />
                 </LinearLayout>
@@ -295,9 +267,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card"
                 android:clickable="true"
@@ -314,7 +286,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        app:cardCornerRadius="12dp"
+                        app:cardCornerRadius="8dp"
                         app:cardBackgroundColor="#EEF2FF"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
@@ -341,7 +313,7 @@
                             android:layout_height="wrap_content"
                             android:text="Reading Preferences"
                             android:textSize="16sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -350,7 +322,7 @@
                             android:layout_height="wrap_content"
                             android:text="60 min / 30 pages daily"
                             android:textSize="13sp"
-                            android:fontFamily="@font/inter"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -370,9 +342,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card"
                 android:clickable="true"
@@ -389,7 +361,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        app:cardCornerRadius="12dp"
+                        app:cardCornerRadius="8dp"
                         app:cardBackgroundColor="#EEF2FF"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
@@ -416,7 +388,7 @@
                             android:layout_height="wrap_content"
                             android:text="Notifications"
                             android:textSize="16sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -424,7 +396,7 @@
                             android:layout_height="wrap_content"
                             android:text="Choose how and when you receive updates."
                             android:textSize="13sp"
-                            android:fontFamily="@font/inter"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -444,9 +416,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card"
                 android:clickable="true"
@@ -463,7 +435,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        app:cardCornerRadius="12dp"
+                        app:cardCornerRadius="8dp"
                         app:cardBackgroundColor="#EEF2FF"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
@@ -490,7 +462,7 @@
                             android:layout_height="wrap_content"
                             android:text="Saved Signatures"
                             android:textSize="16sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -498,7 +470,7 @@
                             android:layout_height="wrap_content"
                             android:text="Manage your digital signatures and uploads."
                             android:textSize="13sp"
-                            android:fontFamily="@font/inter"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -518,9 +490,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card"
                 android:clickable="true"
@@ -537,7 +509,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        app:cardCornerRadius="12dp"
+                        app:cardCornerRadius="8dp"
                         app:cardBackgroundColor="#EEF2FF"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
@@ -564,7 +536,7 @@
                             android:layout_height="wrap_content"
                             android:text="About"
                             android:textSize="16sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -572,7 +544,7 @@
                             android:layout_height="wrap_content"
                             android:text="App version, licenses, and credits."
                             android:textSize="13sp"
-                            android:fontFamily="@font/inter"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -592,9 +564,9 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp"
+                app:cardCornerRadius="10dp"
                 app:cardElevation="0dp"
-                app:strokeWidth="1dp"
+                app:strokeWidth="0dp"
                 app:strokeColor="@color/card_border"
                 app:cardBackgroundColor="@color/background_card"
                 android:clickable="true"
@@ -611,7 +583,7 @@
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="40dp"
                         android:layout_height="40dp"
-                        app:cardCornerRadius="12dp"
+                        app:cardCornerRadius="8dp"
                         app:cardBackgroundColor="#EEF2FF"
                         app:cardElevation="0dp"
                         app:strokeWidth="0dp">
@@ -638,7 +610,7 @@
                             android:layout_height="wrap_content"
                             android:text="Help &amp; Support"
                             android:textSize="16sp"
-                            android:fontFamily="@font/outfit_semibold"
+                            android:fontFamily="@font/montserrat_semibold"
                             android:textColor="@color/text_primary" />
 
                         <TextView
@@ -646,7 +618,7 @@
                             android:layout_height="wrap_content"
                             android:text="Get help or send feedback by email."
                             android:textSize="13sp"
-                            android:fontFamily="@font/inter"
+                            android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
@@ -667,9 +639,9 @@
             android:layout_height="wrap_content"
             android:layout_marginHorizontal="16dp"
             android:layout_marginTop="8dp"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="10dp"
             app:cardElevation="0dp"
-            app:strokeWidth="1dp"
+            app:strokeWidth="0dp"
             app:strokeColor="@color/card_border"
             app:cardBackgroundColor="@color/background_card">
 
@@ -684,7 +656,7 @@
                     android:layout_height="wrap_content"
                     android:text="CURRENT ACTIVE SIGNATURE"
                     android:textSize="11sp"
-                    android:fontFamily="@font/outfit_semibold"
+                    android:fontFamily="@font/montserrat_semibold"
                     android:textColor="@color/text_secondary"
                     android:letterSpacing="0.12"
                     android:layout_marginBottom="14dp" />
@@ -711,11 +683,11 @@
                     android:layout_height="48dp"
                     android:text="+ New Signature"
                     android:textSize="15sp"
-                    android:fontFamily="@font/outfit_semibold"
+                    android:fontFamily="@font/montserrat_semibold"
                     android:textAllCaps="false"
                     android:textColor="@color/text_white"
                     app:backgroundTint="@color/primary_blue"
-                    app:cornerRadius="12dp"
+                    app:cornerRadius="8dp"
                     app:elevation="0dp"
                     android:insetTop="0dp"
                     android:insetBottom="0dp" />
@@ -732,7 +704,7 @@
             android:layout_marginTop="28dp"
             android:text="Logout from Signet"
             android:textSize="15sp"
-            android:fontFamily="@font/outfit_semibold"
+            android:fontFamily="@font/montserrat_semibold"
             android:textAllCaps="false"
             android:textColor="@color/accent_red"
             app:icon="@drawable/ic_close"
@@ -741,7 +713,7 @@
             app:iconPadding="8dp"
             app:strokeColor="@color/accent_red"
             app:strokeWidth="1.5dp"
-            app:cornerRadius="14dp" />
+            app:cornerRadius="10dp" />
 
         <!-- Version footer -->
         <TextView
@@ -753,7 +725,7 @@
             android:paddingHorizontal="24dp"
             android:text="Signet v1.0.0"
             android:textSize="13sp"
-            android:fontFamily="@font/inter"
+            android:fontFamily="@font/montserrat"
             android:textColor="@color/text_secondary" />
     </LinearLayout>
 </ScrollView>
