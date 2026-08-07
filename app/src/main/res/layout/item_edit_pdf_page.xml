@@ -18,7 +18,9 @@
         <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:minHeight="200dp">
+            android:minHeight="200dp"
+            android:clipChildren="false"
+            android:clipToPadding="false">
 
             <ImageView
                 android:id="@+id/page_image"
@@ -38,17 +40,21 @@
                 android:indeterminateTint="@color/primary_blue"
                 android:visibility="visible" />
 
-            <!-- Inline text annotation overlay — receives taps in text mode -->
+            <!-- Inline text / date annotation overlay — receives taps in text/date mode -->
             <FrameLayout
                 android:id="@+id/text_overlay"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:clipToPadding="false" />
 
             <!-- Signature overlays — one child view per placed signature -->
             <FrameLayout
                 android:id="@+id/signature_container"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" />
+                android:layout_height="match_parent"
+                android:clipChildren="false"
+                android:clipToPadding="false" />
 
             <!-- Kept for binary compatibility; unused -->
             <com.pdfreader.app.DraggableSignatureView

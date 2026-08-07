@@ -24,6 +24,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewConfiguration;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.view.inputmethod.EditorInfo;
 import android.util.TypedValue;
 import android.view.inputmethod.InputMethodManager;
@@ -147,6 +148,8 @@ public class EditPdfActivity extends AppCompatActivity {
     private View selectedAnnotationView = null;
     /** After cross-page transfer, reopen edit chrome on this model once views rebuild. */
     private SignatureOverlay signatureToResumeEditing = null;
+    /** Text/date annotation mid-transfer — reselect after page refresh. */
+    private TextAnnotation annotationToResumeEditing = null;
 
     /** Live on-page text editor — kept above the IME via scroll + margin lift. */
     private View activeLiveEditBox = null;
@@ -1174,11 +1177,15 @@ public class EditPdfActivity extends AppCompatActivity {
         FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         // Offset by padding so the text baseline stays at the stored fraction
-        lp.leftMargin = Math.max(0, (int) (ann.xFraction * overlay.getWidth()) - pad);
-        lp.topMargin = Math.max(0, (int) (ann.yFraction * overlay.getHeight() - ann.textSize) - pad);
+        lp.leftMargin = (int) (ann.xFraction * overlay.getWidth()) - pad;
+        lp.topMargin = (int) (ann.yFraction * overlay.getHeight() - ann.textSize) - pad;
         overlay.addView(wrap, lp);
 
         setupAnnotationTouch(pageIndex, ann, wrap, tv, overlay, pad);
+        if (ann == annotationToResumeEditing) {
+            annotationToResumeEditing = null;
+            selectAnnotationView(wrap);
+        }
     }
 
     private void setupAnnotationTouch(int pageIndex, TextAnnotation ann,
@@ -1188,6 +1195,7 @@ public class EditPdfActivity extends AppCompatActivity {
         final float[] downRaw = {0, 0};
         final boolean[] moved = {false};
         final boolean[] magnified = {false};
+        final boolean[] edgeTransferQueued = {false};
         final long[] downAt = {0};
         final int touchSlop = Math.max(6, ViewConfiguration.get(this).getScaledTouchSlop() / 2);
         final float density = getResources().getDisplayMetrics().density;
@@ -1213,15 +1221,11 @@ public class EditPdfActivity extends AppCompatActivity {
                     downRaw[1] = lastRaw[1] = event.getRawY();
                     moved[0] = false;
                     magnified[0] = false;
+                    edgeTransferQueued[0] = false;
                     downAt[0] = System.currentTimeMillis();
                     selectAnnotationView(wrap);
                     wrap.bringToFront();
-                    if (wrap.getParent() != null) {
-                        wrap.getParent().requestDisallowInterceptTouchEvent(true);
-                    }
-                    if (pagesRecycler != null) {
-                        pagesRecycler.requestDisallowInterceptTouchEvent(true);
-                    }
+                    disallowParentIntercept(wrap);
                     return true;
 
                 case MotionEvent.ACTION_MOVE: {
@@ -1238,22 +1242,31 @@ public class EditPdfActivity extends AppCompatActivity {
                     }
                     if (!moved[0]) return true;
 
-                    if (wrap.getParent() != null) {
-                        wrap.getParent().requestDisallowInterceptTouchEvent(true);
-                    }
-                    if (pagesRecycler != null) {
-                        pagesRecycler.requestDisallowInterceptTouchEvent(true);
-                    }
+                    disallowParentIntercept(wrap);
 
-                    int maxLeft = Math.max(0, overlay.getWidth() - wrap.getWidth());
-                    int maxTop = Math.max(0, overlay.getHeight() - wrap.getHeight());
-                    lp.leftMargin = Math.max(0, Math.min(lp.leftMargin + Math.round(dx), maxLeft));
-                    lp.topMargin = Math.max(0, Math.min(lp.topMargin + Math.round(dy), maxTop));
+                    // Soft clamp — keep a sliver on-page so edges/corners are reachable
+                    int newLeft = lp.leftMargin + Math.round(dx);
+                    int newTop = lp.topMargin + Math.round(dy);
+                    int[] clamped = softClampAnnotationMargins(overlay, wrap, newLeft, newTop);
+                    lp.leftMargin = clamped[0];
+                    lp.topMargin = clamped[1];
                     wrap.setLayoutParams(lp);
 
-                    ann.xFraction = (lp.leftMargin + pad) / (float) Math.max(1, overlay.getWidth());
-                    ann.yFraction = (lp.topMargin + pad + ann.textSize)
-                            / (float) Math.max(1, overlay.getHeight());
+                    syncAnnotationFractions(ann, wrap, overlay, pad, lp);
+
+                    if (!edgeTransferQueued[0]) {
+                        float cy = lp.topMargin + wrap.getHeight() / 2f;
+                        if (cy < 0) {
+                            edgeTransferQueued[0] = true;
+                            transferAnnotationAcrossPages(pageIndex, overlay, ann, wrap, -1);
+                            return true;
+                        } else if (cy > overlay.getHeight()) {
+                            edgeTransferQueued[0] = true;
+                            transferAnnotationAcrossPages(pageIndex, overlay, ann, wrap, 1);
+                            return true;
+                        }
+                    }
+
                     markDirty();
                     return true;
                 }
@@ -1261,6 +1274,7 @@ public class EditPdfActivity extends AppCompatActivity {
                 case MotionEvent.ACTION_UP:
                 case MotionEvent.ACTION_CANCEL:
                     clearDragMagnify.run();
+                    edgeTransferQueued[0] = false;
                     if (event.getActionMasked() == MotionEvent.ACTION_UP && !moved[0]) {
                         long held = System.currentTimeMillis() - downAt[0];
                         if (held > 450) {
@@ -1279,6 +1293,99 @@ public class EditPdfActivity extends AppCompatActivity {
             }
             return false;
         });
+    }
+
+    private void disallowParentIntercept(View view) {
+        ViewParent p = view.getParent();
+        while (p != null) {
+            p.requestDisallowInterceptTouchEvent(true);
+            p = p.getParent();
+        }
+    }
+
+    private void allowParentIntercept(View view) {
+        ViewParent p = view.getParent();
+        while (p != null) {
+            p.requestDisallowInterceptTouchEvent(false);
+            p = p.getParent();
+        }
+    }
+
+    /** Keep at least a sliver of the annotation on-page so it can sit on edges/corners. */
+    private int[] softClampAnnotationMargins(FrameLayout overlay, View wrap, int left, int top) {
+        float minVisible = Math.min(wrap.getWidth(), wrap.getHeight()) * 0.2f;
+        minVisible = Math.max(minVisible, 12f * getResources().getDisplayMetrics().density);
+        int minLeft = Math.round(minVisible - wrap.getWidth());
+        int maxLeft = Math.round(overlay.getWidth() - minVisible);
+        int minTop = Math.round(minVisible - wrap.getHeight());
+        int maxTop = Math.round(overlay.getHeight() - minVisible);
+        return new int[]{
+                Math.max(minLeft, Math.min(left, maxLeft)),
+                Math.max(minTop, Math.min(top, maxTop))
+        };
+    }
+
+    private void syncAnnotationFractions(TextAnnotation ann, View wrap, FrameLayout overlay,
+                                         int pad, FrameLayout.LayoutParams lp) {
+        ann.xFraction = (lp.leftMargin + pad) / (float) Math.max(1, overlay.getWidth());
+        ann.yFraction = (lp.topMargin + pad + ann.textSize)
+                / (float) Math.max(1, overlay.getHeight());
+    }
+
+    private void transferAnnotationAcrossPages(int fromPage, FrameLayout fromOverlay,
+                                               TextAnnotation ann, View wrap, int direction) {
+        int toPage = fromPage + direction;
+        if (pdfRenderer == null || toPage < 0 || toPage >= pdfRenderer.getPageCount()) {
+            // Snap center back onto this page
+            FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) wrap.getLayoutParams();
+            float cy = lp.topMargin + wrap.getHeight() / 2f;
+            if (cy < 0) {
+                lp.topMargin = Math.round(4f - wrap.getHeight() / 2f);
+            } else if (cy > fromOverlay.getHeight()) {
+                lp.topMargin = Math.round(fromOverlay.getHeight() - wrap.getHeight() / 2f - 4f);
+            }
+            int[] clamped = softClampAnnotationMargins(fromOverlay, wrap, lp.leftMargin, lp.topMargin);
+            lp.leftMargin = clamped[0];
+            lp.topMargin = clamped[1];
+            wrap.setLayoutParams(lp);
+            syncAnnotationFractions(ann, wrap, fromOverlay,
+                    wrap.getPaddingLeft(), lp);
+            return;
+        }
+
+        FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) wrap.getLayoutParams();
+        syncAnnotationFractions(ann, wrap, fromOverlay, wrap.getPaddingLeft(), lp);
+
+        List<TextAnnotation> fromList = annotations.get(fromPage);
+        if (fromList != null) fromList.remove(ann);
+
+        float approxH = (wrap.getHeight() - wrap.getPaddingTop() - wrap.getPaddingBottom())
+                / (float) Math.max(1, fromOverlay.getHeight());
+        if (direction > 0) {
+            ann.yFraction = Math.max(0.02f, approxH + 0.02f);
+        } else {
+            ann.yFraction = Math.max(0.02f, 1f - 0.02f);
+        }
+        ann.pageIndex = toPage;
+
+        List<TextAnnotation> toList = annotations.get(toPage);
+        if (toList == null) {
+            toList = new ArrayList<>();
+            annotations.put(toPage, toList);
+        }
+        toList.add(ann);
+
+        annotationToResumeEditing = ann;
+        if (selectedAnnotationView == wrap) selectedAnnotationView = null;
+        fromOverlay.removeView(wrap);
+        markDirty();
+        if (pageAdapter != null) {
+            pageAdapter.refreshPage(fromPage);
+            pageAdapter.refreshPage(toPage);
+        }
+        if (pagesRecycler != null) {
+            pagesRecycler.smoothScrollToPosition(toPage);
+        }
     }
 
     private void deleteAnnotation(int pageIndex, TextAnnotation ann, View wrap, FrameLayout overlay) {
@@ -1914,14 +2021,14 @@ public class EditPdfActivity extends AppCompatActivity {
                             down[0] = tap[0] = ev.getX();
                             down[1] = tap[1] = ev.getY();
                             moved[0] = false;
-                            if (vv.getParent() != null) {
-                                vv.getParent().requestDisallowInterceptTouchEvent(false);
-                            }
+                            allowParentIntercept(vv);
                             return true;
                         case MotionEvent.ACTION_MOVE:
                             if (Math.abs(ev.getX() - down[0]) > touchSlop
                                     || Math.abs(ev.getY() - down[1]) > touchSlop) {
                                 moved[0] = true;
+                                // Release so RecyclerView can scroll to other pages
+                                allowParentIntercept(vv);
                             }
                             return true;
                         case MotionEvent.ACTION_UP:
