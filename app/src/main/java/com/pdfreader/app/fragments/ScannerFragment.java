@@ -9,6 +9,7 @@ import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import androidx.exifinterface.media.ExifInterface;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -34,6 +35,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.card.MaterialCardView;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.pdfreader.app.R;
 import com.pdfreader.app.ScanFilmstripAdapter;
@@ -43,6 +45,8 @@ import com.pdfreader.app.WindowInsetsHelper;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -63,6 +67,7 @@ import androidx.camera.core.ViewPort;
 
 import com.pdfreader.app.DocumentAnalyzer;
 import com.pdfreader.app.DocumentDetectorView;
+import com.pdfreader.app.ImageOrientationUtils;
 
 public class ScannerFragment extends Fragment {
 
@@ -99,6 +104,10 @@ public class ScannerFragment extends Fragment {
     private ScanFilmstripAdapter filmstripAdapter;
     private ActivityResultLauncher<String> requestPermissionLauncher;
     private ActivityResultLauncher<Intent> reviewLauncher;
+    private ActivityResultLauncher<String> importLauncher;
+    private MaterialCardView gridButton;
+    private View libraryButton;
+    private boolean gridVisible;
 
     private DocumentDetectorView detectorView;
     private TextView instructionText;
@@ -155,7 +164,10 @@ public class ScannerFragment extends Fragment {
                     }
                     // RESULT_CANCELED = user went back, keep captures
                 });
-        
+
+        importLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                this::importLibraryImage);
     }
 
     @Nullable
@@ -207,6 +219,8 @@ public class ScannerFragment extends Fragment {
         capturedCountText = view.findViewById(R.id.captured_count_text);
         capturedImagesInfo = view.findViewById(R.id.captured_images_info);
         flashIcon = view.findViewById(R.id.flash_icon);
+        gridButton = view.findViewById(R.id.settings_button);
+        libraryButton = view.findViewById(R.id.gallery_button);
         filmstripRecycler = view.findViewById(R.id.filmstrip_recycler);
         detectorView = view.findViewById(R.id.document_detector_view);
         instructionText = view.findViewById(R.id.instruction_text);
@@ -247,8 +261,14 @@ public class ScannerFragment extends Fragment {
 
     private void setupClickListeners() {
         captureButton.setOnClickListener(v -> captureImage());
-
         flashToggle.setOnClickListener(v -> toggleFlash());
+
+        if (libraryButton != null) {
+            libraryButton.setOnClickListener(v -> importLauncher.launch("image/*"));
+        }
+        if (gridButton != null) {
+            gridButton.setOnClickListener(v -> toggleAlignmentGrid());
+        }
 
         closeScanner.setOnClickListener(v -> {
             if (getActivity() != null) {
@@ -278,6 +298,112 @@ public class ScannerFragment extends Fragment {
             });
         }
         updateModeChips();
+    }
+
+    private void toggleAlignmentGrid() {
+        gridVisible = !gridVisible;
+        if (detectorView != null) detectorView.setShowGrid(gridVisible);
+        if (gridButton != null) {
+            gridButton.setCardBackgroundColor(gridVisible ? 0xCC4C45D6 : 0x40FFFFFF);
+        }
+    }
+
+    private void importLibraryImage(@Nullable Uri uri) {
+        if (uri == null || !isAdded()) return;
+        ExecutorService processor = scanProcessor;
+        if (processor == null || processor.isShutdown()) {
+            Toast.makeText(getContext(), "Could not add that photo", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        processor.execute(() -> {
+            File photoFile;
+            try {
+                photoFile = copyLibraryPhoto(uri);
+            } catch (Exception e) {
+                new Handler(Looper.getMainLooper()).post(() -> {
+                    if (isAdded()) {
+                        Toast.makeText(getContext(), "Could not add that photo", Toast.LENGTH_SHORT).show();
+                    }
+                });
+                return;
+            }
+            new Handler(Looper.getMainLooper()).post(() -> enqueueImportedPage(photoFile));
+        });
+    }
+
+    private void enqueueImportedPage(File photoFile) {
+        if (!isAdded() || filmstripAdapter == null) return;
+        final String path = photoFile.getAbsolutePath();
+        capturedImages.add(photoFile);
+        synchronized (captureLock) {
+            capturedPaths.add(path);
+        }
+        filmstripAdapter.setProcessing(path, true);
+        int idx = capturedPaths.size() - 1;
+        filmstripAdapter.notifyItemInserted(idx);
+        filmstripRecycler.scrollToPosition(idx);
+        updateCapturedImagesUI();
+        processingCount++;
+
+        ExecutorService processor = scanProcessor;
+        if (processor == null || processor.isShutdown()) {
+            finishPageProcessing(path);
+            return;
+        }
+        processor.execute(() -> {
+            bakeUpright(photoFile);
+            boolean portrait = true;
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(path, bounds);
+            if (bounds.outWidth > bounds.outHeight) portrait = false;
+            int rotation = portrait ? Surface.ROTATION_0 : Surface.ROTATION_90;
+            Bitmap page = cropToDocument(photoFile, null, rotation, false);
+            if (page != null) page.recycle();
+            new Handler(Looper.getMainLooper()).post(() -> finishPageProcessing(path));
+        });
+    }
+
+    private File copyLibraryPhoto(Uri uri) throws IOException {
+        String stamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
+        File dest = new File(requireContext().getCacheDir(), "SCAN_" + stamp + ".jpg");
+        try (InputStream in = requireContext().getContentResolver().openInputStream(uri)) {
+            if (in == null) throw new IOException("Cannot open photo");
+            try (FileOutputStream out = new FileOutputStream(dest)) {
+                byte[] buffer = new byte[16384];
+                int n;
+                while ((n = in.read(buffer)) > 0) out.write(buffer, 0, n);
+            }
+        }
+        return dest;
+    }
+
+    private void bakeUpright(File file) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+        int sample = 1;
+        int longEdge = Math.max(bounds.outWidth, bounds.outHeight);
+        while (longEdge / sample > 2500) sample *= 2;
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = sample;
+        Bitmap bitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
+        if (bitmap == null) return;
+        bitmap = ImageOrientationUtils.applyExifOrientation(bitmap, file.getAbsolutePath());
+        try (FileOutputStream fos = new FileOutputStream(file)) {
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, fos);
+        } catch (Exception e) {
+            bitmap.recycle();
+            return;
+        }
+        bitmap.recycle();
+        try {
+            ExifInterface exif = new ExifInterface(file.getAbsolutePath());
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION,
+                    String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+            exif.saveAttributes();
+        } catch (Exception ignored) {
+        }
     }
 
     private void selectTab(TextView selectedTab) {

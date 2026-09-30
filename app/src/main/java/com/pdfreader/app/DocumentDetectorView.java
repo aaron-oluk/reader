@@ -233,6 +233,7 @@ public class DocumentDetectorView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        drawAlignmentGrid(canvas);
         if (guideMode) {
             if (guideRect.width() < 1f) layoutGuide();
             drawGuide(canvas);
@@ -243,6 +244,32 @@ public class DocumentDetectorView extends View {
         } else {
             drawDefaultBrackets(canvas);
         }
+    }
+
+    private boolean showGrid;
+
+    public void setShowGrid(boolean show) {
+        showGrid = show;
+        invalidate();
+    }
+
+    private void drawAlignmentGrid(Canvas canvas) {
+        if (!showGrid) return;
+        float w = getWidth();
+        float h = getHeight();
+        if (w <= 0 || h <= 0) return;
+        int color = edgePaint.getColor();
+        float stroke = edgePaint.getStrokeWidth();
+        edgePaint.setColor(0x66FFFFFF);
+        edgePaint.setStrokeWidth(density());
+        for (int i = 1; i <= 2; i++) {
+            float x = w * i / 3f;
+            float y = h * i / 3f;
+            canvas.drawLine(x, 0, x, h, edgePaint);
+            canvas.drawLine(0, y, w, y, edgePaint);
+        }
+        edgePaint.setColor(color);
+        edgePaint.setStrokeWidth(stroke);
     }
 
     private void drawQuad(Canvas canvas, float[] q, boolean det) {

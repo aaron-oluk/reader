@@ -184,19 +184,6 @@
                 android:textStyle="bold" />
         </LinearLayout>
 
-        <!-- Instruction chip floating at the bottom of the camera area -->
-            <TextView
-                android:id="@+id/instruction_text"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_gravity="bottom|center_horizontal"
-                android:layout_marginBottom="14dp"
-                android:text="Align the edges of the page"
-                android:textSize="13sp"
-                android:textColor="@color/text_white"
-                android:background="@drawable/scanner_instruction_chip"
-                android:paddingHorizontal="20dp"
-                android:paddingVertical="10dp" />
     </FrameLayout>
 
     <!-- Bottom Controls — dark immersive bar -->
@@ -215,9 +202,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingTop="20dp"
+            android:paddingTop="8dp"
             android:paddingBottom="32dp"
             android:paddingHorizontal="20dp">
+
+            <TextView
+                android:id="@+id/instruction_text"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingBottom="8dp"
+                android:text="Align the edges of the page"
+                android:textColor="#B3FFFFFF"
+                android:textSize="12sp" />
 
             <!-- Mode Tabs (hidden at runtime — kept for layout compatibility) -->
             <LinearLayout
@@ -333,8 +330,8 @@
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/gallery_button"
-                        android:layout_width="52dp"
-                        android:layout_height="52dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         app:cardCornerRadius="8dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="#40FFFFFF"
@@ -345,7 +342,7 @@
                             android:layout_height="match_parent"
                             android:src="@drawable/ic_library"
                             android:scaleType="centerInside"
-                            android:padding="12dp"
+                            android:padding="10dp"
                             app:tint="@color/text_white"
                             android:contentDescription="Library" />
                     </com.google.android.material.card.MaterialCardView>
@@ -387,8 +384,8 @@
 
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/settings_button"
-                        android:layout_width="52dp"
-                        android:layout_height="52dp"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
                         app:cardCornerRadius="8dp"
                         app:cardElevation="0dp"
                         app:cardBackgroundColor="#40FFFFFF"
@@ -399,7 +396,7 @@
                             android:layout_height="match_parent"
                             android:src="@drawable/ic_grid"
                             android:scaleType="centerInside"
-                            android:padding="12dp"
+                            android:padding="10dp"
                             app:tint="@color/text_white"
                             android:contentDescription="Grid" />
                     </com.google.android.material.card.MaterialCardView>
