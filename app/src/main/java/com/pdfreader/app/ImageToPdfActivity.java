@@ -19,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
@@ -202,7 +203,13 @@ public class ImageToPdfActivity extends AppCompatActivity {
                     progressBar.setVisibility(View.GONE);
                     btnCreatePdf.setEnabled(true);
                     statusText.setText("PDF created successfully!");
-                    Toast.makeText(this, "PDF saved successfully", Toast.LENGTH_SHORT).show();
+                    new AlertDialog.Builder(this)
+                            .setTitle("PDF created")
+                            .setMessage("Your document was saved. Print it now?")
+                            .setPositiveButton("Print", (d, w) ->
+                                    DocumentPrinter.printPdf(this, finalPath, fileName))
+                            .setNegativeButton("Done", null)
+                            .show();
                 });
 
             } catch (Exception e) {

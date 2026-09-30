@@ -231,7 +231,9 @@ public class MergePdfActivity extends AppCompatActivity {
                     // Offer to share the result immediately
                     new androidx.appcompat.app.AlertDialog.Builder(this)
                             .setTitle("Merge Complete")
-                            .setMessage("Saved to your device. Share it now?")
+                            .setMessage("Saved to your device. Share or print it now?")
+                            .setNeutralButton("Print", (d, w) ->
+                                    DocumentPrinter.printPdf(this, finalSaved, baseName))
                             .setPositiveButton("Share", (d, w) -> {
                                 try {
                                     File f = new File(finalSaved);

@@ -279,8 +279,10 @@ public class ManagePdfPagesActivity extends AppCompatActivity {
                     new AlertDialog.Builder(this)
                             .setTitle("Pages saved")
                             .setMessage("PDF saved with " + pageOrder.size()
-                                    + (pageOrder.size() == 1 ? " page" : " pages") + ". Share it?")
+                                    + (pageOrder.size() == 1 ? " page" : " pages") + ". Share or print it?")
                             .setPositiveButton("Share", (d, w) -> sharePdf(finalPath))
+                            .setNeutralButton("Print", (d, w) ->
+                                    DocumentPrinter.printPdf(this, finalPath, "Document"))
                             .setNegativeButton("Done", null)
                             .show();
                 });

@@ -537,14 +537,21 @@ public class SignPdfActivity extends AppCompatActivity {
                     }
                 }
 
-                final boolean success = savedPath != null;
+                final String pathToPrint = savedPath;
+                final boolean success = pathToPrint != null;
                 runOnUiThread(() -> {
                     if (success) {
-                        Toast.makeText(this, "PDF saved successfully", Toast.LENGTH_SHORT).show();
+                        new AlertDialog.Builder(this)
+                                .setTitle("PDF saved")
+                                .setMessage("Your signed document was saved. Print it now?")
+                                .setPositiveButton("Print", (d, w) ->
+                                        DocumentPrinter.printPdf(this, pathToPrint, "Signed document"))
+                                .setNegativeButton("Done", (d, w) -> finish())
+                                .show();
                     } else {
                         Toast.makeText(this, "Failed to save PDF", Toast.LENGTH_LONG).show();
+                        finish();
                     }
-                    finish();
                 });
 
             } catch (Exception e) {

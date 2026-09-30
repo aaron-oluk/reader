@@ -73,9 +73,10 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:minWidth="96dp"
                 android:orientation="vertical"
                 android:layout_marginStart="4dp"
-                android:layout_marginEnd="8dp">
+                android:layout_marginEnd="4dp">
 
                 <TextView
                     android:id="@+id/toolbar_title"
@@ -99,45 +100,72 @@
                     android:layout_marginTop="2dp" />
             </LinearLayout>
 
-            <!-- Notes Button -->
-            <ImageButton
-                android:id="@+id/btn_notes"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_note"
-                app:tint="@color/text_primary"
-                android:contentDescription="Notes" />
+            <HorizontalScrollView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:scrollbars="none"
+                android:overScrollMode="never"
+                android:fillViewport="true">
 
-            <!-- Bookmark Button -->
-            <ImageButton
-                android:id="@+id/btn_bookmark"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_bookmark"
-                app:tint="@color/text_primary"
-                android:contentDescription="Bookmark" />
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="end|center_vertical">
 
-            <!-- Manage Pages Button -->
-            <ImageButton
-                android:id="@+id/btn_search"
-                android:layout_width="44dp"
-                android:layout_height="44dp"
-                android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_pdf"
-                app:tint="@color/text_primary"
-                android:contentDescription="Manage Pages" />
+                    <!-- Notes Button -->
+                    <ImageButton
+                        android:id="@+id/btn_notes"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_note"
+                        app:tint="@color/text_primary"
+                        android:contentDescription="Notes" />
 
-            <!-- Edit PDF Button -->
+                    <!-- Bookmark Button -->
+                    <ImageButton
+                        android:id="@+id/btn_bookmark"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_bookmark"
+                        app:tint="@color/text_primary"
+                        android:contentDescription="Bookmark" />
+
+                    <!-- Manage Pages Button -->
+                    <ImageButton
+                        android:id="@+id/btn_search"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_pdf"
+                        app:tint="@color/text_primary"
+                        android:contentDescription="Manage Pages" />
+
+                    <!-- Edit PDF Button -->
+                    <ImageButton
+                        android:id="@+id/btn_edit_pdf"
+                        android:layout_width="44dp"
+                        android:layout_height="44dp"
+                        android:background="?android:attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_draw"
+                        app:tint="@color/text_primary"
+                        android:contentDescription="Edit PDF" />
+
+                </LinearLayout>
+            </HorizontalScrollView>
+
+            <!-- Print Button -->
             <ImageButton
-                android:id="@+id/btn_edit_pdf"
+                android:id="@+id/btn_print"
                 android:layout_width="44dp"
                 android:layout_height="44dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
-                android:src="@drawable/ic_draw"
+                android:src="@drawable/ic_print"
                 app:tint="@color/text_primary"
-                android:contentDescription="Edit PDF" />
+                android:contentDescription="Print" />
 
             <!-- Share Button -->
             <ImageButton

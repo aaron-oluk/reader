@@ -30,6 +30,7 @@ import android.view.View;
 import androidx.core.content.ContextCompat;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.pdfreader.app.DocumentPrinter;
 import com.pdfreader.app.HistoryManager;
 import com.pdfreader.app.PdfBook;
 import com.pdfreader.app.PdfReaderActivity;
@@ -138,10 +139,7 @@ public class LibraryFragment extends Fragment {
                 intent.putExtra("PDF_TITLE", book.getTitle());
                 startActivity(intent);
             }
-        }, book -> {
-            // Delete book callback
-            showDeleteConfirmationDialog(book);
-        });
+        }, this::showBookActions);
         booksRecycler.setAdapter(adapter);
 
         // Open file manager to pick PDF or EPUB
@@ -315,6 +313,20 @@ public class LibraryFragment extends Fragment {
         }
 
         adapter.notifyDataSetChanged();
+    }
+
+    private void showBookActions(PdfBook book) {
+        String[] options = {"Print", "Remove from Library", "Cancel"};
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(book.getTitle())
+                .setItems(options, (dialog, which) -> {
+                    if (which == 0) {
+                        DocumentPrinter.printPdf(requireContext(), book.getFilePath(), book.getTitle());
+                    } else if (which == 1) {
+                        showDeleteConfirmationDialog(book);
+                    }
+                })
+                .show();
     }
 
     private void showDeleteConfirmationDialog(PdfBook book) {

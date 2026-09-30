@@ -63,6 +63,18 @@
                     android:textColor="@color/text_secondary"
                     android:layout_marginTop="2dp" />
             </LinearLayout>
+
+            <ImageView
+                android:id="@+id/btn_print"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:src="@drawable/ic_print"
+                app:tint="@color/text_primary"
+                android:padding="10dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Print" />
         </LinearLayout>
     </LinearLayout>
 

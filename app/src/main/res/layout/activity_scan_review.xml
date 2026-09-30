@@ -60,6 +60,28 @@
                     android:layout_marginTop="2dp" />
             </LinearLayout>
 
+            <!-- Print button -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_print"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="8dp"
+                app:cardCornerRadius="10dp"
+                app:cardBackgroundColor="#33FFFFFF"
+                app:cardElevation="0dp"
+                app:strokeWidth="0dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:visibility="gone">
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_print"
+                    app:tint="#FFFFFF"
+                    android:contentDescription="Print" />
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Share button -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/btn_share"

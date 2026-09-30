@@ -53,6 +53,14 @@ public class EpubReaderActivity extends AppCompatActivity {
             btnBack.setOnClickListener(v -> finish());
         }
 
+        View btnPrint = findViewById(R.id.btn_print);
+        if (btnPrint != null) {
+            btnPrint.setOnClickListener(v -> {
+                String title = epubTitle != null ? epubTitle : "Document";
+                DocumentPrinter.printWebView(this, webView, title);
+            });
+        }
+
         webView = findViewById(R.id.webView);
         webView.getSettings().setJavaScriptEnabled(true);
         webView.setWebViewClient(new WebViewClient());

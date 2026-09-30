@@ -27,6 +27,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 
+import com.pdfreader.app.DocumentPrinter;
 import com.pdfreader.app.HistoryManager;
 import com.pdfreader.app.ReadingProgressManager;
 import com.pdfreader.app.MainActivityNew;
@@ -577,19 +578,21 @@ public class HomeFragment extends Fragment {
     }
     
     private void showBookMenu(PdfBook book) {
-        String[] options = {"Remove from History", "Share", "Cancel"};
+        String[] options = {"Print", "Share", "Remove from History", "Cancel"};
         
         new AlertDialog.Builder(requireContext())
             .setTitle(book.getTitle())
             .setItems(options, (dialog, which) -> {
                 switch (which) {
-                    case 0: // Remove from History
-                        removeFromHistory(book);
+                    case 0:
+                        DocumentPrinter.printPdf(requireContext(), book.getFilePath(), book.getTitle());
                         break;
-                    case 1: // Share
+                    case 1:
                         shareBook(book);
                         break;
-                    // case 2: Cancel - do nothing
+                    case 2:
+                        removeFromHistory(book);
+                        break;
                 }
             })
             .show();

@@ -246,6 +246,14 @@ public class EditPdfActivity extends AppCompatActivity {
         findViewById(R.id.success_btn_share).setOnClickListener(v -> {
             if (lastSavedPdfPath != null) sharePdf(lastSavedPdfPath);
         });
+        findViewById(R.id.success_btn_print).setOnClickListener(v -> {
+            if (lastSavedPdfPath != null) {
+                String title = successFileName.getText() != null
+                        ? successFileName.getText().toString()
+                        : "Document";
+                DocumentPrinter.printPdf(this, lastSavedPdfPath, title);
+            }
+        });
         findViewById(R.id.success_btn_back_to_documents).setOnClickListener(v -> finish());
         findViewById(R.id.success_btn_view_history).setOnClickListener(v -> {
             Intent intent = new Intent(this, MainActivityNew.class);

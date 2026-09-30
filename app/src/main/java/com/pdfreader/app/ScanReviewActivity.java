@@ -51,6 +51,7 @@ public class ScanReviewActivity extends AppCompatActivity {
     private RecyclerView pagesRecycler;
     private TextView pageCountText;
     private View btnShare;
+    private View btnPrint;
     private MaterialButton btnSave;
 
     @Override
@@ -71,6 +72,7 @@ public class ScanReviewActivity extends AppCompatActivity {
         pagesRecycler = findViewById(R.id.pages_recycler);
         pageCountText = findViewById(R.id.page_count_text);
         btnShare = findViewById(R.id.btn_share);
+        btnPrint = findViewById(R.id.btn_print);
         btnSave = findViewById(R.id.btn_save_pdf);
 
         pagesRecycler.setLayoutManager(new LinearLayoutManager(this));
@@ -87,6 +89,7 @@ public class ScanReviewActivity extends AppCompatActivity {
             if (savedFilePath != null) shareFile(savedFilePath);
             else if (tempPdfFile != null) shareFile(tempPdfFile.getAbsolutePath());
         });
+        btnPrint.setOnClickListener(v -> printCurrentDocument());
 
         generatePreview();
     }
@@ -111,6 +114,7 @@ public class ScanReviewActivity extends AppCompatActivity {
                     int n = pages.size();
                     pageCountText.setText(n + (n == 1 ? " page" : " pages"));
                     pagesRecycler.setAdapter(new PageBitmapAdapter(pages));
+                    btnPrint.setVisibility(View.VISIBLE);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -242,8 +246,10 @@ public class ScanReviewActivity extends AppCompatActivity {
 
                     new AlertDialog.Builder(this)
                         .setTitle("Saved!")
-                        .setMessage("Your document was saved. Share it now?")
+                        .setMessage("Your document was saved. Share or print it now?")
                         .setPositiveButton("Share", (d, w) -> shareFile(finalPath))
+                        .setNeutralButton("Print", (d, w) ->
+                                DocumentPrinter.printPdf(this, finalPath, "Scanned document"))
                         .setNegativeButton("Done", (d, w) -> {
                             setResult(RESULT_OK);
                             finish();
@@ -258,6 +264,16 @@ public class ScanReviewActivity extends AppCompatActivity {
                 });
             }
         }).start();
+    }
+
+    private void printCurrentDocument() {
+        if (savedFilePath != null) {
+            DocumentPrinter.printPdf(this, savedFilePath, "Scanned document");
+        } else if (tempPdfFile != null && tempPdfFile.exists()) {
+            DocumentPrinter.printPdf(this, tempPdfFile.getAbsolutePath(), "Scanned document");
+        } else {
+            Toast.makeText(this, "Document not ready to print", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void shareFile(String filePath) {

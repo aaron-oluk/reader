@@ -131,6 +131,10 @@ public class PdfReaderActivity extends AppCompatActivity {
         ImageButton btnBookmark = findViewById(R.id.btn_bookmark);
         btnBookmark.setOnClickListener(v -> addBookmark());
         
+        // Print button
+        ImageButton btnPrint = findViewById(R.id.btn_print);
+        btnPrint.setOnClickListener(v -> printDocument());
+
         // Share button
         ImageButton btnShare = findViewById(R.id.btn_share);
         btnShare.setOnClickListener(v -> shareDocument());
@@ -188,6 +192,15 @@ public class PdfReaderActivity extends AppCompatActivity {
             return pdfPath;
         }
         return pdfPath; // may still be content:// — EditPdf can open URIs
+    }
+
+    private void printDocument() {
+        String path = currentDocumentPath();
+        if (path == null) {
+            Toast.makeText(this, "Document not ready yet", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        DocumentPrinter.printPdf(this, path, pdfTitle != null ? pdfTitle : "Document");
     }
 
     private void shareDocument() {
