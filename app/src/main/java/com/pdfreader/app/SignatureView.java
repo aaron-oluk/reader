@@ -48,11 +48,20 @@ public class SignatureView extends View {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        if (w > 0 && h > 0) {
-            bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
-            canvas = new Canvas(bitmap);
-            canvas.drawColor(Color.TRANSPARENT);
+        if (w <= 0 || h <= 0) return;
+        if (bitmap != null && bitmap.getWidth() == w && bitmap.getHeight() == h) return;
+
+        Bitmap next = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888);
+        Canvas nextCanvas = new Canvas(next);
+        if (bitmap != null && !bitmap.isRecycled()) {
+            nextCanvas.drawBitmap(bitmap, 0, 0, null);
+            bitmap.recycle();
         }
+        if (!path.isEmpty()) {
+            nextCanvas.drawPath(path, paint);
+        }
+        bitmap = next;
+        canvas = nextCanvas;
     }
 
     @Override
@@ -85,7 +94,7 @@ public class SignatureView extends View {
 
             case MotionEvent.ACTION_UP:
                 path.lineTo(x, y);
-                if (canvas != null) {
+                if (canvas != null && !path.isEmpty()) {
                     canvas.drawPath(path, paint);
                 }
                 path.reset();
@@ -109,7 +118,12 @@ public class SignatureView extends View {
     }
 
     public Bitmap getSignatureBitmap() {
-        return bitmap;
+        if (bitmap == null || bitmap.isRecycled()) return null;
+        Bitmap copy = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+        if (copy != null && !path.isEmpty()) {
+            new Canvas(copy).drawPath(path, paint);
+        }
+        return copy;
     }
 
     public boolean hasSignature() {

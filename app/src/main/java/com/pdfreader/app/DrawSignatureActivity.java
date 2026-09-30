@@ -116,26 +116,15 @@ public class DrawSignatureActivity extends AppCompatActivity {
             return;
         }
 
-        // Process and save signature
-        Bitmap processed = SignatureProcessor.processSignature(signatureBitmap, 200);
-        if (processed == null) {
-            processed = signatureBitmap;
-        }
-
-        // Scale to reasonable size
-        Bitmap scaled = SignatureProcessor.scaleSignature(processed, 800, 400);
-        if (scaled == null) {
-            scaled = processed;
-        }
+        // The canvas is already transparent with the ink on it. Photo cleanup
+        // treats that empty area as paper and wipes the stroke out.
+        Bitmap scaled = SignatureProcessor.scaleSignature(signatureBitmap, 800, 400);
+        if (scaled == null) scaled = signatureBitmap;
 
         String savedPath = signatureManager.saveSignature(scaled, name);
 
-        // Clean up
-        if (scaled != processed && scaled != signatureBitmap && !scaled.isRecycled()) {
+        if (scaled != signatureBitmap && !scaled.isRecycled()) {
             scaled.recycle();
-        }
-        if (processed != signatureBitmap && !processed.isRecycled()) {
-            processed.recycle();
         }
 
         if (savedPath != null) {
