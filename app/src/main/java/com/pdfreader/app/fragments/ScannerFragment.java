@@ -8,7 +8,7 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Matrix;
 import android.graphics.Paint;
-import android.media.ExifInterface;
+import androidx.exifinterface.media.ExifInterface;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -425,6 +425,10 @@ public class ScannerFragment extends Fragment {
         final float[] captureCorners = (documentDetected && lastDocCorners != null)
                 ? lastDocCorners.clone() : null;
 
+        final int displayRotation = cameraPreview.getDisplay() != null
+                ? cameraPreview.getDisplay().getRotation()
+                : Surface.ROTATION_0;
+
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
         String fileName = "SCAN_" + timestamp + ".jpg";
 
@@ -439,7 +443,7 @@ public class ScannerFragment extends Fragment {
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Handler mainHandler = new Handler(Looper.getMainLooper());
                         new Thread(() -> {
-                            Bitmap page = cropToDocument(photoFile, captureCorners);
+                            Bitmap page = cropToDocument(photoFile, captureCorners, displayRotation);
                             if (page != null) page.recycle();
                             mainHandler.post(() -> {
                                 capturedImages.add(photoFile);
@@ -465,7 +469,7 @@ public class ScannerFragment extends Fragment {
      * this bitmap, not the live preview, so the saved scan has no surrounding
      * background and no added border.
      */
-    private Bitmap cropToDocument(File file, float[] previewCorners) {
+    private Bitmap cropToDocument(File file, float[] previewCorners, int displayRotation) {
         Bitmap src = null;
         try {
             BitmapFactory.Options bounds = new BitmapFactory.Options();
@@ -480,10 +484,14 @@ public class ScannerFragment extends Fragment {
             src = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
             if (src == null) return null;
 
-            ExifInterface exif = new ExifInterface(file.getAbsolutePath());
-            int orientation = exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-            src = applyExifRotation(src, orientation);
+            int exifOrientation = ExifInterface.ORIENTATION_NORMAL;
+            try {
+                ExifInterface exif = new ExifInterface(file.getAbsolutePath());
+                exifOrientation = exif.getAttributeInt(
+                        ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
+            } catch (Exception ignored) {
+            }
+            src = orientToCapture(src, exifOrientation, displayRotation);
 
             float[] corners = DocumentAnalyzer.detect(src);
             if (corners == null) corners = previewCorners;
@@ -502,10 +510,19 @@ public class ScannerFragment extends Fragment {
                 page.recycle();
                 page = trimmed;
             }
-            improveContrast(page);
+            preprocessDocument(page);
 
             try (FileOutputStream fos = new FileOutputStream(file)) {
                 page.compress(Bitmap.CompressFormat.JPEG, 95, fos);
+            }
+            // Pixels are already upright for how the phone was held. Clear any
+            // rotation tag so later viewers do not turn the page again.
+            try {
+                ExifInterface saved = new ExifInterface(file.getAbsolutePath());
+                saved.setAttribute(ExifInterface.TAG_ORIENTATION,
+                        String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+                saved.saveAttributes();
+            } catch (Exception ignored) {
             }
             return page;
         } catch (Exception e) {
@@ -597,34 +614,211 @@ public class ScannerFragment extends Fragment {
         return dark > n * 0.92f;
     }
 
-    private static void improveContrast(Bitmap src) {
+    /**
+     * Clears up a scanned page: lifts shadows, neutralizes the paper, stretches
+     * ink-to-paper contrast, then sharpens text edges.
+     */
+    private static void preprocessDocument(Bitmap src) {
         int w = src.getWidth();
         int h = src.getHeight();
         int[] px = new int[w * h];
         src.getPixels(px, 0, w, 0, 0, w, h);
-        int[] hist = new int[256];
-        int samples = 0;
-        int step = Math.max(1, px.length / 24000);
-        for (int i = 0; i < px.length; i += step) {
-            hist[lumaOf(px[i])]++;
-            samples++;
+        flattenIllumination(px, w, h);
+        neutralizePaper(px);
+        stretchInkAndPaper(px);
+        sharpenText(px, w, h);
+        src.setPixels(px, 0, w, 0, 0, w, h);
+    }
+
+    /** Divides out a coarse lighting map so a shadow across the page does not hide text. */
+    private static void flattenIllumination(int[] px, int w, int h) {
+        int gw = Math.max(8, w / 32);
+        int gh = Math.max(8, h / 32);
+        long[] sum = new long[gw * gh];
+        int[] count = new int[gw * gh];
+        for (int y = 0; y < h; y++) {
+            int gy = Math.min(gh - 1, y * gh / h);
+            int row = y * w;
+            for (int x = 0; x < w; x++) {
+                int gx = Math.min(gw - 1, x * gw / w);
+                int cell = gy * gw + gx;
+                sum[cell] += lumaOf(px[row + x]);
+                count[cell]++;
+            }
         }
-        int p2 = histogramPercentile(hist, samples, 0.02f);
-        int p98 = histogramPercentile(hist, samples, 0.98f);
-        int range = p98 - p2;
-        if (range < 40 || range > 170) return;
+        float[] grid = new float[gw * gh];
+        for (int i = 0; i < grid.length; i++) {
+            grid[i] = count[i] == 0 ? 180f : sum[i] / (float) count[i];
+        }
+        float[] smooth = blurGrid(grid, gw, gh);
+        float paper = percentile(smooth, 0.72f);
+        paper = Math.max(paper, 40f);
+
+        for (int y = 0; y < h; y++) {
+            float gy = (y + 0.5f) * gh / h - 0.5f;
+            int row = y * w;
+            for (int x = 0; x < w; x++) {
+                float gx = (x + 0.5f) * gw / w - 0.5f;
+                float illum = Math.max(18f, sampleGrid(smooth, gw, gh, gx, gy));
+                float gain = clampFloat(paper / illum, 0.62f, 2.15f);
+                px[row + x] = scaleRgb(px[row + x], gain);
+            }
+        }
+    }
+
+    /** Shifts the brightest region toward neutral white without washing out colored ink. */
+    private static void neutralizePaper(int[] px) {
+        int[] hist = lumaHistogram(px, Math.max(1, px.length / 20000));
+        int samples = 0;
+        for (int bin : hist) samples += bin;
+        int paperCut = histogramPercentile(hist, samples, 0.82f);
+        long rSum = 0, gSum = 0, bSum = 0, n = 0;
+        int step = Math.max(1, px.length / 20000);
+        for (int i = 0; i < px.length; i += step) {
+            int c = px[i];
+            if (lumaOf(c) < paperCut) continue;
+            rSum += (c >> 16) & 0xFF;
+            gSum += (c >> 8) & 0xFF;
+            bSum += c & 0xFF;
+            n++;
+        }
+        if (n < 8) return;
+        float r = rSum / (float) n;
+        float g = gSum / (float) n;
+        float b = bSum / (float) n;
+        float peak = Math.max(r, Math.max(g, b));
+        if (peak < 8f) return;
+        float gainR = clampFloat(peak / r, 0.82f, 1.28f);
+        float gainG = clampFloat(peak / g, 0.82f, 1.28f);
+        float gainB = clampFloat(peak / b, 0.82f, 1.28f);
+        for (int i = 0; i < px.length; i++) {
+            int c = px[i];
+            int nr = clampChannel(Math.round(((c >> 16) & 0xFF) * gainR));
+            int ng = clampChannel(Math.round(((c >> 8) & 0xFF) * gainG));
+            int nb = clampChannel(Math.round((c & 0xFF) * gainB));
+            px[i] = 0xFF000000 | (nr << 16) | (ng << 8) | nb;
+        }
+    }
+
+    /** Maps the page background toward white and the ink toward black. */
+    private static void stretchInkAndPaper(int[] px) {
+        int step = Math.max(1, px.length / 24000);
+        int[] hist = lumaHistogram(px, step);
+        int samples = 0;
+        for (int i = 0; i < px.length; i += step) samples++;
+        int black = histogramPercentile(hist, samples, 0.04f);
+        int white = histogramPercentile(hist, samples, 0.94f);
+        int range = white - black;
+        if (range < 24) return;
+        float strength = range > 185 ? 0.55f : 1f;
 
         for (int i = 0; i < px.length; i++) {
             int c = px[i];
             int y = lumaOf(c);
-            int ny = clampChannel((y - p2) * 255 / range);
+            float t = clampFloat((y - black) / (float) range, 0f, 1f);
+            t = t * t * (3f - 2f * t);
+            int curved = Math.round(t * 255f);
+            int ny = clampChannel(Math.round(y + (curved - y) * strength));
             int delta = ny - y;
-            int r = clampChannel(((c >> 16) & 0xFF) + delta);
-            int g = clampChannel(((c >> 8) & 0xFF) + delta);
-            int b = clampChannel((c & 0xFF) + delta);
-            px[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
+            int nr = clampChannel(((c >> 16) & 0xFF) + delta);
+            int ng = clampChannel(((c >> 8) & 0xFF) + delta);
+            int nb = clampChannel((c & 0xFF) + delta);
+            px[i] = 0xFF000000 | (nr << 16) | (ng << 8) | nb;
         }
-        src.setPixels(px, 0, w, 0, 0, w, h);
+    }
+
+    /** Adds a light unsharp mask so letter edges read more cleanly. */
+    private static void sharpenText(int[] px, int w, int h) {
+        int n = w * h;
+        int[] luma = new int[n];
+        for (int i = 0; i < n; i++) luma[i] = lumaOf(px[i]);
+        int[] blurred = boxBlur(luma, w, h);
+        for (int i = 0; i < n; i++) {
+            int delta = Math.round((luma[i] - blurred[i]) * 0.62f);
+            if (delta == 0) continue;
+            int c = px[i];
+            int nr = clampChannel(((c >> 16) & 0xFF) + delta);
+            int ng = clampChannel(((c >> 8) & 0xFF) + delta);
+            int nb = clampChannel((c & 0xFF) + delta);
+            px[i] = 0xFF000000 | (nr << 16) | (ng << 8) | nb;
+        }
+    }
+
+    private static int[] boxBlur(int[] src, int w, int h) {
+        int[] horizontal = new int[src.length];
+        int[] out = new int[src.length];
+        for (int y = 0; y < h; y++) {
+            int row = y * w;
+            for (int x = 0; x < w; x++) {
+                int x0 = Math.max(0, x - 1);
+                int x1 = Math.min(w - 1, x + 1);
+                horizontal[row + x] = (src[row + x0] + src[row + x] + src[row + x1]) / 3;
+            }
+        }
+        for (int y = 0; y < h; y++) {
+            int y0 = Math.max(0, y - 1);
+            int y1 = Math.min(h - 1, y + 1);
+            for (int x = 0; x < w; x++) {
+                out[y * w + x] = (horizontal[y0 * w + x] + horizontal[y * w + x] + horizontal[y1 * w + x]) / 3;
+            }
+        }
+        return out;
+    }
+
+    private static float[] blurGrid(float[] grid, int w, int h) {
+        float[] out = new float[grid.length];
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                float s = 0f;
+                int n = 0;
+                for (int dy = -1; dy <= 1; dy++) {
+                    int yy = y + dy;
+                    if (yy < 0 || yy >= h) continue;
+                    for (int dx = -1; dx <= 1; dx++) {
+                        int xx = x + dx;
+                        if (xx < 0 || xx >= w) continue;
+                        s += grid[yy * w + xx];
+                        n++;
+                    }
+                }
+                out[y * w + x] = s / n;
+            }
+        }
+        return out;
+    }
+
+    private static float sampleGrid(float[] grid, int w, int h, float x, float y) {
+        int x0 = clamp((int) Math.floor(x), 0, w - 1);
+        int y0 = clamp((int) Math.floor(y), 0, h - 1);
+        int x1 = Math.min(w - 1, x0 + 1);
+        int y1 = Math.min(h - 1, y0 + 1);
+        float tx = clampFloat(x - x0, 0f, 1f);
+        float ty = clampFloat(y - y0, 0f, 1f);
+        float top = grid[y0 * w + x0] * (1f - tx) + grid[y0 * w + x1] * tx;
+        float bot = grid[y1 * w + x0] * (1f - tx) + grid[y1 * w + x1] * tx;
+        return top * (1f - ty) + bot * ty;
+    }
+
+    private static int[] lumaHistogram(int[] px, int step) {
+        int[] hist = new int[256];
+        for (int i = 0; i < px.length; i += step) {
+            hist[lumaOf(px[i])]++;
+        }
+        return hist;
+    }
+
+    private static float percentile(float[] values, float p) {
+        float[] copy = java.util.Arrays.copyOf(values, values.length);
+        java.util.Arrays.sort(copy);
+        int index = Math.min(copy.length - 1, Math.max(0, Math.round(p * (copy.length - 1))));
+        return copy[index];
+    }
+
+    private static int scaleRgb(int color, float gain) {
+        int r = clampChannel(Math.round(((color >> 16) & 0xFF) * gain));
+        int g = clampChannel(Math.round(((color >> 8) & 0xFF) * gain));
+        int b = clampChannel(Math.round((color & 0xFF) * gain));
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     private static int histogramPercentile(int[] hist, int samples, float p) {
@@ -648,24 +842,67 @@ public class ScannerFragment extends Fragment {
         return Math.max(0, Math.min(255, v));
     }
 
+    private static int clamp(int v, int lo, int hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
+
+    private static float clampFloat(float v, float lo, float hi) {
+        return Math.max(lo, Math.min(hi, v));
+    }
+
     private static float dist(float x1, float y1, float x2, float y2) {
         float dx = x2 - x1, dy = y2 - y1;
         return (float) Math.sqrt(dx * dx + dy * dy);
     }
 
-    private static Bitmap applyExifRotation(Bitmap bmp, int orientation) {
-        Matrix m = new Matrix();
-        switch (orientation) {
-            case ExifInterface.ORIENTATION_ROTATE_90:  m.setRotate(90);  break;
-            case ExifInterface.ORIENTATION_ROTATE_180: m.setRotate(180); break;
-            case ExifInterface.ORIENTATION_ROTATE_270: m.setRotate(270); break;
-            default: return bmp;
+    /**
+     * Keeps the scan in the orientation of the capture. A portrait shot stays
+     * portrait; a contradictory rotation tag is ignored instead of turning the page.
+     */
+    private static Bitmap orientToCapture(Bitmap src, int exifOrientation, int displayRotation) {
+        boolean wantPortrait = displayRotation == Surface.ROTATION_0
+                || displayRotation == Surface.ROTATION_180;
+        boolean srcPortrait = src.getHeight() >= src.getWidth();
+        int degrees = exifDegrees(exifOrientation);
+        boolean turnsSideways = degrees == 90 || degrees == 270;
+        boolean exifPortrait = turnsSideways ? !srcPortrait : srcPortrait;
+
+        if (degrees != 0 && exifPortrait == wantPortrait) {
+            return rotateBitmap(src, degrees);
         }
+        if (srcPortrait == wantPortrait) {
+            return src;
+        }
+        int turn = wantPortrait
+                ? (displayRotation == Surface.ROTATION_180 ? 270 : 90)
+                : (displayRotation == Surface.ROTATION_270 ? 270 : 90);
+        return rotateBitmap(src, turn);
+    }
+
+    private static int exifDegrees(int orientation) {
+        switch (orientation) {
+            case ExifInterface.ORIENTATION_ROTATE_90:
+            case ExifInterface.ORIENTATION_TRANSPOSE:
+                return 90;
+            case ExifInterface.ORIENTATION_ROTATE_180:
+                return 180;
+            case ExifInterface.ORIENTATION_ROTATE_270:
+            case ExifInterface.ORIENTATION_TRANSVERSE:
+                return 270;
+            default:
+                return 0;
+        }
+    }
+
+    private static Bitmap rotateBitmap(Bitmap bmp, int degrees) {
+        if (degrees == 0) return bmp;
+        Matrix m = new Matrix();
+        m.setRotate(degrees);
         Bitmap rotated = Bitmap.createBitmap(bmp, 0, 0, bmp.getWidth(), bmp.getHeight(), m, true);
-        bmp.recycle();
+        if (rotated != bmp) bmp.recycle();
         return rotated;
     }
-    
+
     private void updateCapturedImagesUI() {
         if (capturedCountText == null || savePdfButton == null || capturedImagesInfo == null) return;
         int count = capturedImages.size();
