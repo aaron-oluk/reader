@@ -5,32 +5,57 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginBottom="12dp"
-    app:cardCornerRadius="8dp"
+    app:cardBackgroundColor="#FFFFFF"
+    app:cardCornerRadius="16dp"
     app:cardElevation="2dp"
-    app:strokeWidth="0dp"
-    app:cardBackgroundColor="#FFFFFF">
+    app:strokeWidth="0dp">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical">
+        android:layout_height="wrap_content">
 
         <ImageView
             android:id="@+id/page_image"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:contentDescription="PDF page" />
+            android:contentDescription="Scanned page"
+            android:scaleType="fitCenter" />
+
+        <TextView
+            android:id="@+id/page_number"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|start"
+            android:layout_margin="12dp"
+            android:background="@drawable/bg_preview_chip"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="4dp"
+            android:text="1"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_crop_page"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="end"
+            android:layout_height="36dp"
+            android:layout_gravity="top|end"
+            android:layout_margin="12dp"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:paddingHorizontal="12dp"
             android:text="Crop"
-            android:textAllCaps="false" />
-    </LinearLayout>
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            app:backgroundTint="#E61E1B4B"
+            app:cornerRadius="18dp"
+            app:icon="@drawable/ic_crop"
+            app:iconPadding="6dp"
+            app:iconSize="16dp"
+            app:iconTint="#FFFFFF" />
+    </FrameLayout>
 
 </com.google.android.material.card.MaterialCardView>

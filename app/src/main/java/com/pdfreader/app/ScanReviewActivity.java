@@ -1,21 +1,22 @@
 package com.pdfreader.app;
 
+import android.app.Dialog;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Rect;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.pdf.PdfDocument;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
+import android.view.Window;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -24,13 +25,13 @@ import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -125,8 +126,7 @@ public class ScanReviewActivity extends AppCompatActivity {
                     loadingIndicator.setVisibility(View.GONE);
                     pagesRecycler.setVisibility(View.VISIBLE);
                     int n = pages.size();
-                    pageCountText.setText(n + (n == 1 ? " page" : " pages")
-                            + " · Crop before saving");
+                    pageCountText.setText(n + (n == 1 ? " page" : " pages"));
                     pagesRecycler.setAdapter(new PageBitmapAdapter(pages, this::openCrop));
                     btnPrint.setVisibility(View.VISIBLE);
                 });
@@ -217,22 +217,22 @@ public class ScanReviewActivity extends AppCompatActivity {
 
     private void showSaveDialog() {
         String defaultName = "Scan_" + new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(new Date());
-        EditText input = new EditText(this);
+        Dialog dialog = createCardDialog(R.layout.dialog_name_document);
+        TextInputEditText input = dialog.findViewById(R.id.document_name);
         input.setText(defaultName);
-        input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setSelectAllOnFocus(true);
-
-        new AlertDialog.Builder(this)
-            .setTitle("Name your document")
-            .setView(input)
-            .setPositiveButton("Save", (dialog, which) -> {
-                String name = input.getText().toString().trim();
-                if (name.isEmpty()) name = defaultName;
-                if (!name.toLowerCase().endsWith(".pdf")) name += ".pdf";
-                savePermanently(name);
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
+        dialog.findViewById(R.id.btn_cancel).setOnClickListener(v -> dialog.dismiss());
+        dialog.findViewById(R.id.btn_save_name).setOnClickListener(v -> {
+            String name = input.getText() == null ? "" : input.getText().toString().trim();
+            if (name.isEmpty()) name = defaultName;
+            if (!name.toLowerCase(Locale.US).endsWith(".pdf")) name += ".pdf";
+            dialog.dismiss();
+            savePermanently(name);
+        });
+        dialog.show();
+        input.requestFocus();
+        input.selectAll();
+        sizeCardDialog(dialog);
     }
 
     private void savePermanently(String fileName) {
@@ -286,17 +286,22 @@ public class ScanReviewActivity extends AppCompatActivity {
                     // Delete temp image files
                     for (String imgPath : imagePaths) new File(imgPath).delete();
 
-                    new AlertDialog.Builder(this)
-                        .setTitle("Saved!")
-                        .setMessage("Your document was saved. Share or print it now?")
-                        .setPositiveButton("Share", (d, w) -> shareFile(finalPath))
-                        .setNeutralButton("Print", (d, w) ->
-                                DocumentPrinter.printPdf(this, finalPath, "Scanned document"))
-                        .setNegativeButton("Done", (d, w) -> {
-                            setResult(RESULT_OK);
-                            finish();
-                        })
-                        .show();
+                    Dialog dialog = createCardDialog(R.layout.dialog_scan_saved);
+                    dialog.findViewById(R.id.btn_share_saved).setOnClickListener(v -> {
+                        dialog.dismiss();
+                        shareFile(finalPath);
+                    });
+                    dialog.findViewById(R.id.btn_print_saved).setOnClickListener(v -> {
+                        dialog.dismiss();
+                        DocumentPrinter.printPdf(this, finalPath, "Scanned document");
+                    });
+                    dialog.findViewById(R.id.btn_done_saved).setOnClickListener(v -> {
+                        dialog.dismiss();
+                        setResult(RESULT_OK);
+                        finish();
+                    });
+                    dialog.show();
+                    sizeCardDialog(dialog);
                 });
             } catch (Exception e) {
                 runOnUiThread(() -> {
@@ -378,12 +383,15 @@ public class ScanReviewActivity extends AppCompatActivity {
             Bitmap page = pages.get(pos);
             if (page != null && !page.isRecycled()) h.image.setImageBitmap(page);
             else h.image.setImageDrawable(null);
-            h.crop.setOnClickListener(v -> {
+            h.number.setText(String.valueOf(pos + 1));
+            View.OnClickListener open = v -> {
                 int index = h.getBindingAdapterPosition();
                 if (index != RecyclerView.NO_POSITION && cropListener != null) {
                     cropListener.onCrop(index);
                 }
-            });
+            };
+            h.crop.setOnClickListener(open);
+            h.image.setOnClickListener(open);
         }
 
         @Override
@@ -392,12 +400,32 @@ public class ScanReviewActivity extends AppCompatActivity {
         static class VH extends RecyclerView.ViewHolder {
             ImageView image;
             View crop;
+            TextView number;
             VH(@NonNull View v) {
                 super(v);
                 image = v.findViewById(R.id.page_image);
                 crop = v.findViewById(R.id.btn_crop_page);
+                number = v.findViewById(R.id.page_number);
             }
         }
+    }
+
+    private Dialog createCardDialog(int layoutRes) {
+        Dialog dialog = new Dialog(this);
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(layoutRes);
+        Window window = dialog.getWindow();
+        if (window != null) {
+            window.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
+        }
+        return dialog;
+    }
+
+    private void sizeCardDialog(Dialog dialog) {
+        Window window = dialog.getWindow();
+        if (window == null) return;
+        int width = (int) (getResources().getDisplayMetrics().widthPixels * 0.9f);
+        window.setLayout(width, ViewGroup.LayoutParams.WRAP_CONTENT);
     }
 
     private void openCrop(int index) {

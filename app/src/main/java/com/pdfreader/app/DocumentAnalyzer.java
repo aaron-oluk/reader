@@ -19,8 +19,8 @@ import java.util.List;
  *
  * Each frame is reduced to luminance, blurred, and scanned from the outside in
  * for the transition onto the page. The middle of each side is fit to a line
- * so corners and interior text do not pull the outline off the paper. A short
- * run of agreeing frames is required before the outline is treated as stable.
+ * so corners and interior text do not pull the outline off the paper. Live frames
+ * are median-filtered and only real movement is allowed to shift the margin.
  */
 public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
 
@@ -31,7 +31,6 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
 
     private static final int MAX_GRID = 240;
     private static final float INSET = 0.008f;
-    private static final float JUMP = 0.08f;
 
     private final DetectionCallback callback;
     private final Handler mainHandler;
@@ -41,6 +40,9 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
     private int stableFrames;
     private int pendingFrames;
     private int missedFrames;
+    private final float[][] history = new float[5][];
+    private int historyCount;
+    private int historyPos;
 
     public DocumentAnalyzer(DetectionCallback callback, Handler mainHandler) {
         this.callback = callback;
@@ -93,29 +95,32 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
         }
     }
 
-    /** True once the same page outline has held still for a couple of frames. */
+    /** True once the same page outline has held still. Tiny motion is ignored so the margin does not shimmer. */
     private boolean track(@Nullable float[] raw) {
         if (raw == null || !plausible(raw)) {
             pending = null;
             pendingFrames = 0;
             missedFrames++;
-            if (missedFrames >= 5) {
+            if (missedFrames >= 8) {
                 stable = null;
                 stableFrames = 0;
+                clearHistory();
             }
-            return false;
+            return stable != null && stableFrames >= 3;
         }
 
         missedFrames = 0;
+        float[] sample = pushAndMedian(raw);
+
         if (stable == null) {
-            if (pending != null && maxDelta(pending, raw) < JUMP) {
+            if (pending != null && maxDelta(pending, sample) < 0.045f) {
                 pendingFrames++;
             } else {
-                pending = raw;
+                pending = sample.clone();
                 pendingFrames = 1;
             }
-            if (pendingFrames >= 2) {
-                stable = raw.clone();
+            if (pendingFrames >= 3) {
+                stable = sample.clone();
                 stableFrames = pendingFrames;
                 pending = null;
                 pendingFrames = 0;
@@ -124,29 +129,58 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
             return false;
         }
 
-        float delta = maxDelta(stable, raw);
-        if (delta < JUMP) {
-            smoothInto(stable, raw, 0.42f);
+        float delta = maxDelta(stable, sample);
+        if (delta < 0.01f) {
             stableFrames++;
-            pending = null;
-            pendingFrames = 0;
-            return stableFrames >= 2;
-        }
-
-        if (pending != null && maxDelta(pending, raw) < JUMP) {
-            pendingFrames++;
-        } else {
-            pending = raw;
-            pendingFrames = 1;
-        }
-        if (pendingFrames >= 3) {
-            stable = raw.clone();
-            stableFrames = pendingFrames;
             pending = null;
             pendingFrames = 0;
             return true;
         }
-        return stableFrames >= 2;
+        if (delta < 0.055f) {
+            smoothInto(stable, sample, delta < 0.025f ? 0.12f : 0.22f);
+            stableFrames++;
+            pending = null;
+            pendingFrames = 0;
+            return true;
+        }
+
+        if (pending != null && maxDelta(pending, sample) < 0.04f) {
+            pendingFrames++;
+        } else {
+            pending = sample.clone();
+            pendingFrames = 1;
+        }
+        if (pendingFrames >= 4) {
+            stable = sample.clone();
+            stableFrames = pendingFrames;
+            pending = null;
+            pendingFrames = 0;
+        }
+        return true;
+    }
+
+    private void clearHistory() {
+        historyCount = 0;
+        historyPos = 0;
+    }
+
+    private float[] pushAndMedian(float[] raw) {
+        if (history[historyPos] == null) history[historyPos] = new float[8];
+        System.arraycopy(raw, 0, history[historyPos], 0, 8);
+        historyPos = (historyPos + 1) % history.length;
+        if (historyCount < history.length) historyCount++;
+
+        float[] median = new float[8];
+        float[] column = new float[historyCount];
+        for (int i = 0; i < 8; i++) {
+            for (int k = 0; k < historyCount; k++) {
+                int index = (historyPos - 1 - k + history.length * 2) % history.length;
+                column[k] = history[index][i];
+            }
+            Arrays.sort(column);
+            median[i] = column[historyCount / 2];
+        }
+        return median;
     }
 
     @Nullable
@@ -228,6 +262,10 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
         right = middleSpan(right, false);
         top = middleSpan(top, true);
         bottom = middleSpan(bottom, true);
+        left = smoothEdge(left, true);
+        right = smoothEdge(right, true);
+        top = smoothEdge(top, false);
+        bottom = smoothEdge(bottom, false);
 
         if (left.size() < 6 || right.size() < 6 || top.size() < 6 || bottom.size() < 6) {
             return null;
@@ -259,16 +297,27 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
         int start = fromLeft ? margin : w - 1 - margin;
         int end = fromLeft ? (w * 58 / 100) : (w * 42 / 100);
         int step = fromLeft ? 1 : -1;
+        int run = 0;
+        int first = -1;
         for (int x = start; fromLeft ? x < end : x > end; x += step) {
             int m = mag[y * w + x];
-            if (m < threshold) continue;
+            if (m < threshold) {
+                run = 0;
+                continue;
+            }
             int interior = fromLeft
-                    ? average(luma, w, x + 1, x + 12, y, y)
-                    : average(luma, w, x - 12, x - 1, y, y);
+                    ? average(luma, w, x + 1, x + 14, y, y)
+                    : average(luma, w, x - 14, x - 1, y, y);
             int exterior = fromLeft
                     ? average(luma, w, x - 8, x - 1, y, y)
                     : average(luma, w, x + 1, x + 8, y, y);
-            if (interior >= 78 && interior - exterior >= 8) return x;
+            if (interior >= 86 && interior - exterior >= 16) {
+                if (run == 0) first = x;
+                run++;
+                if (run >= 2) return first;
+            } else {
+                run = 0;
+            }
         }
         return -1;
     }
@@ -278,16 +327,27 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
         int start = fromTop ? margin : h - 1 - margin;
         int end = fromTop ? (h * 58 / 100) : (h * 42 / 100);
         int step = fromTop ? 1 : -1;
+        int run = 0;
+        int first = -1;
         for (int y = start; fromTop ? y < end : y > end; y += step) {
             int m = mag[y * w + x];
-            if (m < threshold) continue;
+            if (m < threshold) {
+                run = 0;
+                continue;
+            }
             int interior = fromTop
-                    ? average(luma, w, x, x, y + 1, y + 12)
-                    : average(luma, w, x, x, y - 12, y - 1);
+                    ? average(luma, w, x, x, y + 1, y + 14)
+                    : average(luma, w, x, x, y - 14, y - 1);
             int exterior = fromTop
                     ? average(luma, w, x, x, y - 8, y - 1)
                     : average(luma, w, x, x, y + 1, y + 8);
-            if (interior >= 78 && interior - exterior >= 8) return y;
+            if (interior >= 86 && interior - exterior >= 16) {
+                if (run == 0) first = y;
+                run++;
+                if (run >= 2) return first;
+            } else {
+                run = 0;
+            }
         }
         return -1;
     }
@@ -312,6 +372,28 @@ public class DocumentAnalyzer implements ImageAnalysis.Analyzer {
             if (v >= lo && v <= hi) kept.add(p);
         }
         return kept.size() >= 6 ? kept : pts;
+    }
+
+    /** Replaces each edge sample with the median of its neighbors so one noisy row cannot yank the margin. */
+    private static List<int[]> smoothEdge(List<int[]> pts, boolean verticalSide) {
+        if (pts.size() < 7) return pts;
+        int radius = 3;
+        List<int[]> out = new ArrayList<>(pts.size());
+        for (int i = 0; i < pts.size(); i++) {
+            int from = Math.max(0, i - radius);
+            int to = Math.min(pts.size() - 1, i + radius);
+            int count = to - from + 1;
+            int[] vals = new int[count];
+            for (int k = from; k <= to; k++) {
+                int[] p = pts.get(k);
+                vals[k - from] = verticalSide ? p[0] : p[1];
+            }
+            Arrays.sort(vals);
+            int median = vals[count / 2];
+            int[] p = pts.get(i);
+            out.add(verticalSide ? new int[]{median, p[1]} : new int[]{p[0], median});
+        }
+        return out;
     }
 
     private static byte[] blur(byte[] luma, int w, int h) {
