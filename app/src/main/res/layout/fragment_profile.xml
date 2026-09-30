@@ -104,8 +104,29 @@
                 android:id="@+id/profile_email"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="reader@signet.app"
+                android:text="@string/company_email"
                 android:textSize="14sp"
+                android:fontFamily="@font/montserrat"
+                android:textColor="@color/text_secondary" />
+
+            <TextView
+                android:id="@+id/company_website"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="@string/company_website"
+                android:textSize="14sp"
+                android:fontFamily="@font/montserrat_semibold"
+                android:textColor="@color/primary_blue"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:text="@string/product_of_company"
+                android:textSize="13sp"
                 android:fontFamily="@font/montserrat"
                 android:textColor="@color/text_secondary" />
 
@@ -542,7 +563,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="App version, licenses, and credits."
+                            android:text="@string/product_of_company"
                             android:textSize="13sp"
                             android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
@@ -616,7 +637,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Get help or send feedback by email."
+                            android:text="@string/company_email"
                             android:textSize="13sp"
                             android:fontFamily="@font/montserrat"
                             android:textColor="@color/text_secondary"
@@ -797,7 +818,8 @@
             android:layout_marginTop="16dp"
             android:layout_marginBottom="8dp"
             android:paddingHorizontal="24dp"
-            android:text="Signet v1.0.0"
+            android:id="@+id/company_footer"
+            android:text="@string/company_footer"
             android:textSize="13sp"
             android:fontFamily="@font/montserrat"
             android:textColor="@color/text_secondary" />

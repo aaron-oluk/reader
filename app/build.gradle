@@ -70,4 +70,6 @@ dependencies {
     // Reads EXIF orientation so captured photos are displayed/cropped upright
     // (BitmapFactory ignores EXIF orientation on its own)
     implementation 'androidx.exifinterface:exifinterface:1.3.6'
+
+    testImplementation 'junit:junit:4.13.2'
 }

@@ -80,8 +80,10 @@ public final class DocumentPrinter {
                 return;
             }
 
+            final PrintAttributes attributes = attributesFor(file);
             new Handler(Looper.getMainLooper()).post(() -> startPdfPrint(
-                    context, file, appContext.getCacheDir(), documentName, printJobName, deleteWhenFinished));
+                    context, file, appContext.getCacheDir(), documentName, printJobName,
+                    deleteWhenFinished, attributes));
         }, "pdf-print").start();
     }
 
@@ -105,9 +107,50 @@ public final class DocumentPrinter {
         }
     }
 
+    /**
+     * Paper size matches the document page and margins are zero, so the print
+     * service does not mat the page onto a larger sheet.
+     */
+    private static PrintAttributes attributesFor(File file) {
+        PrintAttributes.Builder builder = new PrintAttributes.Builder()
+                .setColorMode(PrintAttributes.COLOR_MODE_COLOR)
+                .setMinMargins(PrintAttributes.Margins.NO_MARGINS);
+        ParcelFileDescriptor pfd = null;
+        PdfRenderer renderer = null;
+        try {
+            pfd = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY);
+            renderer = new PdfRenderer(pfd);
+            if (renderer.getPageCount() > 0) {
+                PdfRenderer.Page page = renderer.openPage(0);
+                try {
+                    int widthMils = Math.max(1, Math.round(page.getWidth() * 1000f / 72f));
+                    int heightMils = Math.max(1, Math.round(page.getHeight() * 1000f / 72f));
+                    PrintAttributes.MediaSize media = new PrintAttributes.MediaSize(
+                            "document_page", "Document",
+                            Math.min(widthMils, heightMils),
+                            Math.max(widthMils, heightMils));
+                    builder.setMediaSize(widthMils > heightMils ? media.asLandscape() : media.asPortrait());
+                } finally {
+                    page.close();
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Using borderless print defaults", e);
+        } finally {
+            if (renderer != null) renderer.close();
+            if (pfd != null) {
+                try {
+                    pfd.close();
+                } catch (IOException ignored) {
+                }
+            }
+        }
+        return builder.build();
+    }
+
     private static void startPdfPrint(Context context, File file, File cacheDir,
                                       String documentName, String printJobName,
-                                      boolean deleteWhenFinished) {
+                                      boolean deleteWhenFinished, PrintAttributes attributes) {
         PrintManager printManager = (PrintManager) context.getSystemService(Context.PRINT_SERVICE);
         if (printManager == null) {
             toast(context, "Printing is not available on this device");
@@ -119,7 +162,7 @@ public final class DocumentPrinter {
         try {
             printManager.print(printJobName,
                     new PdfFilePrintAdapter(file, cacheDir, documentName, deleteWhenFinished),
-                    null);
+                    attributes);
         } catch (Exception e) {
             Log.e(TAG, "Unable to start print job", e);
             toast(context, "Unable to print document");

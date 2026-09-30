@@ -113,6 +113,8 @@ public class ProfileFragment extends Fragment {
         view.findViewById(R.id.card_notifications).setOnClickListener(v -> showNotificationsDialog());
         view.findViewById(R.id.card_about).setOnClickListener(v -> showAboutDialog());
         view.findViewById(R.id.card_help).setOnClickListener(v -> openHelpEmail());
+        view.findViewById(R.id.company_website).setOnClickListener(v -> openWebsite());
+        view.findViewById(R.id.company_footer).setOnClickListener(v -> openWebsite());
         view.findViewById(R.id.sign_out_button).setOnClickListener(v -> handleSignOut());
     }
 
@@ -172,16 +174,26 @@ public class ProfileFragment extends Fragment {
     private void showAboutDialog() {
         new AlertDialog.Builder(requireContext())
                 .setTitle("About")
-                .setMessage("PDF Reader\nVersion 1.0.0\n\nA simple, powerful PDF and EPUB reader.")
+                .setMessage(R.string.about_message)
                 .setPositiveButton("OK", null)
+                .setNeutralButton(R.string.company_website, (dialog, which) -> openWebsite())
                 .show();
+    }
+
+    private void openWebsite() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(getString(R.string.company_website_url)));
+            startActivity(intent);
+        } catch (Exception e) {
+            Toast.makeText(requireContext(), R.string.company_website, Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void openHelpEmail() {
         try {
             Intent intent = new Intent(Intent.ACTION_SENDTO);
-            intent.setData(Uri.parse("mailto:support@pdfreader.app"));
-            intent.putExtra(Intent.EXTRA_SUBJECT, "PDF Reader - Help & Support");
+            intent.setData(Uri.parse("mailto:" + getString(R.string.company_email)));
+            intent.putExtra(Intent.EXTRA_SUBJECT, "Signet - Help & Support");
             startActivity(intent);
         } catch (Exception e) {
             Toast.makeText(requireContext(), "No email app found", Toast.LENGTH_SHORT).show();
@@ -205,7 +217,13 @@ public class ProfileFragment extends Fragment {
     private void loadProfileData() {
         SharedPreferences prefs = requireContext().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
         String userName = prefs.getString(KEY_USER_NAME, "User");
-        String userEmail = prefs.getString(KEY_USER_EMAIL, "reader@versefoutain.com");
+        String userEmail = prefs.getString(KEY_USER_EMAIL, getString(R.string.company_email));
+        if (userEmail == null
+                || userEmail.equals("reader@versefoutain.com")
+                || userEmail.equals("reader@signet.app")
+                || userEmail.equals("support@pdfreader.app")) {
+            userEmail = getString(R.string.company_email);
+        }
 
         profileName.setText(userName);
         profileEmail.setText(userEmail);

@@ -52,10 +52,14 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import android.graphics.Color;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Surface;
 
 import androidx.camera.core.ImageAnalysis;
+import androidx.camera.core.UseCaseGroup;
+import androidx.camera.core.ViewPort;
 
 import com.pdfreader.app.DocumentAnalyzer;
 import com.pdfreader.app.DocumentDetectorView;
@@ -199,6 +203,7 @@ public class ScannerFragment extends Fragment {
         }
 
         cameraPreview.setImplementationMode(ImplementationMode.COMPATIBLE);
+        cameraPreview.setScaleType(PreviewView.ScaleType.FILL_CENTER);
 
         // Filmstrip setup
         filmstripAdapter = new ScanFilmstripAdapter(capturedPaths);
@@ -306,25 +311,38 @@ public class ScannerFragment extends Fragment {
         }, ContextCompat.getMainExecutor(requireContext()));
     }
 
+    private int viewportBindAttempts;
+
     private void bindCameraUseCases() {
         if (cameraProvider == null || cameraPreview == null || !isAdded()) {
             return;
         }
 
         try {
-            // Preview
+            // Preview, capture, and analysis share one crop so the outline matches the photo.
+            int rotation = cameraPreview.getDisplay() != null
+                    ? cameraPreview.getDisplay().getRotation()
+                    : Surface.ROTATION_0;
+
             Preview preview = new Preview.Builder()
+                    .setTargetRotation(rotation)
                     .build();
             preview.setSurfaceProvider(cameraPreview.getSurfaceProvider());
 
-            // Image capture
             imageCapture = new ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                    .setJpegQuality(95)
+                    .setTargetRotation(rotation)
                     .build();
 
-            // Document edge detector — runs on a background thread, posts to UI
+            if (analysisExecutor == null || analysisExecutor.isShutdown()) {
+                analysisExecutor = Executors.newSingleThreadExecutor();
+            }
+
             ImageAnalysis imageAnalysis = new ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .setOutputImageRotationEnabled(true)
+                    .setTargetRotation(rotation)
                     .build();
             imageAnalysis.setAnalyzer(analysisExecutor,
                     new DocumentAnalyzer((corners, detected) -> {
@@ -334,7 +352,7 @@ public class ScannerFragment extends Fragment {
                         if (instructionText != null) {
                             instructionText.setText(detected
                                     ? "Document detected — tap to capture"
-                                    : "Position document in view");
+                                    : "Align the edges of the page");
                         }
                     }, new Handler(Looper.getMainLooper())));
 
@@ -348,17 +366,27 @@ public class ScannerFragment extends Fragment {
                 cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA;
             }
 
-            // Unbind all use cases before rebinding
             cameraProvider.unbindAll();
 
-            // Bind use cases to camera
-            cameraProvider.bindToLifecycle(
-                    getViewLifecycleOwner(),
-                    cameraSelector,
-                    preview,
-                    imageCapture,
-                    imageAnalysis
-            );
+            ViewPort viewPort = cameraPreview.getViewPort();
+            if (viewPort == null && viewportBindAttempts < 8) {
+                viewportBindAttempts++;
+                cameraPreview.post(this::bindCameraUseCases);
+                return;
+            }
+            viewportBindAttempts = 0;
+            if (viewPort != null) {
+                UseCaseGroup group = new UseCaseGroup.Builder()
+                        .setViewPort(viewPort)
+                        .addUseCase(preview)
+                        .addUseCase(imageCapture)
+                        .addUseCase(imageAnalysis)
+                        .build();
+                cameraProvider.bindToLifecycle(getViewLifecycleOwner(), cameraSelector, group);
+            } else {
+                cameraProvider.bindToLifecycle(
+                        getViewLifecycleOwner(), cameraSelector, preview, imageCapture, imageAnalysis);
+            }
             
             // Ensure PreviewView is visible
             if (cameraPreview != null) {
@@ -411,10 +439,8 @@ public class ScannerFragment extends Fragment {
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Handler mainHandler = new Handler(Looper.getMainLooper());
                         new Thread(() -> {
-                            // Perspective-crop to the detected document quad when corners are known
-                            if (captureCorners != null) {
-                                cropToDocument(photoFile, captureCorners);
-                            }
+                            Bitmap page = cropToDocument(photoFile, captureCorners);
+                            if (page != null) page.recycle();
                             mainHandler.post(() -> {
                                 capturedImages.add(photoFile);
                                 capturedPaths.add(photoFile.getAbsolutePath());
@@ -435,58 +461,191 @@ public class ScannerFragment extends Fragment {
     }
 
     /**
-     * Applies a perspective warp to {@code file} so that the quadrilateral defined by
-     * {@code corners} (TL,TR,BR,BL in normalised [0,1] coords) becomes a flat rectangle.
-     * The result is written back to the same file.  On any error the file is left unchanged.
+     * Straightens the captured photo to the page itself. Edges are measured on
+     * this bitmap, not the live preview, so the saved scan has no surrounding
+     * background and no added border.
      */
-    private void cropToDocument(File file, float[] corners) {
+    private Bitmap cropToDocument(File file, float[] previewCorners) {
+        Bitmap src = null;
         try {
-            // Respect EXIF rotation so the image is in display orientation
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeFile(file.getAbsolutePath(), bounds);
+            int sample = 1;
+            int longEdge = Math.max(bounds.outWidth, bounds.outHeight);
+            while (longEdge / sample > 2500) sample *= 2;
+
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = sample;
+            src = BitmapFactory.decodeFile(file.getAbsolutePath(), opts);
+            if (src == null) return null;
+
             ExifInterface exif = new ExifInterface(file.getAbsolutePath());
             int orientation = exif.getAttributeInt(
                     ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL);
-
-            Bitmap src = BitmapFactory.decodeFile(file.getAbsolutePath());
-            if (src == null) return;
             src = applyExifRotation(src, orientation);
 
-            int imgW = src.getWidth(), imgH = src.getHeight();
+            float[] corners = DocumentAnalyzer.detect(src);
+            if (corners == null) corners = previewCorners;
 
-            // Map normalised corners → pixel coordinates
-            float tlX = corners[0] * imgW, tlY = corners[1] * imgH;
-            float trX = corners[2] * imgW, trY = corners[3] * imgH;
-            float brX = corners[4] * imgW, brY = corners[5] * imgH;
-            float blX = corners[6] * imgW, blY = corners[7] * imgH;
-
-            // Output dimensions: average of opposite edge lengths
-            float topW  = dist(tlX, tlY, trX, trY);
-            float botW  = dist(blX, blY, brX, brY);
-            float leftH = dist(tlX, tlY, blX, blY);
-            float rightH = dist(trX, trY, brX, brY);
-            int outW = (int) ((topW + botW) / 2f);
-            int outH = (int) ((leftH + rightH) / 2f);
-
-            if (outW < 10 || outH < 10) { src.recycle(); return; }
-
-            // Perspective transform: document quad → output rectangle
-            float[] srcPts = { tlX, tlY, trX, trY, brX, brY, blX, blY };
-            float[] dstPts = { 0, 0, outW, 0, outW, outH, 0, outH };
-            Matrix matrix = new Matrix();
-            matrix.setPolyToPoly(srcPts, 0, dstPts, 0, 4);
-
-            Bitmap output = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888);
-            Canvas canvas = new Canvas(output);
-            canvas.drawBitmap(src, matrix, new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
-            src.recycle();
+            Bitmap page = src;
+            if (corners != null && !fillsFrame(corners)) {
+                Bitmap warped = warpToPage(src, corners);
+                if (warped != null) {
+                    src.recycle();
+                    src = null;
+                    page = warped;
+                }
+            }
+            Bitmap trimmed = trimDarkEdges(page);
+            if (trimmed != page) {
+                page.recycle();
+                page = trimmed;
+            }
+            improveContrast(page);
 
             try (FileOutputStream fos = new FileOutputStream(file)) {
-                output.compress(Bitmap.CompressFormat.JPEG, 92, fos);
+                page.compress(Bitmap.CompressFormat.JPEG, 95, fos);
             }
-            output.recycle();
-
+            return page;
         } catch (Exception e) {
-            e.printStackTrace(); // leave original file intact
+            e.printStackTrace();
+            if (src != null) src.recycle();
+            return null;
         }
+    }
+
+    private static boolean fillsFrame(float[] corners) {
+        float minX = 1f, minY = 1f, maxX = 0f, maxY = 0f;
+        for (int i = 0; i < 4; i++) {
+            minX = Math.min(minX, corners[i * 2]);
+            maxX = Math.max(maxX, corners[i * 2]);
+            minY = Math.min(minY, corners[i * 2 + 1]);
+            maxY = Math.max(maxY, corners[i * 2 + 1]);
+        }
+        return minX <= 0.015f && minY <= 0.015f && maxX >= 0.985f && maxY >= 0.985f;
+    }
+
+    private static Bitmap warpToPage(Bitmap src, float[] corners) {
+        int imgW = src.getWidth();
+        int imgH = src.getHeight();
+        float tlX = corners[0] * imgW, tlY = corners[1] * imgH;
+        float trX = corners[2] * imgW, trY = corners[3] * imgH;
+        float brX = corners[4] * imgW, brY = corners[5] * imgH;
+        float blX = corners[6] * imgW, blY = corners[7] * imgH;
+
+        float topW = dist(tlX, tlY, trX, trY);
+        float botW = dist(blX, blY, brX, brY);
+        float leftH = dist(tlX, tlY, blX, blY);
+        float rightH = dist(trX, trY, brX, brY);
+        int outW = Math.round((topW + botW) / 2f);
+        int outH = Math.round((leftH + rightH) / 2f);
+        if (outW < 10 || outH < 10) return null;
+
+        int maxEdge = 2500;
+        float scale = Math.min(1f, maxEdge / (float) Math.max(outW, outH));
+        outW = Math.max(1, Math.round(outW * scale));
+        outH = Math.max(1, Math.round(outH * scale));
+
+        float[] srcPts = {tlX, tlY, trX, trY, brX, brY, blX, blY};
+        float[] dstPts = {0, 0, outW, 0, outW, outH, 0, outH};
+        Matrix matrix = new Matrix();
+        if (!matrix.setPolyToPoly(srcPts, 0, dstPts, 0, 4)) return null;
+
+        Bitmap output = Bitmap.createBitmap(outW, outH, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(output);
+        canvas.drawColor(Color.BLACK);
+        canvas.drawBitmap(src, matrix, new Paint(Paint.ANTI_ALIAS_FLAG | Paint.FILTER_BITMAP_FLAG));
+        return output;
+    }
+
+    /** Drops the black fringe the perspective warp leaves outside the page. */
+    private static Bitmap trimDarkEdges(Bitmap src) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        int[] px = new int[w * h];
+        src.getPixels(px, 0, w, 0, 0, w, h);
+        int maxTrimX = Math.max(1, w / 25);
+        int maxTrimY = Math.max(1, h / 25);
+        int top = 0;
+        int bottom = h - 1;
+        int left = 0;
+        int right = w - 1;
+        while (top < bottom && top < maxTrimY && rowMostlyDark(px, w, top)) top++;
+        while (bottom > top && (h - 1 - bottom) < maxTrimY && rowMostlyDark(px, w, bottom)) bottom--;
+        while (left < right && left < maxTrimX && colMostlyDark(px, w, left, top, bottom)) left++;
+        while (right > left && (w - 1 - right) < maxTrimX && colMostlyDark(px, w, right, top, bottom)) right--;
+        if (left == 0 && top == 0 && right == w - 1 && bottom == h - 1) return src;
+        return Bitmap.createBitmap(src, left, top, right - left + 1, bottom - top + 1);
+    }
+
+    private static boolean rowMostlyDark(int[] px, int w, int y) {
+        int dark = 0;
+        int row = y * w;
+        for (int x = 0; x < w; x++) {
+            if (lumaOf(px[row + x]) < 22) dark++;
+        }
+        return dark > w * 0.92f;
+    }
+
+    private static boolean colMostlyDark(int[] px, int w, int x, int top, int bottom) {
+        int dark = 0;
+        int n = bottom - top + 1;
+        for (int y = top; y <= bottom; y++) {
+            if (lumaOf(px[y * w + x]) < 22) dark++;
+        }
+        return dark > n * 0.92f;
+    }
+
+    private static void improveContrast(Bitmap src) {
+        int w = src.getWidth();
+        int h = src.getHeight();
+        int[] px = new int[w * h];
+        src.getPixels(px, 0, w, 0, 0, w, h);
+        int[] hist = new int[256];
+        int samples = 0;
+        int step = Math.max(1, px.length / 24000);
+        for (int i = 0; i < px.length; i += step) {
+            hist[lumaOf(px[i])]++;
+            samples++;
+        }
+        int p2 = histogramPercentile(hist, samples, 0.02f);
+        int p98 = histogramPercentile(hist, samples, 0.98f);
+        int range = p98 - p2;
+        if (range < 40 || range > 170) return;
+
+        for (int i = 0; i < px.length; i++) {
+            int c = px[i];
+            int y = lumaOf(c);
+            int ny = clampChannel((y - p2) * 255 / range);
+            int delta = ny - y;
+            int r = clampChannel(((c >> 16) & 0xFF) + delta);
+            int g = clampChannel(((c >> 8) & 0xFF) + delta);
+            int b = clampChannel((c & 0xFF) + delta);
+            px[i] = 0xFF000000 | (r << 16) | (g << 8) | b;
+        }
+        src.setPixels(px, 0, w, 0, 0, w, h);
+    }
+
+    private static int histogramPercentile(int[] hist, int samples, float p) {
+        int target = Math.round(samples * p);
+        int seen = 0;
+        for (int i = 0; i < hist.length; i++) {
+            seen += hist[i];
+            if (seen >= target) return i;
+        }
+        return 255;
+    }
+
+    private static int lumaOf(int color) {
+        int r = (color >> 16) & 0xFF;
+        int g = (color >> 8) & 0xFF;
+        int b = color & 0xFF;
+        return (r * 54 + g * 183 + b * 19) >> 8;
+    }
+
+    private static int clampChannel(int v) {
+        return Math.max(0, Math.min(255, v));
     }
 
     private static float dist(float x1, float y1, float x2, float y2) {

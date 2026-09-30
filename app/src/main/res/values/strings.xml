@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Signet</string>
+    <string name="company_website">website: aloflux.com</string>
+    <string name="company_website_url">https://aloflux.com</string>
+    <string name="company_email">info@aloflux.com</string>
+    <string name="product_of_company">A product of Aloflux LLC</string>
+    <string name="company_footer">A product of Aloflux LLC\naloflux.com</string>
+    <string name="about_message">Signet\nVersion 1.0.0\n\nA product of Aloflux LLC\n\naloflux.com\ninfo@aloflux.com</string>
     <string name="add_pdf">Add PDF</string>
     <string name="action_refresh">Refresh</string>
     <string name="pdf_page">PDF Page</string>

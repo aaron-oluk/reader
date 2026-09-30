@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Rect;
 import android.graphics.pdf.PdfDocument;
 import android.graphics.pdf.PdfRenderer;
 import android.net.Uri;
@@ -130,16 +131,16 @@ public class ScanReviewActivity extends AppCompatActivity {
         PdfDocument doc = new PdfDocument();
         int pageNum = 1;
         for (String path : paths) {
-            Bitmap bmp = BitmapFactory.decodeFile(path);
+            Bitmap bmp = decodeScan(path);
             if (bmp == null) continue;
-            bmp = scaleBitmap(bmp, 1240, 1754);
+            // Page bounds match the scan. The bitmap is drawn edge to edge so
+            // print does not add a white mat around the captured page.
+            int[] pageSize = pageSizeForScan(bmp.getWidth(), bmp.getHeight());
             PdfDocument.PageInfo info = new PdfDocument.PageInfo.Builder(
-                    bmp.getWidth(), bmp.getHeight(), pageNum++).create();
+                    pageSize[0], pageSize[1], pageNum++).create();
             PdfDocument.Page page = doc.startPage(info);
-            // White background so the image sits on white paper
             Canvas c = page.getCanvas();
-            c.drawColor(Color.WHITE);
-            c.drawBitmap(bmp, 0, 0, null);
+            c.drawBitmap(bmp, null, new Rect(0, 0, pageSize[0], pageSize[1]), null);
             doc.finishPage(page);
             bmp.recycle();
         }
@@ -147,6 +148,34 @@ public class ScanReviewActivity extends AppCompatActivity {
             doc.writeTo(fos);
         }
         doc.close();
+    }
+
+    /** Downsample only enough to stay in memory. The page is still filled by this bitmap. */
+    private static Bitmap decodeScan(String path) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, bounds);
+        int longEdge = Math.max(bounds.outWidth, bounds.outHeight);
+        int sample = 1;
+        while (longEdge / sample > 2400) sample *= 2;
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = sample;
+        return BitmapFactory.decodeFile(path, opts);
+    }
+
+    /** Long edge is 11 inches. Aspect ratio stays the scan's, so the sheet is the scan. */
+    private static int[] pageSizeForScan(int imageWidth, int imageHeight) {
+        float longPts = 11f * 72f;
+        float w = Math.max(1, imageWidth);
+        float h = Math.max(1, imageHeight);
+        if (w >= h) {
+            int pageW = Math.round(longPts);
+            int pageH = Math.max(1, Math.round(longPts * h / w));
+            return new int[]{pageW, pageH};
+        }
+        int pageH = Math.round(longPts);
+        int pageW = Math.max(1, Math.round(longPts * w / h));
+        return new int[]{pageW, pageH};
     }
 
     private List<Bitmap> renderPdfPages(File pdfFile) throws Exception {
@@ -298,15 +327,6 @@ public class ScanReviewActivity extends AppCompatActivity {
         } catch (Exception e) {
             Toast.makeText(this, "Share failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
-    }
-
-    private Bitmap scaleBitmap(Bitmap src, int maxW, int maxH) {
-        int w = src.getWidth(), h = src.getHeight();
-        if (w <= maxW && h <= maxH) return src;
-        float scale = Math.min((float) maxW / w, (float) maxH / h);
-        Bitmap scaled = Bitmap.createScaledBitmap(src, (int)(w * scale), (int)(h * scale), true);
-        src.recycle();
-        return scaled;
     }
 
     @Override

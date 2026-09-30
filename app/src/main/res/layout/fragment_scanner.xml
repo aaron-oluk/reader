@@ -117,7 +117,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="bottom|center_horizontal"
                 android:layout_marginBottom="14dp"
-                android:text="Document detected — tap to capture"
+                android:text="Align the edges of the page"
                 android:textSize="13sp"
                 android:textColor="@color/text_white"
                 android:background="@drawable/scanner_instruction_chip"
