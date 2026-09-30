@@ -102,6 +102,9 @@ public class ScannerFragment extends Fragment {
 
     private DocumentDetectorView detectorView;
     private TextView instructionText;
+    private TextView modeAuto;
+    private TextView modeManual;
+    private boolean manualMode;
     private ExecutorService analysisExecutor;
 
     // Last corners detected by DocumentAnalyzer, used to crop captured images
@@ -196,6 +199,8 @@ public class ScannerFragment extends Fragment {
         filmstripRecycler = view.findViewById(R.id.filmstrip_recycler);
         detectorView = view.findViewById(R.id.document_detector_view);
         instructionText = view.findViewById(R.id.instruction_text);
+        modeAuto = view.findViewById(R.id.mode_auto);
+        modeManual = view.findViewById(R.id.mode_manual);
 
         // Ensure views are not null
         if (cameraPreview == null || flashToggle == null || closeScanner == null) {
@@ -240,6 +245,16 @@ public class ScannerFragment extends Fragment {
         scanPageTab.setOnClickListener(v -> selectTab(scanPageTab));
         
         savePdfButton.setOnClickListener(v -> openReviewScreen());
+
+        if (modeAuto != null) modeAuto.setOnClickListener(v -> setManualMode(false));
+        if (modeManual != null) modeManual.setOnClickListener(v -> setManualMode(true));
+        if (detectorView != null) {
+            detectorView.setOnCornersChangedListener(corners -> {
+                lastDocCorners = corners.clone();
+                documentDetected = true;
+            });
+        }
+        updateModeChips();
     }
 
     private void selectTab(TextView selectedTab) {
@@ -346,6 +361,7 @@ public class ScannerFragment extends Fragment {
                     .build();
             imageAnalysis.setAnalyzer(analysisExecutor,
                     new DocumentAnalyzer((corners, detected) -> {
+                        if (manualMode) return;
                         lastDocCorners = corners;
                         documentDetected = detected;
                         if (detectorView != null) detectorView.setCorners(corners, detected);
@@ -401,6 +417,53 @@ public class ScannerFragment extends Fragment {
         }
     }
 
+    private void setManualMode(boolean manual) {
+        manualMode = manual;
+        if (manual) {
+            float[] seed = lastDocCorners != null ? lastDocCorners.clone() : defaultManualQuad();
+            lastDocCorners = seed;
+            documentDetected = true;
+            if (detectorView != null) {
+                detectorView.setInteractive(true);
+                detectorView.setCorners(seed, true);
+            }
+            if (instructionText != null) {
+                instructionText.setText("Drag the corners onto the page edges");
+            }
+        } else if (detectorView != null) {
+            detectorView.setInteractive(false);
+            if (instructionText != null) {
+                instructionText.setText("Align the edges of the page");
+            }
+        }
+        updateModeChips();
+    }
+
+    private void updateModeChips() {
+        styleModeChip(modeAuto, !manualMode);
+        styleModeChip(modeManual, manualMode);
+    }
+
+    private void styleModeChip(TextView chip, boolean selected) {
+        if (chip == null || !isAdded()) return;
+        if (selected) {
+            chip.setBackgroundResource(R.drawable.tab_selected_modern);
+            chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue));
+        } else {
+            chip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            chip.setTextColor(0xB3FFFFFF);
+        }
+    }
+
+    private static float[] defaultManualQuad() {
+        return new float[]{
+                0.14f, 0.12f,
+                0.86f, 0.12f,
+                0.86f, 0.88f,
+                0.14f, 0.88f
+        };
+    }
+
     private void toggleFlash() {
         isFlashOn = !isFlashOn;
         if (imageCapture != null) {
@@ -422,8 +485,15 @@ public class ScannerFragment extends Fragment {
         }
 
         // Snapshot corners at the moment of capture (analyzer keeps updating on background thread)
-        final float[] captureCorners = (documentDetected && lastDocCorners != null)
-                ? lastDocCorners.clone() : null;
+        final boolean manual = manualMode;
+        final float[] captureCorners;
+        if (manual && detectorView != null && detectorView.getNormalizedCorners() != null) {
+            captureCorners = detectorView.getNormalizedCorners();
+        } else if (documentDetected && lastDocCorners != null) {
+            captureCorners = lastDocCorners.clone();
+        } else {
+            captureCorners = null;
+        }
 
         final int displayRotation = cameraPreview.getDisplay() != null
                 ? cameraPreview.getDisplay().getRotation()
@@ -443,7 +513,7 @@ public class ScannerFragment extends Fragment {
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
                         Handler mainHandler = new Handler(Looper.getMainLooper());
                         new Thread(() -> {
-                            Bitmap page = cropToDocument(photoFile, captureCorners, displayRotation);
+                            Bitmap page = cropToDocument(photoFile, captureCorners, displayRotation, manual);
                             if (page != null) page.recycle();
                             mainHandler.post(() -> {
                                 capturedImages.add(photoFile);
@@ -469,7 +539,7 @@ public class ScannerFragment extends Fragment {
      * this bitmap, not the live preview, so the saved scan has no surrounding
      * background and no added border.
      */
-    private Bitmap cropToDocument(File file, float[] previewCorners, int displayRotation) {
+    private Bitmap cropToDocument(File file, float[] previewCorners, int displayRotation, boolean manualCorners) {
         Bitmap src = null;
         try {
             BitmapFactory.Options bounds = new BitmapFactory.Options();
@@ -493,8 +563,13 @@ public class ScannerFragment extends Fragment {
             }
             src = orientToCapture(src, exifOrientation, displayRotation);
 
-            float[] corners = DocumentAnalyzer.detect(src);
-            if (corners == null) corners = previewCorners;
+            float[] corners;
+            if (manualCorners && previewCorners != null) {
+                corners = previewCorners;
+            } else {
+                corners = DocumentAnalyzer.detect(src);
+                if (corners == null) corners = previewCorners;
+            }
 
             Bitmap page = src;
             if (corners != null && !fillsFrame(corners)) {
