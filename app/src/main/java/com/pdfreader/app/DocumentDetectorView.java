@@ -7,6 +7,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.util.AttributeSet;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 
 public class DocumentDetectorView extends View {
@@ -30,6 +31,15 @@ public class DocumentDetectorView extends View {
     private float[] pendingNormalized;
     private boolean detected;
     private boolean interactive;
+    private boolean guideMode;
+    /** Portrait page height / width. Zero means the frame can be any shape. */
+    private float guideAspect;
+    private final android.graphics.RectF guideRect = new android.graphics.RectF();
+    private ScaleGestureDetector scaleDetector;
+    private int guideDrag = -1;
+    private float guideLastX;
+    private float guideLastY;
+    private static final int GUIDE_MOVE = 4;
     private int dragCorner = -1;
     private OnCornersChangedListener cornersChangedListener;
 
@@ -49,6 +59,30 @@ public class DocumentDetectorView extends View {
         handleRing.setStyle(Paint.Style.STROKE);
         handleRing.setStrokeWidth(3f * d);
         handleRing.setColor(COLOR_DETECTED);
+        scaleDetector = new ScaleGestureDetector(getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                scaleGuide(detector.getScaleFactor(), detector.getFocusX(), detector.getFocusY());
+                return true;
+            }
+        });
+    }
+
+    /**
+     * Manual scan shows a rectangle to fit the page into.
+     * {@code portraitHeightOverWidth} is the paper shape, such as A4. Zero allows any shape.
+     */
+    public void setGuideFrame(boolean enabled, float portraitHeightOverWidth) {
+        guideMode = enabled;
+        guideAspect = portraitHeightOverWidth;
+        interactive = enabled;
+        dragCorner = -1;
+        guideDrag = -1;
+        setClickable(enabled);
+        if (enabled && getWidth() > 0 && getHeight() > 0) {
+            layoutGuide();
+        }
+        invalidate();
     }
 
     public void setOnCornersChangedListener(OnCornersChangedListener listener) {
@@ -74,6 +108,16 @@ public class DocumentDetectorView extends View {
 
     /** Current outline in normalized view coordinates, or null when no quad is shown. */
     public float[] getNormalizedCorners() {
+        if (guideMode && guideRect.width() > 1f && getWidth() > 0) {
+            float w = getWidth();
+            float h = getHeight();
+            return new float[]{
+                    guideRect.left / w, guideRect.top / h,
+                    guideRect.right / w, guideRect.top / h,
+                    guideRect.right / w, guideRect.bottom / h,
+                    guideRect.left / w, guideRect.bottom / h
+            };
+        }
         if (quad == null || getWidth() == 0 || getHeight() == 0) {
             return pendingNormalized == null ? null : pendingNormalized.clone();
         }
@@ -91,6 +135,7 @@ public class DocumentDetectorView extends View {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         applyPendingCorners();
+        if (guideMode) layoutGuide();
     }
 
     private void applyPendingCorners() {
@@ -110,6 +155,7 @@ public class DocumentDetectorView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        if (guideMode) return onGuideTouch(event);
         if (!interactive || quad == null) return false;
         float x = event.getX();
         float y = event.getY();
@@ -187,6 +233,11 @@ public class DocumentDetectorView extends View {
     @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
+        if (guideMode) {
+            if (guideRect.width() < 1f) layoutGuide();
+            drawGuide(canvas);
+            return;
+        }
         if (quad != null) {
             drawQuad(canvas, quad, detected);
         } else {
@@ -259,5 +310,192 @@ public class DocumentDetectorView extends View {
         float len = Math.min(maxLen, Math.min(m1, m2) * 0.35f);
         canvas.drawLine(cx, cy, cx + d1x / m1 * len, cy + d1y / m1 * len, cornerPaint);
         canvas.drawLine(cx, cy, cx + d2x / m2 * len, cy + d2y / m2 * len, cornerPaint);
+    }
+
+    private void layoutGuide() {
+        int viewW = getWidth();
+        int viewH = getHeight();
+        if (viewW <= 0 || viewH <= 0) return;
+        float margin = 28f * density();
+        float maxW = Math.max(1f, viewW - margin * 2f);
+        float maxH = Math.max(1f, viewH - margin * 2f);
+        float aspect = orientedAspect();
+        float frameW;
+        float frameH;
+        if (aspect <= 0f) {
+            frameW = maxW * 0.86f;
+            frameH = maxH * 0.86f;
+        } else if (maxW * aspect <= maxH) {
+            frameW = maxW * 0.92f;
+            frameH = frameW * aspect;
+        } else {
+            frameH = maxH * 0.92f;
+            frameW = frameH / aspect;
+        }
+        float left = (viewW - frameW) / 2f;
+        float top = (viewH - frameH) / 2f;
+        guideRect.set(left, top, left + frameW, top + frameH);
+    }
+
+    private float orientedAspect() {
+        if (guideAspect <= 0f) return 0f;
+        return getHeight() >= getWidth() ? guideAspect : 1f / guideAspect;
+    }
+
+    private boolean onGuideTouch(MotionEvent event) {
+        scaleDetector.onTouchEvent(event);
+        if (event.getPointerCount() > 1 || scaleDetector.isInProgress()) {
+            guideDrag = -1;
+            return true;
+        }
+        float x = event.getX();
+        float y = event.getY();
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                guideDrag = hitGuide(x, y);
+                guideLastX = x;
+                guideLastY = y;
+                if (getParent() != null) {
+                    getParent().requestDisallowInterceptTouchEvent(guideDrag >= 0);
+                }
+                return guideDrag >= 0;
+            case MotionEvent.ACTION_MOVE:
+                if (guideDrag < 0) return false;
+                if (guideDrag == GUIDE_MOVE) {
+                    moveGuide(x - guideLastX, y - guideLastY);
+                } else {
+                    resizeGuide(guideDrag, x, y);
+                }
+                guideLastX = x;
+                guideLastY = y;
+                invalidate();
+                publishCorners();
+                return true;
+            case MotionEvent.ACTION_UP:
+            case MotionEvent.ACTION_CANCEL:
+                guideDrag = -1;
+                break;
+            default:
+                break;
+        }
+        return true;
+    }
+
+    private int hitGuide(float x, float y) {
+        float slop = 28f * density();
+        if (near(x, y, guideRect.left, guideRect.top, slop)) return 0;
+        if (near(x, y, guideRect.right, guideRect.top, slop)) return 1;
+        if (near(x, y, guideRect.right, guideRect.bottom, slop)) return 2;
+        if (near(x, y, guideRect.left, guideRect.bottom, slop)) return 3;
+        if (guideRect.contains(x, y)) return GUIDE_MOVE;
+        return -1;
+    }
+
+    private void moveGuide(float dx, float dy) {
+        float w = guideRect.width();
+        float h = guideRect.height();
+        float left = clamp(guideRect.left + dx, 0f, getWidth() - w);
+        float top = clamp(guideRect.top + dy, 0f, getHeight() - h);
+        guideRect.set(left, top, left + w, top + h);
+    }
+
+    private void resizeGuide(int corner, float x, float y) {
+        float min = 72f * density();
+        float aspect = orientedAspect();
+        if (aspect <= 0f) {
+            resizeFree(corner, x, y, min);
+            return;
+        }
+        float anchorX = (corner == 0 || corner == 3) ? guideRect.right : guideRect.left;
+        float anchorY = (corner == 0 || corner == 1) ? guideRect.bottom : guideRect.top;
+        float width = Math.abs(x - anchorX);
+        float height = width * aspect;
+        if (height < min) {
+            height = min;
+            width = height / aspect;
+        }
+        if (width < min) {
+            width = min;
+            height = width * aspect;
+        }
+        float left = (corner == 0 || corner == 3) ? anchorX - width : anchorX;
+        float top = (corner == 0 || corner == 1) ? anchorY - height : anchorY;
+        guideRect.set(left, top, left + width, top + height);
+        clampGuideToView();
+    }
+
+    private void resizeFree(int corner, float x, float y, float min) {
+        float left = guideRect.left;
+        float top = guideRect.top;
+        float right = guideRect.right;
+        float bottom = guideRect.bottom;
+        if (corner == 0 || corner == 3) left = Math.min(x, right - min);
+        else right = Math.max(x, left + min);
+        if (corner == 0 || corner == 1) top = Math.min(y, bottom - min);
+        else bottom = Math.max(y, top + min);
+        guideRect.set(left, top, right, bottom);
+        clampGuideToView();
+    }
+
+    private void scaleGuide(float factor, float focusX, float focusY) {
+        if (guideRect.width() < 1f) layoutGuide();
+        float aspect = orientedAspect();
+        float width = guideRect.width() * factor;
+        float height = aspect > 0f ? width * aspect : guideRect.height() * factor;
+        float min = 72f * density();
+        width = Math.max(min, width);
+        height = Math.max(min, aspect > 0f ? width * aspect : height);
+        float left = focusX - width * (focusX - guideRect.left) / guideRect.width();
+        float top = focusY - height * (focusY - guideRect.top) / Math.max(1f, guideRect.height());
+        guideRect.set(left, top, left + width, top + height);
+        clampGuideToView();
+        invalidate();
+        publishCorners();
+    }
+
+    private void clampGuideToView() {
+        float min = 72f * density();
+        if (guideRect.width() < min) guideRect.right = guideRect.left + min;
+        if (guideRect.height() < min) guideRect.bottom = guideRect.top + min;
+        if (guideRect.left < 0f) guideRect.offset(-guideRect.left, 0f);
+        if (guideRect.top < 0f) guideRect.offset(0f, -guideRect.top);
+        if (guideRect.right > getWidth()) guideRect.offset(getWidth() - guideRect.right, 0f);
+        if (guideRect.bottom > getHeight()) guideRect.offset(0f, getHeight() - guideRect.bottom);
+        if (guideRect.left < 0f) guideRect.left = 0f;
+        if (guideRect.top < 0f) guideRect.top = 0f;
+        if (guideRect.right > getWidth()) guideRect.right = getWidth();
+        if (guideRect.bottom > getHeight()) guideRect.bottom = getHeight();
+    }
+
+    private void drawGuide(Canvas canvas) {
+        int w = getWidth();
+        int h = getHeight();
+        if (w == 0 || h == 0 || guideRect.width() < 1f) return;
+        fillPaint.setColor(Color.argb(120, 0, 0, 0));
+        canvas.drawRect(0, 0, w, guideRect.top, fillPaint);
+        canvas.drawRect(0, guideRect.bottom, w, h, fillPaint);
+        canvas.drawRect(0, guideRect.top, guideRect.left, guideRect.bottom, fillPaint);
+        canvas.drawRect(guideRect.right, guideRect.top, w, guideRect.bottom, fillPaint);
+
+        edgePaint.setColor(Color.WHITE);
+        canvas.drawRect(guideRect, edgePaint);
+        cornerPaint.setColor(Color.WHITE);
+        float len = 28f * density();
+        bracket(canvas, guideRect.left, guideRect.top, guideRect.right, guideRect.top, guideRect.left, guideRect.bottom, len);
+        bracket(canvas, guideRect.right, guideRect.top, guideRect.left, guideRect.top, guideRect.right, guideRect.bottom, len);
+        bracket(canvas, guideRect.right, guideRect.bottom, guideRect.left, guideRect.bottom, guideRect.right, guideRect.top, len);
+        bracket(canvas, guideRect.left, guideRect.bottom, guideRect.right, guideRect.bottom, guideRect.left, guideRect.top, len);
+    }
+
+    private boolean near(float x, float y, float px, float py, float slop) {
+        return Math.abs(x - px) <= slop && Math.abs(y - py) <= slop;
+    }
+
+    private float density() {
+        return getResources().getDisplayMetrics().density;
+    }
+
+    private static float clamp(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 }

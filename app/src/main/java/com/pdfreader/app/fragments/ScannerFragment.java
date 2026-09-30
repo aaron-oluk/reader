@@ -104,7 +104,13 @@ public class ScannerFragment extends Fragment {
     private TextView instructionText;
     private TextView modeAuto;
     private TextView modeManual;
+    private TextView sizeA4;
+    private TextView sizeLetter;
+    private TextView sizeAny;
+    private View paperSizeRow;
     private boolean manualMode;
+    /** 0 A4, 1 US Letter, 2 any shape. */
+    private int paperSize;
     private ExecutorService analysisExecutor;
     private ExecutorService scanProcessor;
     private int processingCount;
@@ -206,6 +212,10 @@ public class ScannerFragment extends Fragment {
         instructionText = view.findViewById(R.id.instruction_text);
         modeAuto = view.findViewById(R.id.mode_auto);
         modeManual = view.findViewById(R.id.mode_manual);
+        paperSizeRow = view.findViewById(R.id.paper_size_row);
+        sizeA4 = view.findViewById(R.id.size_a4);
+        sizeLetter = view.findViewById(R.id.size_letter);
+        sizeAny = view.findViewById(R.id.size_any);
 
         // Ensure views are not null
         if (cameraPreview == null || flashToggle == null || closeScanner == null) {
@@ -258,6 +268,9 @@ public class ScannerFragment extends Fragment {
 
         if (modeAuto != null) modeAuto.setOnClickListener(v -> setManualMode(false));
         if (modeManual != null) modeManual.setOnClickListener(v -> setManualMode(true));
+        if (sizeA4 != null) sizeA4.setOnClickListener(v -> setPaperSize(0));
+        if (sizeLetter != null) sizeLetter.setOnClickListener(v -> setPaperSize(1));
+        if (sizeAny != null) sizeAny.setOnClickListener(v -> setPaperSize(2));
         if (detectorView != null) {
             detectorView.setOnCornersChangedListener(corners -> {
                 lastDocCorners = corners.clone();
@@ -430,15 +443,56 @@ public class ScannerFragment extends Fragment {
     private void setManualMode(boolean manual) {
         manualMode = manual;
         if (detectorView != null) {
-            detectorView.setInteractive(false);
-            detectorView.setVisibility(manual ? View.GONE : View.VISIBLE);
+            detectorView.setVisibility(View.VISIBLE);
+            if (manual) {
+                detectorView.setGuideFrame(true, paperAspect());
+            } else {
+                detectorView.setGuideFrame(false, 0f);
+                detectorView.setInteractive(false);
+            }
+        }
+        if (paperSizeRow != null) {
+            paperSizeRow.setVisibility(manual ? View.VISIBLE : View.GONE);
         }
         if (instructionText != null) {
             instructionText.setText(manual
-                    ? "Fit the page in the frame, then scan"
+                    ? "Fit the page inside the frame. Pinch to resize."
                     : "Align the edges of the page");
         }
         updateModeChips();
+        updatePaperChips();
+    }
+
+    private void setPaperSize(int size) {
+        paperSize = size;
+        if (manualMode && detectorView != null) {
+            detectorView.setGuideFrame(true, paperAspect());
+        }
+        updatePaperChips();
+    }
+
+    /** Portrait height divided by width. Zero lets the frame take any shape. */
+    private float paperAspect() {
+        if (paperSize == 1) return 11f / 8.5f;
+        if (paperSize == 2) return 0f;
+        return 297f / 210f;
+    }
+
+    private void updatePaperChips() {
+        stylePaperChip(sizeA4, paperSize == 0);
+        stylePaperChip(sizeLetter, paperSize == 1);
+        stylePaperChip(sizeAny, paperSize == 2);
+    }
+
+    private void stylePaperChip(TextView chip, boolean selected) {
+        if (chip == null) return;
+        if (selected) {
+            chip.setBackgroundResource(R.drawable.tab_selected_modern);
+            chip.setTextColor(ContextCompat.getColor(requireContext(), R.color.primary_blue));
+        } else {
+            chip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
+            chip.setTextColor(0xB3FFFFFF);
+        }
     }
 
     private void updateModeChips() {
@@ -480,8 +534,14 @@ public class ScannerFragment extends Fragment {
         // Manual keeps the framed photo. Auto uses the outline only as a fallback
         // if detection on the saved bitmap finds nothing.
         final boolean manual = manualMode;
-        final float[] captureCorners = (!manual && documentDetected && lastDocCorners != null)
-                ? lastDocCorners.clone() : null;
+        final float[] captureCorners;
+        if (manual && detectorView != null && detectorView.getNormalizedCorners() != null) {
+            captureCorners = detectorView.getNormalizedCorners();
+        } else if (!manual && documentDetected && lastDocCorners != null) {
+            captureCorners = lastDocCorners.clone();
+        } else {
+            captureCorners = null;
+        }
 
         final int displayRotation = cameraPreview.getDisplay() != null
                 ? cameraPreview.getDisplay().getRotation()
@@ -572,7 +632,9 @@ public class ScannerFragment extends Fragment {
             src = orientToCapture(src, exifOrientation, displayRotation);
 
             float[] corners = null;
-            if (!manualCorners) {
+            if (manualCorners) {
+                corners = previewCorners;
+            } else {
                 corners = DocumentAnalyzer.detect(src);
                 if (corners == null) corners = previewCorners;
             }
