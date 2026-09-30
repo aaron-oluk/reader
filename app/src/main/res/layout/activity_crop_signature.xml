@@ -74,7 +74,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:text="Drag corners to adjust crop area"
+            android:text="Drag the frame, its edges, or a corner"
         android:textColor="@color/text_secondary"
         android:textAppearance="@style/TextAppearance.App.BodyMedium"
         app:layout_constraintBottom_toTopOf="@id/bottom_buttons"

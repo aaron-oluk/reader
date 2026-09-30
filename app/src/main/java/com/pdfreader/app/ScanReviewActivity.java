@@ -16,12 +16,13 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,8 +31,6 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
-
-import androidx.exifinterface.media.ExifInterface;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -58,11 +57,17 @@ public class ScanReviewActivity extends AppCompatActivity {
     private View btnPrint;
     private MaterialButton btnSave;
     private final List<Bitmap> previewPages = new ArrayList<>();
+    private ActivityResultLauncher<Intent> cropLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         WindowInsetsHelper.enableEdgeToEdge(this, false);
         super.onCreate(savedInstanceState);
+        cropLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) generatePreview();
+                });
         setContentView(R.layout.activity_scan_review);
 
         View __appBar = findViewById(R.id.app_bar);
@@ -122,7 +127,7 @@ public class ScanReviewActivity extends AppCompatActivity {
                     int n = pages.size();
                     pageCountText.setText(n + (n == 1 ? " page" : " pages")
                             + " · Crop before saving");
-                    pagesRecycler.setAdapter(new PageBitmapAdapter(pages, this::showCropDialog));
+                    pagesRecycler.setAdapter(new PageBitmapAdapter(pages, this::openCrop));
                     btnPrint.setVisibility(View.VISIBLE);
                 });
             } catch (Exception e) {
@@ -395,81 +400,11 @@ public class ScanReviewActivity extends AppCompatActivity {
         }
     }
 
-    private void showCropDialog(int index) {
+    private void openCrop(int index) {
         if (index < 0 || index >= imagePaths.size()) return;
-        String path = imagePaths.get(index);
-        Bitmap bitmap = decodeScan(path);
-        if (bitmap == null) {
-            Toast.makeText(this, "Could not open this page", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.48f);
-        FrameLayout wrap = new FrameLayout(this);
-        CropImageView cropView = new CropImageView(this);
-        cropView.setBackgroundColor(Color.BLACK);
-        cropView.setMinimumHeight(height);
-        cropView.setLayoutParams(new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, height));
-        wrap.addView(cropView);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setTitle("Crop page")
-                .setView(wrap)
-                .setPositiveButton("Apply", null)
-                .setNegativeButton("Cancel", null)
-                .create();
-        dialog.setOnShowListener(d -> {
-            ViewGroup.LayoutParams wrapParams = wrap.getLayoutParams();
-            wrapParams.height = height;
-            wrap.setLayoutParams(wrapParams);
-            cropView.setImageBitmap(bitmap);
-            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-                Bitmap cropped = cropView.getCroppedBitmap();
-                if (cropped == null) {
-                    Toast.makeText(this, "Could not crop this page", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                boolean saved = writeCroppedPage(path, cropped);
-                cropped.recycle();
-                if (!saved) {
-                    Toast.makeText(this, "Could not save the crop", Toast.LENGTH_SHORT).show();
-                    return;
-                }
-                dialog.dismiss();
-                generatePreview();
-            });
-        });
-        dialog.setOnDismissListener(d -> {
-            if (!bitmap.isRecycled()) bitmap.recycle();
-        });
-        dialog.show();
-    }
-
-    private boolean writeCroppedPage(String path, Bitmap cropped) {
-        File file = new File(path);
-        File ready = new File(file.getParentFile(), file.getName() + ".crop");
-        try (FileOutputStream fos = new FileOutputStream(ready)) {
-            if (!cropped.compress(Bitmap.CompressFormat.JPEG, 95, fos)) {
-                ready.delete();
-                return false;
-            }
-        } catch (Exception e) {
-            ready.delete();
-            return false;
-        }
-        try {
-            ExifInterface exif = new ExifInterface(ready.getAbsolutePath());
-            exif.setAttribute(ExifInterface.TAG_ORIENTATION,
-                    String.valueOf(ExifInterface.ORIENTATION_NORMAL));
-            exif.saveAttributes();
-        } catch (Exception ignored) {
-        }
-        if (file.exists() && !file.delete()) {
-            ready.delete();
-            return false;
-        }
-        return ready.renameTo(file);
+        Intent intent = new Intent(this, ScanCropActivity.class);
+        intent.putExtra(ScanCropActivity.EXTRA_IMAGE_PATH, imagePaths.get(index));
+        cropLauncher.launch(intent);
     }
 
     private void recyclePreviewPages() {

@@ -8,7 +8,7 @@ import android.graphics.RectF;
 import android.view.MotionEvent;
 
 /**
- * Custom ImageView for cropping with draggable corners
+ * Full-frame crop control. Drag a corner, an edge, or the middle of the frame.
  */
 public class CropImageView extends androidx.appcompat.widget.AppCompatImageView {
 
@@ -22,14 +22,22 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
     private float imageTransX = 0f;
     private float imageTransY = 0f;
 
-    private static final int CORNER_SIZE = 60;
-    private static final int TOUCH_TOLERANCE = 80;
-
-    private int activeTouchCorner = -1; // -1: none, 0: TL, 1: TR, 2: BL, 3: BR
+    private static final int NONE = -1;
     private static final int CORNER_TL = 0;
     private static final int CORNER_TR = 1;
     private static final int CORNER_BL = 2;
     private static final int CORNER_BR = 3;
+    private static final int MOVE = 4;
+    private static final int EDGE_L = 5;
+    private static final int EDGE_R = 6;
+    private static final int EDGE_T = 7;
+    private static final int EDGE_B = 8;
+
+    private int activeDrag = NONE;
+    private float lastTouchX;
+    private float lastTouchY;
+    private Paint paintGrid;
+    private Paint paintBracket;
 
     // Optional initial crop region, in bitmap pixel coordinates, set before setImageBitmap().
     private RectF suggestedBitmapRegion;
@@ -55,18 +63,40 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
     }
 
     private void init() {
-        paintRect = new Paint();
+        paintRect = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintRect.setColor(Color.WHITE);
         paintRect.setStyle(Paint.Style.STROKE);
-        paintRect.setStrokeWidth(4f);
+        paintRect.setStrokeWidth(dp(1.5f));
 
-        paintCorner = new Paint();
+        paintCorner = new Paint(Paint.ANTI_ALIAS_FLAG);
         paintCorner.setColor(Color.WHITE);
         paintCorner.setStyle(Paint.Style.FILL);
 
+        paintGrid = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintGrid.setColor(Color.WHITE);
+        paintGrid.setAlpha(110);
+        paintGrid.setStyle(Paint.Style.STROKE);
+        paintGrid.setStrokeWidth(dp(1f));
+
+        paintBracket = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paintBracket.setColor(Color.WHITE);
+        paintBracket.setStyle(Paint.Style.STROKE);
+        paintBracket.setStrokeWidth(dp(3.5f));
+        paintBracket.setStrokeCap(Paint.Cap.ROUND);
+
         paintOverlay = new Paint();
         paintOverlay.setColor(Color.BLACK);
-        paintOverlay.setAlpha(128);
+        paintOverlay.setAlpha(150);
+        setClickable(true);
+    }
+
+    public void resetCrop() {
+        userAdjustedCrop = false;
+        layoutCrop();
+    }
+
+    private float dp(float value) {
+        return value * getResources().getDisplayMetrics().density;
     }
 
     public void setImageBitmap(Bitmap bm) {
@@ -154,67 +184,153 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
             canvas.drawRect(0, cropRect.top, cropRect.left, cropRect.bottom, paintOverlay);
             canvas.drawRect(cropRect.right, cropRect.top, getWidth(), cropRect.bottom, paintOverlay);
 
-            // Draw crop rectangle
-            canvas.drawRect(cropRect, paintRect);
+            float thirdW = cropRect.width() / 3f;
+            float thirdH = cropRect.height() / 3f;
+            for (int i = 1; i <= 2; i++) {
+                float x = cropRect.left + thirdW * i;
+                float y = cropRect.top + thirdH * i;
+                canvas.drawLine(x, cropRect.top, x, cropRect.bottom, paintGrid);
+                canvas.drawLine(cropRect.left, y, cropRect.right, y, paintGrid);
+            }
 
-            // Draw corner handles
-            drawCorner(canvas, cropRect.left, cropRect.top);
-            drawCorner(canvas, cropRect.right, cropRect.top);
-            drawCorner(canvas, cropRect.left, cropRect.bottom);
-            drawCorner(canvas, cropRect.right, cropRect.bottom);
+            canvas.drawRect(cropRect, paintRect);
+            drawBracket(canvas, cropRect.left, cropRect.top, 1f, 1f);
+            drawBracket(canvas, cropRect.right, cropRect.top, -1f, 1f);
+            drawBracket(canvas, cropRect.left, cropRect.bottom, 1f, -1f);
+            drawBracket(canvas, cropRect.right, cropRect.bottom, -1f, -1f);
+            drawEdgeHandle(canvas, cropRect.centerX(), cropRect.top, true);
+            drawEdgeHandle(canvas, cropRect.centerX(), cropRect.bottom, true);
+            drawEdgeHandle(canvas, cropRect.left, cropRect.centerY(), false);
+            drawEdgeHandle(canvas, cropRect.right, cropRect.centerY(), false);
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
 
-    private void drawCorner(Canvas canvas, float x, float y) {
-        float halfSize = CORNER_SIZE / 2f;
-        canvas.drawRect(x - halfSize, y - halfSize, x + halfSize, y + halfSize, paintCorner);
+    private void drawBracket(Canvas canvas, float x, float y, float xDir, float yDir) {
+        float len = dp(22f);
+        canvas.drawLine(x, y, x + xDir * len, y, paintBracket);
+        canvas.drawLine(x, y, x, y + yDir * len, paintBracket);
+    }
+
+    private void drawEdgeHandle(Canvas canvas, float x, float y, boolean horizontal) {
+        float longSide = dp(16f);
+        float thick = dp(3f);
+        float left = horizontal ? x - longSide : x - thick;
+        float top = horizontal ? y - thick : y - longSide;
+        float right = horizontal ? x + longSide : x + thick;
+        float bottom = horizontal ? y + thick : y + longSide;
+        canvas.drawRoundRect(left, top, right, bottom, thick, thick, paintCorner);
     }
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        if (cropRect == null) return false;
+        if (cropRect == null || bitmap == null) return false;
 
         float x = event.getX();
         float y = event.getY();
 
-        switch (event.getAction()) {
+        switch (event.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
-                activeTouchCorner = getTouchedCorner(x, y);
-                return activeTouchCorner >= 0;
+                activeDrag = hitTest(x, y);
+                lastTouchX = x;
+                lastTouchY = y;
+                return activeDrag != NONE;
 
             case MotionEvent.ACTION_MOVE:
-                if (activeTouchCorner >= 0) {
-                    userAdjustedCrop = true;
-                    updateCropRect(activeTouchCorner, x, y);
-                    invalidate();
-                    return true;
+                if (activeDrag == NONE) return false;
+                userAdjustedCrop = true;
+                if (activeDrag == MOVE) {
+                    moveCrop(x - lastTouchX, y - lastTouchY);
+                } else if (activeDrag >= EDGE_L) {
+                    updateEdge(activeDrag, x, y);
+                } else {
+                    updateCropRect(activeDrag, x, y);
                 }
-                break;
+                lastTouchX = x;
+                lastTouchY = y;
+                invalidate();
+                return true;
 
             case MotionEvent.ACTION_UP:
-                activeTouchCorner = -1;
+            case MotionEvent.ACTION_CANCEL:
+                activeDrag = NONE;
                 break;
         }
 
         return super.onTouchEvent(event);
     }
 
-    private int getTouchedCorner(float x, float y) {
-        if (isNearPoint(x, y, cropRect.left, cropRect.top)) return CORNER_TL;
-        if (isNearPoint(x, y, cropRect.right, cropRect.top)) return CORNER_TR;
-        if (isNearPoint(x, y, cropRect.left, cropRect.bottom)) return CORNER_BL;
-        if (isNearPoint(x, y, cropRect.right, cropRect.bottom)) return CORNER_BR;
-        return -1;
+    private int hitTest(float x, float y) {
+        float slop = dp(28f);
+        if (near(x, y, cropRect.left, cropRect.top, slop)) return CORNER_TL;
+        if (near(x, y, cropRect.right, cropRect.top, slop)) return CORNER_TR;
+        if (near(x, y, cropRect.left, cropRect.bottom, slop)) return CORNER_BL;
+        if (near(x, y, cropRect.right, cropRect.bottom, slop)) return CORNER_BR;
+        if (Math.abs(x - cropRect.left) <= slop && y >= cropRect.top - slop && y <= cropRect.bottom + slop) {
+            return EDGE_L;
+        }
+        if (Math.abs(x - cropRect.right) <= slop && y >= cropRect.top - slop && y <= cropRect.bottom + slop) {
+            return EDGE_R;
+        }
+        if (Math.abs(y - cropRect.top) <= slop && x >= cropRect.left - slop && x <= cropRect.right + slop) {
+            return EDGE_T;
+        }
+        if (Math.abs(y - cropRect.bottom) <= slop && x >= cropRect.left - slop && x <= cropRect.right + slop) {
+            return EDGE_B;
+        }
+        if (cropRect.contains(x, y)) return MOVE;
+        return NONE;
     }
 
-    private boolean isNearPoint(float x, float y, float pointX, float pointY) {
-        return Math.abs(x - pointX) < TOUCH_TOLERANCE && Math.abs(y - pointY) < TOUCH_TOLERANCE;
+    private boolean near(float x, float y, float pointX, float pointY, float slop) {
+        return Math.abs(x - pointX) <= slop && Math.abs(y - pointY) <= slop;
+    }
+
+    private void moveCrop(float dx, float dy) {
+        float minX = imageTransX;
+        float minY = imageTransY;
+        float maxX = imageTransX + bitmap.getWidth() * imageScale;
+        float maxY = imageTransY + bitmap.getHeight() * imageScale;
+        float width = cropRect.width();
+        float height = cropRect.height();
+        float left = clampFloat(cropRect.left + dx, minX, maxX - width);
+        float top = clampFloat(cropRect.top + dy, minY, maxY - height);
+        cropRect.offsetTo(left, top);
+    }
+
+    private void updateEdge(int edge, float x, float y) {
+        float minSize = dp(56f);
+        float minX = imageTransX;
+        float minY = imageTransY;
+        float maxX = imageTransX + bitmap.getWidth() * imageScale;
+        float maxY = imageTransY + bitmap.getHeight() * imageScale;
+        x = clampFloat(x, minX, maxX);
+        y = clampFloat(y, minY, maxY);
+        switch (edge) {
+            case EDGE_L:
+                if (cropRect.right - x >= minSize) cropRect.left = x;
+                break;
+            case EDGE_R:
+                if (x - cropRect.left >= minSize) cropRect.right = x;
+                break;
+            case EDGE_T:
+                if (cropRect.bottom - y >= minSize) cropRect.top = y;
+                break;
+            case EDGE_B:
+                if (y - cropRect.top >= minSize) cropRect.bottom = y;
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static float clampFloat(float value, float min, float max) {
+        return Math.max(min, Math.min(max, value));
     }
 
     private void updateCropRect(int corner, float x, float y) {
-        float minSize = 100f;
+        float minSize = dp(56f);
         float maxX = imageTransX + bitmap.getWidth() * imageScale;
         float maxY = imageTransY + bitmap.getHeight() * imageScale;
 

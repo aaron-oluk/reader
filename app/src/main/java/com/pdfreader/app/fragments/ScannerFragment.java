@@ -705,7 +705,7 @@ public class ScannerFragment extends Fragment {
 
     /**
      * A light cleanup only: a little shadow lift, a small paper-color correction,
-     * a gentle contrast nudge, and a faint edge crisp. Stronger passes wash the page out.
+     * a gentle contrast nudge, and a light edge crisp. Stronger passes wash the page out.
      */
     private static void preprocessDocument(Bitmap src) {
         int w = src.getWidth();
@@ -823,7 +823,7 @@ public class ScannerFragment extends Fragment {
         for (int i = 0; i < n; i++) luma[i] = lumaOf(px[i]);
         int[] blurred = boxBlur(luma, w, h);
         for (int i = 0; i < n; i++) {
-            int delta = Math.round((luma[i] - blurred[i]) * 0.22f);
+            int delta = Math.round((luma[i] - blurred[i]) * 0.36f);
             if (delta == 0) continue;
             int c = px[i];
             int nr = clampChannel(((c >> 16) & 0xFF) + delta);
