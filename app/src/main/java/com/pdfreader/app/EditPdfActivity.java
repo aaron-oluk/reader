@@ -79,6 +79,9 @@ public class EditPdfActivity extends AppCompatActivity {
     private RecyclerView pagesRecycler;
     private ProgressBar loadingIndicator;
     private View emptyState;
+    private RecyclerView recentFilesList;
+    private View recentFilesEmpty;
+    private ExecutorService recentThumbs;
     private TextView pageCountText;
     private MaterialButton btnSave;
 
@@ -275,8 +278,8 @@ public class EditPdfActivity extends AppCompatActivity {
 
         View btnOpenPdfEmpty = findViewById(R.id.btn_open_pdf_empty);
         if (btnOpenPdfEmpty != null) btnOpenPdfEmpty.setOnClickListener(v -> openFilePicker());
-        View btnRecentFilesEmpty = findViewById(R.id.btn_recent_files_empty);
-        if (btnRecentFilesEmpty != null) btnRecentFilesEmpty.setOnClickListener(v -> openFilePicker());
+        recentFilesList = findViewById(R.id.recent_files_list);
+        recentFilesEmpty = findViewById(R.id.recent_files_empty);
         View btnScanEmpty = findViewById(R.id.btn_scan_empty);
         if (btnScanEmpty != null) btnScanEmpty.setOnClickListener(v ->
                 startActivity(new Intent(this, ScanDocumentActivity.class)));
@@ -322,6 +325,26 @@ public class EditPdfActivity extends AppCompatActivity {
                 pageCountText.setText(title);
             }
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (emptyState != null && emptyState.getVisibility() == View.VISIBLE) {
+            bindRecentFiles();
+        }
+    }
+
+    private void bindRecentFiles() {
+        if (recentFilesList == null || recentFilesEmpty == null) return;
+        if (recentThumbs != null) recentThumbs.shutdownNow();
+        recentThumbs = AppDocumentPicker.bind(this, recentFilesList, recentFilesEmpty, path -> {
+            if (path.startsWith("content:")) {
+                loadPdf(Uri.parse(path));
+            } else {
+                loadFromPath(path);
+            }
+        });
     }
 
     // ── File loading ──────────────────────────────────────────────────────────
@@ -1940,6 +1963,7 @@ public class EditPdfActivity extends AppCompatActivity {
     protected void onDestroy() {
         detachLiveEditImeAvoidance();
         super.onDestroy();
+        if (recentThumbs != null) recentThumbs.shutdownNow();
         executor.shutdown();
         closePdfRenderer();
     }

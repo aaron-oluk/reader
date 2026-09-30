@@ -53,7 +53,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Open a PDF then add your signature"
+                    android:text="Open a document, then add your signature"
                     android:textSize="13sp"
                     android:textColor="#CCFFFFFF"
                     android:layout_marginTop="2dp" />
@@ -122,7 +122,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:gravity="center"
-                android:text="Tap Open below to choose a PDF to sign"
+                android:text="Choose a document already in the app, or import one"
                 android:textSize="13sp"
                 android:textColor="@color/text_secondary" />
 

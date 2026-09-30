@@ -25,7 +25,6 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -166,20 +165,41 @@ public class SignPdfActivity extends AppCompatActivity {
     private void loadPdf(Uri uri) {
         executorService.execute(() -> {
             try {
-                // Copy to cache in background
-                File cacheFile = new File(getCacheDir(), "sign_temp.pdf");
                 InputStream inputStream = getContentResolver().openInputStream(uri);
-                FileOutputStream outputStream = new FileOutputStream(cacheFile);
-                byte[] buffer = new byte[8192];
-                int length;
-                while ((length = inputStream.read(buffer)) > 0) {
-                    outputStream.write(buffer, 0, length);
+                if (inputStream == null) {
+                    throw new IOException("Could not open document");
                 }
-                outputStream.close();
-                inputStream.close();
+                copyThenOpen(inputStream);
+            } catch (Exception e) {
+                runOnUiThread(() ->
+                        Toast.makeText(this, "Error loading PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show());
+                e.printStackTrace();
+            }
+        });
+    }
 
-                parcelFileDescriptor = ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY);
-                pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
+    private void copyThenOpen(InputStream inputStream) throws Exception {
+        File cacheFile = new File(getCacheDir(), "sign_temp.pdf");
+        try (InputStream in = inputStream;
+             FileOutputStream outputStream = new FileOutputStream(cacheFile)) {
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                outputStream.write(buffer, 0, length);
+            }
+        }
+
+        if (pdfRenderer != null) {
+            pdfRenderer.close();
+            pdfRenderer = null;
+        }
+        if (parcelFileDescriptor != null) {
+            parcelFileDescriptor.close();
+            parcelFileDescriptor = null;
+        }
+
+        parcelFileDescriptor = ParcelFileDescriptor.open(cacheFile, ParcelFileDescriptor.MODE_READ_ONLY);
+        pdfRenderer = new PdfBoxRenderer(this, parcelFileDescriptor);
 
                 int pageCount = pdfRenderer.getPageCount();
                 pagesWithSignature.clear();
@@ -225,14 +245,6 @@ public class SignPdfActivity extends AppCompatActivity {
                     btnAddSignature.setAlpha(1.0f);
                     Toast.makeText(this, "PDF loaded. Add your signature.", Toast.LENGTH_SHORT).show();
                 });
-
-            } catch (Exception e) {
-                runOnUiThread(() -> {
-                    Toast.makeText(this, "Error loading PDF: " + e.getMessage(), Toast.LENGTH_SHORT).show();
-                });
-                e.printStackTrace();
-            }
-        });
     }
 
     private void showSignatureDialog() {

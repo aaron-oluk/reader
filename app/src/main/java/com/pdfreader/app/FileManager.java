@@ -14,7 +14,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 /**
@@ -176,6 +178,23 @@ public class FileManager {
             case CATEGORY_SIGNATURES: return signaturesFolder;
             default:                  return signedFolder;
         }
+    }
+
+    /** PDFs already saved in the app, newest first. */
+    public List<File> listSavedPdfs() {
+        List<File> pdfs = new ArrayList<>();
+        File[] folders = {scannedFolder, convertedFolder, signedFolder, mergedFolder};
+        for (File folder : folders) {
+            if (folder == null || !folder.isDirectory()) continue;
+            File[] files = folder.listFiles((dir, name) ->
+                    name != null && name.toLowerCase(Locale.US).endsWith(".pdf"));
+            if (files == null) continue;
+            for (File file : files) {
+                if (file.isFile() && file.length() > 0) pdfs.add(file);
+            }
+        }
+        pdfs.sort((a, b) -> Long.compare(b.lastModified(), a.lastModified()));
+        return pdfs;
     }
 
     /** Write directly to app-specific external storage — always succeeds, no permissions. */
