@@ -15,8 +15,10 @@ import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -29,6 +31,8 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
+
+import androidx.exifinterface.media.ExifInterface;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -54,6 +58,7 @@ public class ScanReviewActivity extends AppCompatActivity {
     private View btnShare;
     private View btnPrint;
     private MaterialButton btnSave;
+    private final List<Bitmap> previewPages = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -110,11 +115,15 @@ public class ScanReviewActivity extends AppCompatActivity {
                 List<Bitmap> pages = renderPdfPages(tempPdfFile);
 
                 runOnUiThread(() -> {
+                    pagesRecycler.setAdapter(null);
+                    recyclePreviewPages();
+                    previewPages.addAll(pages);
                     loadingIndicator.setVisibility(View.GONE);
                     pagesRecycler.setVisibility(View.VISIBLE);
                     int n = pages.size();
-                    pageCountText.setText(n + (n == 1 ? " page" : " pages"));
-                    pagesRecycler.setAdapter(new PageBitmapAdapter(pages));
+                    pageCountText.setText(n + (n == 1 ? " page" : " pages")
+                            + " · Crop before saving");
+                    pagesRecycler.setAdapter(new PageBitmapAdapter(pages, this::showCropDialog));
                     btnPrint.setVisibility(View.VISIBLE);
                 });
             } catch (Exception e) {
@@ -332,7 +341,7 @@ public class ScanReviewActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Clean up temp preview file
+        recyclePreviewPages();
         if (tempPdfFile != null && tempPdfFile.exists() && savedFilePath != null) {
             tempPdfFile.delete();
         }
@@ -340,9 +349,17 @@ public class ScanReviewActivity extends AppCompatActivity {
 
     // Simple adapter that shows pre-rendered page Bitmaps
     private static class PageBitmapAdapter extends RecyclerView.Adapter<PageBitmapAdapter.VH> {
-        private final List<Bitmap> pages;
+        interface OnCropPage {
+            void onCrop(int index);
+        }
 
-        PageBitmapAdapter(List<Bitmap> pages) { this.pages = pages; }
+        private final List<Bitmap> pages;
+        private final OnCropPage cropListener;
+
+        PageBitmapAdapter(List<Bitmap> pages, OnCropPage cropListener) {
+            this.pages = pages;
+            this.cropListener = cropListener;
+        }
 
         @NonNull
         @Override
@@ -354,7 +371,15 @@ public class ScanReviewActivity extends AppCompatActivity {
 
         @Override
         public void onBindViewHolder(@NonNull VH h, int pos) {
-            h.image.setImageBitmap(pages.get(pos));
+            Bitmap page = pages.get(pos);
+            if (page != null && !page.isRecycled()) h.image.setImageBitmap(page);
+            else h.image.setImageDrawable(null);
+            h.crop.setOnClickListener(v -> {
+                int index = h.getBindingAdapterPosition();
+                if (index != RecyclerView.NO_POSITION && cropListener != null) {
+                    cropListener.onCrop(index);
+                }
+            });
         }
 
         @Override
@@ -362,10 +387,98 @@ public class ScanReviewActivity extends AppCompatActivity {
 
         static class VH extends RecyclerView.ViewHolder {
             ImageView image;
+            View crop;
             VH(@NonNull View v) {
                 super(v);
                 image = v.findViewById(R.id.page_image);
+                crop = v.findViewById(R.id.btn_crop_page);
             }
         }
+    }
+
+    private void showCropDialog(int index) {
+        if (index < 0 || index >= imagePaths.size()) return;
+        String path = imagePaths.get(index);
+        Bitmap bitmap = decodeScan(path);
+        if (bitmap == null) {
+            Toast.makeText(this, "Could not open this page", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.62f);
+        CropImageView cropView = new CropImageView(this);
+        cropView.setBackgroundColor(Color.BLACK);
+        cropView.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, height));
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Crop page")
+                .setView(cropView)
+                .setPositiveButton("Apply", null)
+                .setNegativeButton("Cancel", null)
+                .create();
+        dialog.setOnShowListener(d -> {
+            cropView.getViewTreeObserver().addOnGlobalLayoutListener(
+                    new ViewTreeObserver.OnGlobalLayoutListener() {
+                        @Override
+                        public void onGlobalLayout() {
+                            if (cropView.getWidth() <= 0) return;
+                            cropView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                            cropView.setImageBitmap(bitmap);
+                        }
+                    });
+            dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+                Bitmap cropped = cropView.getCroppedBitmap();
+                if (cropped == null) {
+                    Toast.makeText(this, "Could not crop this page", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                boolean saved = writeCroppedPage(path, cropped);
+                cropped.recycle();
+                if (!saved) {
+                    Toast.makeText(this, "Could not save the crop", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                dialog.dismiss();
+                generatePreview();
+            });
+        });
+        dialog.setOnDismissListener(d -> {
+            if (!bitmap.isRecycled()) bitmap.recycle();
+        });
+        dialog.show();
+    }
+
+    private boolean writeCroppedPage(String path, Bitmap cropped) {
+        File file = new File(path);
+        File ready = new File(file.getParentFile(), file.getName() + ".crop");
+        try (FileOutputStream fos = new FileOutputStream(ready)) {
+            if (!cropped.compress(Bitmap.CompressFormat.JPEG, 95, fos)) {
+                ready.delete();
+                return false;
+            }
+        } catch (Exception e) {
+            ready.delete();
+            return false;
+        }
+        try {
+            ExifInterface exif = new ExifInterface(ready.getAbsolutePath());
+            exif.setAttribute(ExifInterface.TAG_ORIENTATION,
+                    String.valueOf(ExifInterface.ORIENTATION_NORMAL));
+            exif.saveAttributes();
+        } catch (Exception ignored) {
+        }
+        if (file.exists() && !file.delete()) {
+            ready.delete();
+            return false;
+        }
+        return ready.renameTo(file);
+    }
+
+    private void recyclePreviewPages() {
+        for (Bitmap page : previewPages) {
+            if (page != null && !page.isRecycled()) page.recycle();
+        }
+        previewPages.clear();
     }
 }

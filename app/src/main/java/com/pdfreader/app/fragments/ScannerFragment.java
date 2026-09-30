@@ -106,6 +106,10 @@ public class ScannerFragment extends Fragment {
     private TextView modeManual;
     private boolean manualMode;
     private ExecutorService analysisExecutor;
+    private ExecutorService scanProcessor;
+    private int processingCount;
+    private boolean openReviewWhenReady;
+    private final Object captureLock = new Object();
 
     // Last corners detected by DocumentAnalyzer, used to crop captured images
     private float[] lastDocCorners = null;
@@ -118,8 +122,9 @@ public class ScannerFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
+
         analysisExecutor = Executors.newSingleThreadExecutor();
+        scanProcessor = Executors.newSingleThreadExecutor();
 
         requestPermissionLauncher = registerForActivityResult(
                 new ActivityResultContracts.RequestPermission(),
@@ -213,8 +218,13 @@ public class ScannerFragment extends Fragment {
         // Filmstrip setup
         filmstripAdapter = new ScanFilmstripAdapter(capturedPaths);
         filmstripAdapter.setOnDeleteListener(position -> {
-            capturedImages.remove(position);
-            capturedPaths.remove(position);
+            File removed = capturedImages.remove(position);
+            String removedPath;
+            synchronized (captureLock) {
+                removedPath = capturedPaths.remove(position);
+            }
+            if (removed != null && removed.exists()) removed.delete();
+            if (removedPath != null) filmstripAdapter.setProcessing(removedPath, false);
             filmstripAdapter.notifyItemRemoved(position);
             filmstripAdapter.notifyItemRangeChanged(position, capturedPaths.size());
             updateCapturedImagesUI();
@@ -419,22 +429,14 @@ public class ScannerFragment extends Fragment {
 
     private void setManualMode(boolean manual) {
         manualMode = manual;
-        if (manual) {
-            float[] seed = lastDocCorners != null ? lastDocCorners.clone() : defaultManualQuad();
-            lastDocCorners = seed;
-            documentDetected = true;
-            if (detectorView != null) {
-                detectorView.setInteractive(true);
-                detectorView.setCorners(seed, true);
-            }
-            if (instructionText != null) {
-                instructionText.setText("Drag the corners onto the page edges");
-            }
-        } else if (detectorView != null) {
+        if (detectorView != null) {
             detectorView.setInteractive(false);
-            if (instructionText != null) {
-                instructionText.setText("Align the edges of the page");
-            }
+            detectorView.setVisibility(manual ? View.GONE : View.VISIBLE);
+        }
+        if (instructionText != null) {
+            instructionText.setText(manual
+                    ? "Fit the page in the frame, then scan"
+                    : "Align the edges of the page");
         }
         updateModeChips();
     }
@@ -453,15 +455,6 @@ public class ScannerFragment extends Fragment {
             chip.setBackgroundColor(android.graphics.Color.TRANSPARENT);
             chip.setTextColor(0xB3FFFFFF);
         }
-    }
-
-    private static float[] defaultManualQuad() {
-        return new float[]{
-                0.14f, 0.12f,
-                0.86f, 0.12f,
-                0.86f, 0.88f,
-                0.14f, 0.88f
-        };
     }
 
     private void toggleFlash() {
@@ -484,16 +477,11 @@ public class ScannerFragment extends Fragment {
             return;
         }
 
-        // Snapshot corners at the moment of capture (analyzer keeps updating on background thread)
+        // Manual keeps the framed photo. Auto uses the outline only as a fallback
+        // if detection on the saved bitmap finds nothing.
         final boolean manual = manualMode;
-        final float[] captureCorners;
-        if (manual && detectorView != null && detectorView.getNormalizedCorners() != null) {
-            captureCorners = detectorView.getNormalizedCorners();
-        } else if (documentDetected && lastDocCorners != null) {
-            captureCorners = lastDocCorners.clone();
-        } else {
-            captureCorners = null;
-        }
+        final float[] captureCorners = (!manual && documentDetected && lastDocCorners != null)
+                ? lastDocCorners.clone() : null;
 
         final int displayRotation = cameraPreview.getDisplay() != null
                 ? cameraPreview.getDisplay().getRotation()
@@ -511,19 +499,39 @@ public class ScannerFragment extends Fragment {
                 new ImageCapture.OnImageSavedCallback() {
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        Handler mainHandler = new Handler(Looper.getMainLooper());
-                        new Thread(() -> {
-                            Bitmap page = cropToDocument(photoFile, captureCorners, displayRotation, manual);
+                        if (!isAdded() || filmstripAdapter == null) return;
+                        final String path = photoFile.getAbsolutePath();
+                        capturedImages.add(photoFile);
+                        synchronized (captureLock) {
+                            capturedPaths.add(path);
+                        }
+                        filmstripAdapter.setProcessing(path, true);
+                        int idx = capturedPaths.size() - 1;
+                        filmstripAdapter.notifyItemInserted(idx);
+                        filmstripRecycler.scrollToPosition(idx);
+                        updateCapturedImagesUI();
+                        processingCount++;
+
+                        ExecutorService processor = scanProcessor;
+                        if (processor == null || processor.isShutdown()) {
+                            finishPageProcessing(path);
+                            return;
+                        }
+                        processor.execute(() -> {
+                            boolean kept;
+                            synchronized (captureLock) {
+                                kept = capturedPaths.contains(path);
+                            }
+                            Bitmap page = kept
+                                    ? cropToDocument(photoFile, captureCorners, displayRotation, manual)
+                                    : null;
                             if (page != null) page.recycle();
-                            mainHandler.post(() -> {
-                                capturedImages.add(photoFile);
-                                capturedPaths.add(photoFile.getAbsolutePath());
-                                int idx = capturedPaths.size() - 1;
-                                filmstripAdapter.notifyItemInserted(idx);
-                                filmstripRecycler.scrollToPosition(idx);
-                                updateCapturedImagesUI();
-                            });
-                        }).start();
+                            synchronized (captureLock) {
+                                kept = capturedPaths.contains(path);
+                            }
+                            if (!kept && photoFile.exists()) photoFile.delete();
+                            new Handler(Looper.getMainLooper()).post(() -> finishPageProcessing(path));
+                        });
                     }
 
                     @Override
@@ -563,10 +571,8 @@ public class ScannerFragment extends Fragment {
             }
             src = orientToCapture(src, exifOrientation, displayRotation);
 
-            float[] corners;
-            if (manualCorners && previewCorners != null) {
-                corners = previewCorners;
-            } else {
+            float[] corners = null;
+            if (!manualCorners) {
                 corners = DocumentAnalyzer.detect(src);
                 if (corners == null) corners = previewCorners;
             }
@@ -587,17 +593,25 @@ public class ScannerFragment extends Fragment {
             }
             preprocessDocument(page);
 
-            try (FileOutputStream fos = new FileOutputStream(file)) {
+            // Write beside the original so the filmstrip can keep showing the
+            // shot that was just taken until this page is ready.
+            File ready = new File(file.getParentFile(), file.getName() + ".ready");
+            try (FileOutputStream fos = new FileOutputStream(ready)) {
                 page.compress(Bitmap.CompressFormat.JPEG, 95, fos);
             }
-            // Pixels are already upright for how the phone was held. Clear any
-            // rotation tag so later viewers do not turn the page again.
             try {
-                ExifInterface saved = new ExifInterface(file.getAbsolutePath());
+                ExifInterface saved = new ExifInterface(ready.getAbsolutePath());
                 saved.setAttribute(ExifInterface.TAG_ORIENTATION,
                         String.valueOf(ExifInterface.ORIENTATION_NORMAL));
                 saved.saveAttributes();
             } catch (Exception ignored) {
+            }
+            if (file.exists() && !file.delete()) {
+                ready.delete();
+                return page;
+            }
+            if (!ready.renameTo(file)) {
+                ready.delete();
             }
             return page;
         } catch (Exception e) {
@@ -690,8 +704,8 @@ public class ScannerFragment extends Fragment {
     }
 
     /**
-     * Clears up a scanned page: lifts shadows, neutralizes the paper, stretches
-     * ink-to-paper contrast, then sharpens text edges.
+     * A light cleanup only: a little shadow lift, a small paper-color correction,
+     * a gentle contrast nudge, and a faint edge crisp. Stronger passes wash the page out.
      */
     private static void preprocessDocument(Bitmap src) {
         int w = src.getWidth();
@@ -735,8 +749,9 @@ public class ScannerFragment extends Fragment {
             for (int x = 0; x < w; x++) {
                 float gx = (x + 0.5f) * gw / w - 0.5f;
                 float illum = Math.max(18f, sampleGrid(smooth, gw, gh, gx, gy));
-                float gain = clampFloat(paper / illum, 0.62f, 2.15f);
-                px[row + x] = scaleRgb(px[row + x], gain);
+                float gain = clampFloat(paper / illum, 0.90f, 1.28f);
+                float applied = 1f + (gain - 1f) * 0.45f;
+                px[row + x] = scaleRgb(px[row + x], applied);
             }
         }
     }
@@ -763,9 +778,9 @@ public class ScannerFragment extends Fragment {
         float b = bSum / (float) n;
         float peak = Math.max(r, Math.max(g, b));
         if (peak < 8f) return;
-        float gainR = clampFloat(peak / r, 0.82f, 1.28f);
-        float gainG = clampFloat(peak / g, 0.82f, 1.28f);
-        float gainB = clampFloat(peak / b, 0.82f, 1.28f);
+        float gainR = 1f + (clampFloat(peak / r, 0.94f, 1.08f) - 1f) * 0.5f;
+        float gainG = 1f + (clampFloat(peak / g, 0.94f, 1.08f) - 1f) * 0.5f;
+        float gainB = 1f + (clampFloat(peak / b, 0.94f, 1.08f) - 1f) * 0.5f;
         for (int i = 0; i < px.length; i++) {
             int c = px[i];
             int nr = clampChannel(Math.round(((c >> 16) & 0xFF) * gainR));
@@ -781,17 +796,16 @@ public class ScannerFragment extends Fragment {
         int[] hist = lumaHistogram(px, step);
         int samples = 0;
         for (int i = 0; i < px.length; i += step) samples++;
-        int black = histogramPercentile(hist, samples, 0.04f);
-        int white = histogramPercentile(hist, samples, 0.94f);
+        int black = histogramPercentile(hist, samples, 0.06f);
+        int white = histogramPercentile(hist, samples, 0.92f);
         int range = white - black;
         if (range < 24) return;
-        float strength = range > 185 ? 0.55f : 1f;
+        float strength = range > 160 ? 0.16f : 0.32f;
 
         for (int i = 0; i < px.length; i++) {
             int c = px[i];
             int y = lumaOf(c);
             float t = clampFloat((y - black) / (float) range, 0f, 1f);
-            t = t * t * (3f - 2f * t);
             int curved = Math.round(t * 255f);
             int ny = clampChannel(Math.round(y + (curved - y) * strength));
             int delta = ny - y;
@@ -809,7 +823,7 @@ public class ScannerFragment extends Fragment {
         for (int i = 0; i < n; i++) luma[i] = lumaOf(px[i]);
         int[] blurred = boxBlur(luma, w, h);
         for (int i = 0; i < n; i++) {
-            int delta = Math.round((luma[i] - blurred[i]) * 0.62f);
+            int delta = Math.round((luma[i] - blurred[i]) * 0.22f);
             if (delta == 0) continue;
             int c = px[i];
             int nr = clampChannel(((c >> 16) & 0xFF) + delta);
@@ -991,13 +1005,39 @@ public class ScannerFragment extends Fragment {
         }
     }
     
+    private void finishPageProcessing(String path) {
+        if (filmstripAdapter != null) {
+            filmstripAdapter.setProcessing(path, false);
+            int index;
+            synchronized (captureLock) {
+                index = capturedPaths.indexOf(path);
+            }
+            if (index >= 0) filmstripAdapter.notifyItemChanged(index);
+        }
+        processingCount = Math.max(0, processingCount - 1);
+        if (openReviewWhenReady && processingCount == 0) {
+            openReviewWhenReady = false;
+            openReviewScreen();
+        }
+    }
+
     private void openReviewScreen() {
         if (capturedPaths.isEmpty()) {
             Toast.makeText(getContext(), "No pages to review", Toast.LENGTH_SHORT).show();
             return;
         }
+        if (processingCount > 0) {
+            openReviewWhenReady = true;
+            Toast.makeText(getContext(), "Finishing this page, then opening the preview",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
+        ArrayList<String> paths;
+        synchronized (captureLock) {
+            paths = new ArrayList<>(capturedPaths);
+        }
         Intent intent = new Intent(requireContext(), ScanReviewActivity.class);
-        intent.putStringArrayListExtra(ScanReviewActivity.EXTRA_IMAGE_PATHS, new ArrayList<>(capturedPaths));
+        intent.putStringArrayListExtra(ScanReviewActivity.EXTRA_IMAGE_PATHS, paths);
         reviewLauncher.launch(intent);
     }
 
@@ -1017,6 +1057,10 @@ public class ScannerFragment extends Fragment {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        if (scanProcessor != null) {
+            scanProcessor.shutdownNow();
+            scanProcessor = null;
+        }
         for (File imageFile : capturedImages) {
             if (imageFile.exists()) imageFile.delete();
         }

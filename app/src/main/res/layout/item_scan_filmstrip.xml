@@ -18,6 +18,15 @@
             android:layout_height="match_parent"
             android:scaleType="centerCrop"
             android:contentDescription="Captured page" />
+
+        <ProgressBar
+            android:id="@+id/filmstrip_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_gravity="bottom"
+            android:indeterminate="true"
+            android:visibility="gone" />
     </com.google.android.material.card.MaterialCardView>
 
     <!-- Page number badge -->
