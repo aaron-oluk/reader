@@ -15,10 +15,9 @@ import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -405,28 +404,26 @@ public class ScanReviewActivity extends AppCompatActivity {
             return;
         }
 
-        int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.62f);
+        int height = (int) (getResources().getDisplayMetrics().heightPixels * 0.48f);
+        FrameLayout wrap = new FrameLayout(this);
         CropImageView cropView = new CropImageView(this);
         cropView.setBackgroundColor(Color.BLACK);
-        cropView.setLayoutParams(new LinearLayout.LayoutParams(
+        cropView.setMinimumHeight(height);
+        cropView.setLayoutParams(new FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, height));
+        wrap.addView(cropView);
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Crop page")
-                .setView(cropView)
+                .setView(wrap)
                 .setPositiveButton("Apply", null)
                 .setNegativeButton("Cancel", null)
                 .create();
         dialog.setOnShowListener(d -> {
-            cropView.getViewTreeObserver().addOnGlobalLayoutListener(
-                    new ViewTreeObserver.OnGlobalLayoutListener() {
-                        @Override
-                        public void onGlobalLayout() {
-                            if (cropView.getWidth() <= 0) return;
-                            cropView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
-                            cropView.setImageBitmap(bitmap);
-                        }
-                    });
+            ViewGroup.LayoutParams wrapParams = wrap.getLayoutParams();
+            wrapParams.height = height;
+            wrap.setLayoutParams(wrapParams);
+            cropView.setImageBitmap(bitmap);
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
                 Bitmap cropped = cropView.getCroppedBitmap();
                 if (cropped == null) {

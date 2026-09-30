@@ -33,6 +33,7 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
 
     // Optional initial crop region, in bitmap pixel coordinates, set before setImageBitmap().
     private RectF suggestedBitmapRegion;
+    private boolean userAdjustedCrop;
 
     public void setSuggestedCropRegion(RectF bitmapRegion) {
         this.suggestedBitmapRegion = bitmapRegion;
@@ -70,54 +71,67 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
 
     public void setImageBitmap(Bitmap bm) {
         this.bitmap = bm;
-        if (bm != null) {
-            post(() -> {
-                float viewWidth = getWidth();
-                float viewHeight = getHeight();
-
-                if (viewWidth > 0 && viewHeight > 0 && bitmap != null) {
-                    float bitmapWidth = bitmap.getWidth();
-                    float bitmapHeight = bitmap.getHeight();
-
-                    // Calculate scale to fit
-                    float scaleX = viewWidth / bitmapWidth;
-                    float scaleY = viewHeight / bitmapHeight;
-                    imageScale = Math.min(scaleX, scaleY);
-
-                    float scaledWidth = bitmapWidth * imageScale;
-                    float scaledHeight = bitmapHeight * imageScale;
-
-                    imageTransX = (viewWidth - scaledWidth) / 2f;
-                    imageTransY = (viewHeight - scaledHeight) / 2f;
-
-                    if (suggestedBitmapRegion != null) {
-                        // Use the caller-provided region (e.g. the on-screen capture guide,
-                        // mapped into bitmap coordinates) instead of covering most of the image.
-                        cropRect = new RectF(
-                            imageTransX + suggestedBitmapRegion.left * imageScale,
-                            imageTransY + suggestedBitmapRegion.top * imageScale,
-                            imageTransX + suggestedBitmapRegion.right * imageScale,
-                            imageTransY + suggestedBitmapRegion.bottom * imageScale
-                        );
-                        cropRect.left = Math.max(cropRect.left, imageTransX);
-                        cropRect.top = Math.max(cropRect.top, imageTransY);
-                        cropRect.right = Math.min(cropRect.right, imageTransX + scaledWidth);
-                        cropRect.bottom = Math.min(cropRect.bottom, imageTransY + scaledHeight);
-                    } else {
-                        // Initialize crop rect to cover most of the image
-                        float padding = 40;
-                        cropRect = new RectF(
-                            imageTransX + padding,
-                            imageTransY + padding,
-                            imageTransX + scaledWidth - padding,
-                            imageTransY + scaledHeight - padding
-                        );
-                    }
-
-                    invalidate();
-                }
-            });
+        this.userAdjustedCrop = false;
+        this.cropRect = null;
+        if (bm != null && getWidth() > 0 && getHeight() > 0) {
+            layoutCrop();
+        } else {
+            requestLayout();
         }
+        invalidate();
+    }
+
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+        if (bitmap != null && w > 0 && h > 0 && !userAdjustedCrop) {
+            layoutCrop();
+        }
+    }
+
+    private void layoutCrop() {
+        float viewWidth = getWidth();
+        float viewHeight = getHeight();
+        if (bitmap == null || viewWidth <= 0 || viewHeight <= 0) return;
+
+        float bitmapWidth = bitmap.getWidth();
+        float bitmapHeight = bitmap.getHeight();
+        float scaleX = viewWidth / bitmapWidth;
+        float scaleY = viewHeight / bitmapHeight;
+        imageScale = Math.min(scaleX, scaleY);
+        if (imageScale <= 0f) return;
+
+        float scaledWidth = bitmapWidth * imageScale;
+        float scaledHeight = bitmapHeight * imageScale;
+        imageTransX = (viewWidth - scaledWidth) / 2f;
+        imageTransY = (viewHeight - scaledHeight) / 2f;
+
+        if (suggestedBitmapRegion != null) {
+            cropRect = new RectF(
+                    imageTransX + suggestedBitmapRegion.left * imageScale,
+                    imageTransY + suggestedBitmapRegion.top * imageScale,
+                    imageTransX + suggestedBitmapRegion.right * imageScale,
+                    imageTransY + suggestedBitmapRegion.bottom * imageScale
+            );
+            cropRect.left = Math.max(cropRect.left, imageTransX);
+            cropRect.top = Math.max(cropRect.top, imageTransY);
+            cropRect.right = Math.min(cropRect.right, imageTransX + scaledWidth);
+            cropRect.bottom = Math.min(cropRect.bottom, imageTransY + scaledHeight);
+        } else {
+            float padX = Math.min(40f, scaledWidth * 0.06f);
+            float padY = Math.min(40f, scaledHeight * 0.06f);
+            cropRect = new RectF(
+                    imageTransX + padX,
+                    imageTransY + padY,
+                    imageTransX + scaledWidth - padX,
+                    imageTransY + scaledHeight - padY
+            );
+        }
+        if (cropRect.width() < 2f || cropRect.height() < 2f) {
+            cropRect = new RectF(imageTransX, imageTransY,
+                    imageTransX + scaledWidth, imageTransY + scaledHeight);
+        }
+        invalidate();
     }
 
     @Override
@@ -172,6 +186,7 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
 
             case MotionEvent.ACTION_MOVE:
                 if (activeTouchCorner >= 0) {
+                    userAdjustedCrop = true;
                     updateCropRect(activeTouchCorner, x, y);
                     invalidate();
                     return true;
@@ -227,30 +242,29 @@ public class CropImageView extends androidx.appcompat.widget.AppCompatImageView 
     }
 
     public Bitmap getCroppedBitmap() {
-        if (bitmap == null || bitmap.isRecycled() || cropRect == null) return null;
+        if (bitmap == null || bitmap.isRecycled()) return null;
+        if (cropRect == null) layoutCrop();
+        if (cropRect == null || imageScale <= 0f) return null;
 
         try {
-            // Convert screen coordinates to bitmap coordinates
             float left = (cropRect.left - imageTransX) / imageScale;
             float top = (cropRect.top - imageTransY) / imageScale;
             float right = (cropRect.right - imageTransX) / imageScale;
             float bottom = (cropRect.bottom - imageTransY) / imageScale;
 
-            // Constrain to bitmap bounds
-            left = Math.max(0, left);
-            top = Math.max(0, top);
-            right = Math.min(bitmap.getWidth(), right);
-            bottom = Math.min(bitmap.getHeight(), bottom);
-
-            int width = (int)(right - left);
-            int height = (int)(bottom - top);
+            int x = Math.max(0, Math.round(left));
+            int y = Math.max(0, Math.round(top));
+            int r = Math.min(bitmap.getWidth(), Math.round(right));
+            int b = Math.min(bitmap.getHeight(), Math.round(bottom));
+            int width = r - x;
+            int height = b - y;
 
             if (width <= 0 || height <= 0) {
                 android.util.Log.e("CropImageView", "Invalid crop dimensions: " + width + "x" + height);
                 return null;
             }
 
-            return Bitmap.createBitmap(bitmap, (int)left, (int)top, width, height);
+            return Bitmap.createBitmap(bitmap, x, y, width, height);
         } catch (Exception e) {
             android.util.Log.e("CropImageView", "Error cropping bitmap", e);
             e.printStackTrace();
